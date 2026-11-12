@@ -94,6 +94,17 @@ class AlarmReceiver : BroadcastReceiver() {
                                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                                 )
 
+                                val snoozeIntent = Intent(context, AlarmReceiver::class.java).apply {
+                                    this.action = ACTION_SNOOZE
+                                    putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
+                                }
+                                val snoozePending = PendingIntent.getBroadcast(
+                                    context,
+                                    350000 + alarmId,
+                                    snoozeIntent,
+                                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                                )
+
                                 val contentIntent = Intent(context, MainActivity::class.java).apply {
                                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                                 }
@@ -117,6 +128,11 @@ class AlarmReceiver : BroadcastReceiver() {
                                         android.R.drawable.ic_menu_close_clear_cancel,
                                         "Dismiss Early",
                                         dismissEarlyPending
+                                    )
+                                    .addAction(
+                                        android.R.drawable.ic_popup_reminder,
+                                        "Snooze",
+                                        snoozePending
                                     )
                                     .build()
 

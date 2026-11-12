@@ -15,6 +15,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -101,6 +103,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.statusBarsPadding
 import com.sec.oneui.clock.alarm.data.AlarmEntity
+import com.sec.oneui.clock.alarm.service.AlarmForegroundService
 import com.sec.oneui.clock.settings.SettingsManager
 import com.sec.oneui.clock.settings.ThemeMode
 import com.sec.oneui.clock.theme.ClockTheme
@@ -183,7 +186,26 @@ fun AlarmScreen(
                 fontWeight = FontWeight.Normal,
                 color = palette.textSecondary
             )
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // In-App Ringing Banner (placed cleanly in natural column flow with dedicated spacing)
+            val ringingAlarm by AlarmForegroundService.currentRingingAlarm.collectAsState()
+            AnimatedVisibility(
+                visible = ringingAlarm != null,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                ringingAlarm?.let { alarm ->
+                    Column {
+                        InAppAlarmBanner(
+                            alarm = alarm,
+                            onDismiss = { viewModel.dismissAlarm(it) },
+                            onSnooze = { viewModel.snoozeAlarm(it) }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+            }
 
             if (alarms.isEmpty()) {
                 Box(

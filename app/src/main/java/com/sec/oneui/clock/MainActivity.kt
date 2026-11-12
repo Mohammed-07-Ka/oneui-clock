@@ -92,7 +92,6 @@ import androidx.core.view.WindowCompat
 import kotlin.math.absoluteValue
 import com.sec.oneui.clock.alarm.ui.AlarmScreen
 import com.sec.oneui.clock.alarm.ui.AlarmViewModel
-import com.sec.oneui.clock.alarm.ui.InAppAlarmBanner
 import com.sec.oneui.clock.settings.SettingsManager
 import com.sec.oneui.clock.settings.SettingsScreen
 import com.sec.oneui.clock.stopwatch.ui.StopwatchScreen
@@ -465,19 +464,6 @@ fun MainClockApp(
                                 modifier = Modifier.size(20.dp)
                             )
                         }
-                    }
-
-                    // In-App Ringing Banner floating at top
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .statusBarsPadding()
-                            .fillMaxWidth()
-                    ) {
-                        InAppAlarmBanner(
-                            onDismiss = { alarmViewModel.dismissAlarm(it) },
-                            onSnooze = { alarmViewModel.snoozeAlarm(it) }
-                        )
                     }
                 }
             }
