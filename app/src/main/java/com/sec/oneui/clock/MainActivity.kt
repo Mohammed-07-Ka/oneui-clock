@@ -403,19 +403,22 @@ fun MainClockApp(
                         .fillMaxSize()
                         .padding(bottom = innerPadding.calculateBottomPadding())
                 ) {
-                    // Horizontal Pager with Left/Right Swiping between Alarm, Stopwatch, and Timer with instant iOS physics
+                    val fastFlingBehavior = PagerDefaults.flingBehavior(
+                        state = pagerState,
+                        snapPositionalThreshold = 0.15f,
+                        snapAnimationSpec = tween(
+                            durationMillis = 220,
+                            easing = FastOutSlowInEasing
+                        )
+                    )
+
+                    // Horizontal Pager with Left/Right Swiping between Alarm, Stopwatch, and Timer with instant snappy fling physics
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
                         userScrollEnabled = true,
                         beyondBoundsPageCount = 2,
-                        flingBehavior = PagerDefaults.flingBehavior(
-                            state = pagerState,
-                            snapAnimationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                            )
-                        )
+                        flingBehavior = fastFlingBehavior
                     ) { pageIndex ->
                         Box(
                             modifier = Modifier
