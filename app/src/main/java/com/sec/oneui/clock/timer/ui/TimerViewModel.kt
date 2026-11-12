@@ -2,6 +2,7 @@ package com.sec.oneui.clock.timer.ui
 
 import android.app.Application
 import android.content.Context
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import com.sec.oneui.clock.timer.service.TimerForegroundService
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,6 +11,13 @@ import kotlinx.coroutines.flow.StateFlow
 enum class TimerState {
     IDLE, RUNNING, PAUSED, FINISHED
 }
+
+@Immutable
+data class TimerUiState(
+    val timerState: TimerState = TimerState.IDLE,
+    val remainingMillis: Long = 0L,
+    val totalMillis: Long = 0L
+)
 
 class TimerViewModel(application: Application) : AndroidViewModel(application) {
 

@@ -133,19 +133,29 @@ class AlarmForegroundService : Service() {
         autoSilenceJob = null
         gradualVolumeJob?.cancel()
         gradualVolumeJob = null
+
         try {
-            mediaPlayer?.stop()
-            mediaPlayer?.release()
-            mediaPlayer = null
+            if (mediaPlayer?.isPlaying == true) {
+                mediaPlayer?.stop()
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping media player: ${e.message}")
+        } finally {
+            try {
+                mediaPlayer?.reset()
+                mediaPlayer?.release()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error releasing media player: ${e.message}")
+            }
+            mediaPlayer = null
         }
 
         try {
             vibrator?.cancel()
-            vibrator = null
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping vibration: ${e.message}")
+        } finally {
+            vibrator = null
         }
 
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -168,24 +178,31 @@ class AlarmForegroundService : Service() {
             Log.w(TAG, "Failed setting alarm stream volume: ${e.message}")
         }
 
-        fun createAndStartPlayer(uri: Uri): MediaPlayer {
-            return MediaPlayer().apply {
-                setDataSource(applicationContext, uri)
-                setAudioAttributes(
+        fun createAndStartPlayer(uri: Uri): MediaPlayer? {
+            val player = MediaPlayer()
+            return try {
+                player.setDataSource(applicationContext, uri)
+                player.setAudioAttributes(
                     AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_ALARM)
                         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .build()
                 )
-                isLooping = true
+                player.isLooping = true
                 if (gradualVolume) {
                     val initialVol = (0.05f * targetVolumeFraction).coerceIn(0.01f, targetVolumeFraction)
-                    setVolume(initialVol, initialVol)
+                    player.setVolume(initialVol, initialVol)
                 } else {
-                    setVolume(targetVolumeFraction, targetVolumeFraction)
+                    player.setVolume(targetVolumeFraction, targetVolumeFraction)
                 }
-                prepare()
-                start()
+                player.prepare()
+                player.start()
+                player
+            } catch (e: Exception) {
+                try {
+                    player.release()
+                } catch (_: Exception) {}
+                null
             }
         }
 
@@ -199,9 +216,12 @@ class AlarmForegroundService : Service() {
 
             for (uriStr in candidateUris) {
                 try {
-                    mediaPlayer = createAndStartPlayer(Uri.parse(uriStr))
-                    playerStarted = true
-                    break
+                    val p = createAndStartPlayer(Uri.parse(uriStr))
+                    if (p != null) {
+                        mediaPlayer = p
+                        playerStarted = true
+                        break
+                    }
                 } catch (e: Exception) {
                     Log.w(TAG, "Failed playing ringtone ($uriStr): ${e.message}")
                 }
@@ -212,8 +232,11 @@ class AlarmForegroundService : Service() {
                     ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
                 if (defaultUri != null) {
                     try {
-                        mediaPlayer = createAndStartPlayer(defaultUri)
-                        playerStarted = true
+                        val p = createAndStartPlayer(defaultUri)
+                        if (p != null) {
+                            mediaPlayer = p
+                            playerStarted = true
+                        }
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed playing default alarm: ${e.message}")
                     }

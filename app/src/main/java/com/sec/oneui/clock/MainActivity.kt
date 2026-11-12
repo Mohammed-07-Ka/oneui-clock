@@ -69,6 +69,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -210,9 +211,13 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@Immutable
 sealed class ClockTab(val index: Int, val title: String, val icon: ImageVector) {
+    @Immutable
     data object Alarm : ClockTab(0, "Alarm", Icons.Default.Alarm)
+    @Immutable
     data object Stopwatch : ClockTab(1, "Stopwatch", Icons.Default.Timer)
+    @Immutable
     data object Timer : ClockTab(2, "Timer", Icons.Default.HourglassBottom)
 
     companion object {

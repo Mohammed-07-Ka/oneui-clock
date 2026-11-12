@@ -1,6 +1,7 @@
 package com.sec.oneui.clock.stopwatch.ui
 
 import android.os.SystemClock
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+@Immutable
 data class LapItem(
     val lapIndex: Int,
     val lapTimeMillis: Long,
@@ -33,6 +35,13 @@ data class LapItem(
         }
     }
 }
+
+@Immutable
+data class StopwatchUiState(
+    val stopwatchState: StopwatchState = StopwatchState.IDLE,
+    val elapsedMillis: Long = 0L,
+    val laps: List<LapItem> = emptyList()
+)
 
 enum class StopwatchState {
     IDLE, RUNNING, PAUSED

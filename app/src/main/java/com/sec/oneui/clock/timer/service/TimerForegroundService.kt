@@ -439,21 +439,28 @@ class TimerForegroundService : Service() {
             val alertUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
-            mediaPlayer = MediaPlayer().apply {
-                setDataSource(applicationContext, alertUri)
-                setAudioAttributes(
+            val player = MediaPlayer()
+            try {
+                player.setDataSource(applicationContext, alertUri)
+                player.setAudioAttributes(
                     AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_ALARM)
                         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .build()
                 )
-                isLooping = true
-                setVolume(customVolume, customVolume)
-                prepare()
-                start()
+                player.isLooping = true
+                player.setVolume(customVolume, customVolume)
+                player.prepare()
+                player.start()
+                mediaPlayer = player
+            } catch (e: Exception) {
+                try {
+                    player.release()
+                } catch (_: Exception) {}
+                Log.e(TAG, "Error playing alert tone: ${e.message}")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error playing alert tone: ${e.message}")
+            Log.e(TAG, "Error setting up alert tone: ${e.message}")
         }
     }
 
@@ -494,27 +501,37 @@ class TimerForegroundService : Service() {
 
     private fun stopAlertSoundAndVibration() {
         try {
-            mediaPlayer?.stop()
-            mediaPlayer?.release()
-            mediaPlayer = null
+            if (mediaPlayer?.isPlaying == true) {
+                mediaPlayer?.stop()
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping media player: ${e.message}")
+        } finally {
+            try {
+                mediaPlayer?.reset()
+                mediaPlayer?.release()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error releasing media player: ${e.message}")
+            }
+            mediaPlayer = null
         }
 
         try {
             vibrator?.cancel()
-            vibrator = null
         } catch (e: Exception) {
             Log.e(TAG, "Error cancelling vibrator: ${e.message}")
+        } finally {
+            vibrator = null
         }
 
         try {
             wakeLock?.let {
                 if (it.isHeld) it.release()
             }
-            wakeLock = null
         } catch (e: Exception) {
             Log.w(TAG, "Error releasing wake lock: ${e.message}")
+        } finally {
+            wakeLock = null
         }
     }
 
@@ -549,10 +566,11 @@ class TimerForegroundService : Service() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         tickerJob?.cancel()
+        tickerJob = null
         serviceScope.cancel()
         stopAlertSoundAndVibration()
         _timerState.value = TimerState.IDLE
+        super.onDestroy()
     }
 }

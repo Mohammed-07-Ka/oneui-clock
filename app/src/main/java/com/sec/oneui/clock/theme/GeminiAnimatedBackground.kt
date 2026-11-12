@@ -12,12 +12,22 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sec.oneui.clock.settings.ThemeMode
 import kotlin.math.PI
 import kotlin.math.cos
@@ -33,8 +43,11 @@ import kotlin.math.sin
  * 3. AMOLED Pitch: 100% Pure OLED Black (#000000) with no mesh.
  *
  * Performance:
- * Animated values (phaseState & groundColorState) are read exclusively within DrawScope (drawBehind),
- * bypassing Composition and Layout passes to eliminate UI lag and guarantee 60-120 FPS rendering.
+ * - Animated values (phaseState & groundColorState) are read exclusively within DrawScope (drawBehind),
+ *   bypassing Composition and Layout passes to eliminate UI lag and guarantee 60-120 FPS rendering.
+ * - Lifecycle-aware: pauses animation updates when stopped or backgrounded.
+ * - Keyed by animation speed to immediately update cycle duration without app restart.
+ * - Static gradient mode when mesh motion is disabled, consuming 0% CPU.
  */
 @Composable
 fun GeminiAnimatedBackground(
@@ -44,26 +57,52 @@ fun GeminiAnimatedBackground(
     animationSpeed: Float = 1.0f,
     content: @Composable BoxScope.() -> Unit = {}
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "auroraMeshClock")
-
-    val cycleDurationMs = remember(animationSpeed) {
-        val safeSpeed = animationSpeed.coerceIn(0.2f, 3.0f)
-        (22_000L / safeSpeed).toInt()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var isResumed by remember {
+        mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
     }
 
-    // Keep as State<Float> - never read .value during Composition to prevent recomposition loops
-    val phaseState = if (animationEnabled) {
-        infiniteTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = (2 * PI).toFloat(),
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = cycleDurationMs, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart
-            ),
-            label = "phase"
-        )
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> isResumed = true
+                Lifecycle.Event.ON_PAUSE, Lifecycle.Event.ON_STOP, Lifecycle.Event.ON_DESTROY -> isResumed = false
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // Explicit and perceivable cycle durations:
+    // Slow (Eco): 20,000ms
+    // Normal: 8,000ms
+    // Dynamic: 3,500ms
+    val cycleDurationMs = when {
+        animationSpeed <= 0.65f -> 20_000
+        animationSpeed >= 1.35f -> 3_500
+        else -> 8_000
+    }
+
+    // Only instantiate and run InfiniteTransition when animation is enabled AND screen is resumed
+    // key(animationSpeed) ensures recreation immediately on speed change
+    val phaseState: State<Float>? = if (animationEnabled && isResumed) {
+        key(animationSpeed) {
+            val infiniteTransition = rememberInfiniteTransition(label = "auroraMeshClock")
+            infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = (2 * PI).toFloat(),
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = cycleDurationMs, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "phase"
+            )
+        }
     } else {
-        remember { androidx.compose.runtime.mutableFloatStateOf(0.85f) }
+        null
     }
 
     val targetGroundColor = when (themeMode) {
@@ -95,111 +134,213 @@ fun GeminiAnimatedBackground(
                     return@drawBehind
                 }
 
-                // 2. Read animated phase exclusively in DrawScope -> ZERO Recompositions
-                val animatedPhase = phaseState.value
-
-                when (themeMode) {
-                    ThemeMode.AURORA_PURPLE -> {
-                        // Aurora Purple: 85% Deep Pitch Black (#030207) with subdued, darker deep violet glows (#4C1D95 & #3B0764)
-                        val meshRadius = width * 0.75f
-
-                        // Orb 1: Deep Violet (#4C1D95 @ 0.18f) undulating top-left to center
-                        val orb1X = width * (0.30f + 0.15f * sin(animatedPhase))
-                        val orb1Y = height * (0.24f + 0.12f * cos(animatedPhase * 0.8f))
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    Color(0xFF4C1D95).copy(alpha = 0.18f),
-                                    Color(0xFF3B0764).copy(alpha = 0.08f),
-                                    Color.Transparent
-                                ),
-                                center = Offset(orb1X, orb1Y),
-                                radius = meshRadius
-                            ),
-                            radius = meshRadius,
-                            center = Offset(orb1X, orb1Y)
-                        )
-
-                        // Orb 2: Deep Dark Wine Purple (#3B0764 @ 0.16f) undulating bottom-right
-                        val orb2X = width * (0.74f + 0.14f * cos(animatedPhase * 1.1f))
-                        val orb2Y = height * (0.68f + 0.12f * sin(animatedPhase * 0.9f))
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    Color(0xFF3B0764).copy(alpha = 0.16f),
-                                    Color(0xFF1E0B36).copy(alpha = 0.08f),
-                                    Color.Transparent
-                                ),
-                                center = Offset(orb2X, orb2Y),
-                                radius = meshRadius
-                            ),
-                            radius = meshRadius,
-                            center = Offset(orb2X, orb2Y)
-                        )
-
-                        // Orb 3: Subtle ambient glow (#4C1D95 @ 0.12f) undulating mid-screen
-                        val orb3X = width * (0.50f + 0.18f * sin(animatedPhase * 0.7f + 1.2f))
-                        val orb3Y = height * (0.46f + 0.10f * cos(animatedPhase * 1.2f))
-                        val ambientRadius = width * 0.65f
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    Color(0xFF4C1D95).copy(alpha = 0.12f),
-                                    Color.Transparent
-                                ),
-                                center = Offset(orb3X, orb3Y),
-                                radius = ambientRadius
-                            ),
-                            radius = ambientRadius,
-                            center = Offset(orb3X, orb3Y)
-                        )
-                    }
-
-                    ThemeMode.MIDNIGHT_BLUE -> {
-                        // Midnight Blue: Black is dominant (65%+).
-                        // Subdued, darker deep blue & purple glows covering only 30-35% in corners.
-                        val localizedRadius = width * 0.60f
-
-                        // Deep Indigo Blue (#1D4ED8 @ 0.22f) in top-right corner
-                        val orb1X = width * (0.82f + 0.08f * sin(animatedPhase))
-                        val orb1Y = height * (0.22f + 0.08f * cos(animatedPhase * 0.8f))
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    Color(0xFF1D4ED8).copy(alpha = 0.22f),
-                                    Color(0xFF1E3A8A).copy(alpha = 0.10f),
-                                    Color.Transparent
-                                ),
-                                center = Offset(orb1X, orb1Y),
-                                radius = localizedRadius
-                            ),
-                            radius = localizedRadius,
-                            center = Offset(orb1X, orb1Y)
-                        )
-
-                        // Deep Dark Purple (#4C1D95 @ 0.20f) in bottom-left corner
-                        val orb2X = width * (0.20f + 0.08f * cos(animatedPhase * 1.1f))
-                        val orb2Y = height * (0.78f + 0.08f * sin(animatedPhase * 0.9f))
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    Color(0xFF4C1D95).copy(alpha = 0.20f),
-                                    Color(0xFF3B0764).copy(alpha = 0.08f),
-                                    Color.Transparent
-                                ),
-                                center = Offset(orb2X, orb2Y),
-                                radius = localizedRadius
-                            ),
-                            radius = localizedRadius,
-                            center = Offset(orb2X, orb2Y)
-                        )
-                    }
-
-                    ThemeMode.AMOLED_PITCH -> {}
+                // 2. If animation is disabled, render static gradient brush with 0% CPU consumption
+                if (!animationEnabled) {
+                    drawStaticMesh(themeMode, width, height)
+                    return@drawBehind
                 }
+
+                // 3. Read animated phase exclusively in DrawScope -> ZERO Recompositions
+                val animatedPhase = phaseState?.value ?: 0.85f
+                drawAnimatedMesh(themeMode, width, height, animatedPhase)
             }
     ) {
-        // Host content
         content()
+    }
+}
+
+private fun DrawScope.drawStaticMesh(themeMode: ThemeMode, width: Float, height: Float) {
+    when (themeMode) {
+        ThemeMode.AURORA_PURPLE -> {
+            val meshRadius = width * 0.75f
+            val orb1X = width * 0.35f
+            val orb1Y = height * 0.28f
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF4C1D95).copy(alpha = 0.18f),
+                        Color(0xFF3B0764).copy(alpha = 0.08f),
+                        Color.Transparent
+                    ),
+                    center = Offset(orb1X, orb1Y),
+                    radius = meshRadius
+                ),
+                radius = meshRadius,
+                center = Offset(orb1X, orb1Y)
+            )
+
+            val orb2X = width * 0.70f
+            val orb2Y = height * 0.65f
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF3B0764).copy(alpha = 0.16f),
+                        Color(0xFF1E0B36).copy(alpha = 0.08f),
+                        Color.Transparent
+                    ),
+                    center = Offset(orb2X, orb2Y),
+                    radius = meshRadius
+                ),
+                radius = meshRadius,
+                center = Offset(orb2X, orb2Y)
+            )
+
+            val ambientRadius = width * 0.65f
+            val orb3X = width * 0.50f
+            val orb3Y = height * 0.46f
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF4C1D95).copy(alpha = 0.12f),
+                        Color.Transparent
+                    ),
+                    center = Offset(orb3X, orb3Y),
+                    radius = ambientRadius
+                ),
+                radius = ambientRadius,
+                center = Offset(orb3X, orb3Y)
+            )
+        }
+
+        ThemeMode.MIDNIGHT_BLUE -> {
+            val localizedRadius = width * 0.60f
+            val orb1X = width * 0.80f
+            val orb1Y = height * 0.20f
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF1D4ED8).copy(alpha = 0.22f),
+                        Color(0xFF1E3A8A).copy(alpha = 0.10f),
+                        Color.Transparent
+                    ),
+                    center = Offset(orb1X, orb1Y),
+                    radius = localizedRadius
+                ),
+                radius = localizedRadius,
+                center = Offset(orb1X, orb1Y)
+            )
+
+            val orb2X = width * 0.20f
+            val orb2Y = height * 0.80f
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF4C1D95).copy(alpha = 0.20f),
+                        Color(0xFF3B0764).copy(alpha = 0.08f),
+                        Color.Transparent
+                    ),
+                    center = Offset(orb2X, orb2Y),
+                    radius = localizedRadius
+                ),
+                radius = localizedRadius,
+                center = Offset(orb2X, orb2Y)
+            )
+        }
+
+        ThemeMode.AMOLED_PITCH -> {}
+    }
+}
+
+private fun DrawScope.drawAnimatedMesh(
+    themeMode: ThemeMode,
+    width: Float,
+    height: Float,
+    animatedPhase: Float
+) {
+    when (themeMode) {
+        ThemeMode.AURORA_PURPLE -> {
+            val meshRadius = width * 0.75f
+
+            // Orb 1: Deep Violet (#4C1D95 @ 0.18f) undulating top-left to center
+            val orb1X = width * (0.30f + 0.15f * sin(animatedPhase))
+            val orb1Y = height * (0.24f + 0.12f * cos(animatedPhase * 0.8f))
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF4C1D95).copy(alpha = 0.18f),
+                        Color(0xFF3B0764).copy(alpha = 0.08f),
+                        Color.Transparent
+                    ),
+                    center = Offset(orb1X, orb1Y),
+                    radius = meshRadius
+                ),
+                radius = meshRadius,
+                center = Offset(orb1X, orb1Y)
+            )
+
+            // Orb 2: Deep Dark Wine Purple (#3B0764 @ 0.16f) undulating bottom-right
+            val orb2X = width * (0.74f + 0.14f * cos(animatedPhase * 1.1f))
+            val orb2Y = height * (0.68f + 0.12f * sin(animatedPhase * 0.9f))
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF3B0764).copy(alpha = 0.16f),
+                        Color(0xFF1E0B36).copy(alpha = 0.08f),
+                        Color.Transparent
+                    ),
+                    center = Offset(orb2X, orb2Y),
+                    radius = meshRadius
+                ),
+                radius = meshRadius,
+                center = Offset(orb2X, orb2Y)
+            )
+
+            // Orb 3: Subtle ambient glow (#4C1D95 @ 0.12f) undulating mid-screen
+            val orb3X = width * (0.50f + 0.18f * sin(animatedPhase * 0.7f + 1.2f))
+            val orb3Y = height * (0.46f + 0.10f * cos(animatedPhase * 1.2f))
+            val ambientRadius = width * 0.65f
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF4C1D95).copy(alpha = 0.12f),
+                        Color.Transparent
+                    ),
+                    center = Offset(orb3X, orb3Y),
+                    radius = ambientRadius
+                ),
+                radius = ambientRadius,
+                center = Offset(orb3X, orb3Y)
+            )
+        }
+
+        ThemeMode.MIDNIGHT_BLUE -> {
+            val localizedRadius = width * 0.60f
+
+            // Deep Indigo Blue (#1D4ED8 @ 0.22f) in top-right corner
+            val orb1X = width * (0.82f + 0.08f * sin(animatedPhase))
+            val orb1Y = height * (0.22f + 0.08f * cos(animatedPhase * 0.8f))
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF1D4ED8).copy(alpha = 0.22f),
+                        Color(0xFF1E3A8A).copy(alpha = 0.10f),
+                        Color.Transparent
+                    ),
+                    center = Offset(orb1X, orb1Y),
+                    radius = localizedRadius
+                ),
+                radius = localizedRadius,
+                center = Offset(orb1X, orb1Y)
+            )
+
+            // Deep Dark Purple (#4C1D95 @ 0.20f) in bottom-left corner
+            val orb2X = width * (0.20f + 0.08f * cos(animatedPhase * 1.1f))
+            val orb2Y = height * (0.78f + 0.08f * sin(animatedPhase * 0.9f))
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF4C1D95).copy(alpha = 0.20f),
+                        Color(0xFF3B0764).copy(alpha = 0.08f),
+                        Color.Transparent
+                    ),
+                    center = Offset(orb2X, orb2Y),
+                    radius = localizedRadius
+                ),
+                radius = localizedRadius,
+                center = Offset(orb2X, orb2Y)
+            )
+        }
+
+        ThemeMode.AMOLED_PITCH -> {}
     }
 }
