@@ -381,7 +381,7 @@ fun MainClockApp(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
                         userScrollEnabled = true,
-                        beyondViewportPageCount = 2,
+                        beyondBoundsPageCount = 2,
                         flingBehavior = PagerDefaults.flingBehavior(
                             state = pagerState,
                             snapAnimationSpec = spring(
