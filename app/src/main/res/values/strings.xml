@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Clock</string>
+    <string name="tab_alarm">Alarm</string>
+    <string name="tab_world_clock">World Clock</string>
+    <string name="tab_stopwatch">Stopwatch</string>
+    <string name="tab_timer">Timer</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="snooze">Snooze</string>
+</resources>

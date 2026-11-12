@@ -1,0 +1,98 @@
+# ===================================================
+# Android & Gradle Build Outputs
+# ===================================================
+.gradle/
+build/
+app/build/
+*.iml
+.idea/
+local.properties
+.navigation/
+captures/
+.externalNativeBuild/
+.cxx/
+output.json
+
+# ===================================================
+# REA Repository & Analysis Files (Excluded)
+# ===================================================
+node_modules/
+third_party/
+tests/
+src/
+scripts/
+bridge/
+docs/
+native/
+experiments/
+licenses/
+website/
+scratch_unpack/
+dist/
+.agents/
+.husky/
+.kotlin/
+.turbo/
+.cache/
+.gitattributes
+.gitmodules
+.oxfmtrc.json
+.oxlintrc.json
+.jscpd.json
+.npmrc
+.nvmrc
+.release-please-manifest.json
+release-please-config.json
+server.json
+knip.json
+stryker*.mjs
+vitest*.ts
+tsconfig*.json
+package.json
+package-lock.json
+install.sh
+flowdown.py
+clock.apk
+emulator_screen.png
+
+# REA Github files
+.github/*
+!.github/workflows/
+.github/workflows/*
+!.github/workflows/build.yml
+
+# Common scripts, docs, and configs from REA
+*.py
+*.mjs
+*.ts
+*.js
+*.json
+*.jsonl
+*.md
+SKILL.md
+AGENTS.md
+CONTRIBUTING.md
+CHANGELOG.md
+SECURITY.md
+DISCLAIMER.md
+THIRD_PARTY_NOTICES.md
+LICENSE
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# ===================================================
+# Whitelist Android Project & Build Files
+# ===================================================
+!app/
+!app/**
+!build.gradle.kts
+!settings.gradle.kts
+!gradle.properties
+!gradlew
+!gradlew.bat
+!gradle/
+!gradle/wrapper/gradle-wrapper.properties
+!.github/workflows/build.yml
+!.gitignore
