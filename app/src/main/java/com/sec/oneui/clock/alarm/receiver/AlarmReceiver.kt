@@ -27,7 +27,6 @@ class AlarmReceiver : BroadcastReceiver() {
         const val ACTION_SNOOZE = "com.sec.oneui.clock.ACTION_SNOOZE_ALARM"
         const val UPCOMING_CHANNEL_ID = "upcoming_alarms_channel"
     }
-    }
 
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
