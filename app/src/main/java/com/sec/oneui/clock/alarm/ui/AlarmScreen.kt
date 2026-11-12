@@ -65,6 +65,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -437,7 +438,7 @@ fun AlarmEditSheet(
                             .size(42.dp)
                             .clip(CircleShape)
                             .background(if (isSelected) GeminiPurple else GeminiGlassBackgroundDark)
-                            .border(1.dp, if (isSelected) BorderStroke(1.dp, Color.White) else BorderStroke(1.dp, GeminiGlassBorderGradientDark), CircleShape)
+                            .border(1.dp, if (isSelected) SolidColor(Color.White) else GeminiGlassBorderGradientDark, CircleShape)
                             .clickable {
                                 selectedDays = if (isSelected) {
                                     selectedDays - dayNum
