@@ -48,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -305,8 +306,8 @@ fun AlarmRingingScreen(
                             )
                             .border(
                                 2.dp,
-                                if (dismissProgress > 0f) OneUiRed.copy(alpha = 0.8f)
-                                else if (snoozeProgress > 0f) Color(0xFF60A5FA)
+                                if (dismissProgress > 0f) SolidColor(OneUiRed.copy(alpha = 0.8f))
+                                else if (snoozeProgress > 0f) SolidColor(Color(0xFF60A5FA))
                                 else palette.cardBorder,
                                 CircleShape
                             )
