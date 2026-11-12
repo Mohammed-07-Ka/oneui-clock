@@ -306,7 +306,7 @@ fun MainClockApp(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
                         userScrollEnabled = true,
-                        beyondViewportPageCount = 2
+                        beyondBoundsPageCount = 2
                     ) { pageIndex ->
                         when (pageIndex) {
                             0 -> AlarmScreen(viewModel = alarmViewModel)
