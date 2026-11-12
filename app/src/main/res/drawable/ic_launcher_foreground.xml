@@ -4,63 +4,66 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Clock Face Dial (Crisp White Circle with subtle elevation shadow) -->
+    <!-- Clock Face Dial (Crisp Pure White Circle with soft elevation) -->
     <path
-        android:fillColor="#15000000"
-        android:pathData="M54,55m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0" />
+        android:fillColor="#22000000"
+        android:pathData="M54,56m-31,0a31,31 0,1 1,62 0a31,31 0,1 1,-62 0" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,54m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0" />
+        android:pathData="M54,54m-31,0a31,31 0,1 1,62 0a31,31 0,1 1,-62 0" />
 
-    <!-- Subtle Hour Markers (12, 3, 6, 9) -->
+    <!-- Subtle Hour Markers (12, 3, 6, 9) in Soft Lavender/Slate -->
     <path
         android:strokeColor="#CBD5E1"
         android:strokeWidth="2"
         android:strokeLineCap="round"
-        android:pathData="M54,28 L54,32" />
+        android:pathData="M54,27 L54,31" />
     <path
         android:strokeColor="#CBD5E1"
         android:strokeWidth="2"
         android:strokeLineCap="round"
-        android:pathData="M54,76 L54,80" />
+        android:pathData="M54,77 L54,81" />
     <path
         android:strokeColor="#CBD5E1"
         android:strokeWidth="2"
         android:strokeLineCap="round"
-        android:pathData="M80,54 L76,54" />
+        android:pathData="M81,54 L77,54" />
     <path
         android:strokeColor="#CBD5E1"
         android:strokeWidth="2"
         android:strokeLineCap="round"
-        android:pathData="M32,54 L28,54" />
+        android:pathData="M31,54 L27,54" />
 
-    <!-- Hour Hand (pointing to 10:10) -->
+    <!-- Hour Hand (pointing towards 10 o'clock) -->
     <path
-        android:strokeColor="#1E293B"
+        android:strokeColor="#1E1035"
         android:strokeWidth="3.6"
         android:strokeLineCap="round"
         android:pathData="M54,54 L42,42" />
 
-    <!-- Minute Hand (pointing to 10:10) -->
+    <!-- Minute Hand (pointing towards 2 o'clock) -->
     <path
-        android:strokeColor="#1E293B"
+        android:strokeColor="#1E1035"
         android:strokeWidth="2.8"
         android:strokeLineCap="round"
         android:pathData="M54,54 L68,38" />
 
-    <!-- Second Hand (One UI vibrant orange accent with tail) -->
+    <!-- Center Pivot Pin in Radiant Gemini Purple -->
     <path
-        android:strokeColor="#FF5722"
-        android:strokeWidth="1.5"
-        android:strokeLineCap="round"
-        android:pathData="M51,57 L60,46 M51,57 L49,60" />
-
-    <!-- Center Pivot Pin -->
-    <path
-        android:fillColor="#FF5722"
+        android:fillColor="#8B5CF6"
         android:pathData="M54,54m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M54,54m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
+
+    <!-- Iconic Glowing 4-Point Gemini Spark Star (✦) -->
+    <!-- Star centered at (67, 67), radius 8 -->
+    <path
+        android:fillColor="#8B5CF6"
+        android:pathData="M67,59 Q67,67 75,67 Q67,67 67,75 Q67,67 59,67 Q67,67 67,59 Z" />
+    <!-- Inner glowing white core for the Gemini Star -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M67,63 Q67,67 71,67 Q67,67 67,71 Q67,67 63,67 Q67,67 67,63 Z" />
 
 </vector>

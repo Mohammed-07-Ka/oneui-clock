@@ -1,6 +1,7 @@
 package com.sec.oneui.clock.stopwatch.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,13 +12,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,18 +24,19 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sec.oneui.clock.theme.OneUiBlack
-import com.sec.oneui.clock.theme.OneUiBlue
-import com.sec.oneui.clock.theme.OneUiCard
-import com.sec.oneui.clock.theme.OneUiCardHover
-import com.sec.oneui.clock.theme.OneUiDivider
+import com.sec.oneui.clock.theme.GeminiCyanSparkle
+import com.sec.oneui.clock.theme.GeminiGlassBackgroundDark
+import com.sec.oneui.clock.theme.GeminiGlassBackgroundHover
+import com.sec.oneui.clock.theme.GeminiGlassBorderGradientDark
+import com.sec.oneui.clock.theme.GeminiLavender
+import com.sec.oneui.clock.theme.GeminiPurple
 import com.sec.oneui.clock.theme.OneUiGreen
-import com.sec.oneui.clock.theme.OneUiOrange
 import com.sec.oneui.clock.theme.OneUiRed
 import com.sec.oneui.clock.theme.OneUiTextPrimary
 import com.sec.oneui.clock.theme.OneUiTextSecondary
@@ -58,10 +58,10 @@ fun StopwatchScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(OneUiBlack)
+            .background(Color.Transparent)
             .padding(horizontal = 20.dp)
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(18.dp))
         Text(
             text = "Stopwatch",
             fontSize = 34.sp,
@@ -69,24 +69,32 @@ fun StopwatchScreen(
             color = OneUiTextPrimary
         )
 
-        // Time Display Area
+        // Time Display Area with Glassmorphism
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(0.7f),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = formattedTime,
-                fontSize = 58.sp,
-                fontWeight = FontWeight.Medium,
-                fontFamily = FontFamily.Monospace,
-                color = OneUiTextPrimary,
-                letterSpacing = (-1).sp
-            )
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(32.dp))
+                    .background(GeminiGlassBackgroundDark)
+                    .border(1.dp, GeminiGlassBorderGradientDark, RoundedCornerShape(32.dp))
+                    .padding(horizontal = 28.dp, vertical = 20.dp)
+            ) {
+                Text(
+                    text = formattedTime,
+                    fontSize = 52.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = FontFamily.Monospace,
+                    color = Color.White,
+                    letterSpacing = (-1).sp
+                )
+            }
         }
 
-        // Action Buttons Row
+        // Action Buttons Row with Gemini colors
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -101,7 +109,7 @@ fun StopwatchScreen(
                             .fillMaxWidth()
                             .height(58.dp),
                         shape = RoundedCornerShape(29.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = OneUiOrange)
+                        colors = ButtonDefaults.buttonColors(containerColor = GeminiPurple)
                     ) {
                         Text("Start", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
@@ -113,9 +121,9 @@ fun StopwatchScreen(
                             .weight(1f)
                             .height(58.dp),
                         shape = RoundedCornerShape(29.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = OneUiCardHover)
+                        colors = ButtonDefaults.buttonColors(containerColor = GeminiGlassBackgroundHover)
                     ) {
-                        Text("Lap", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = OneUiTextPrimary)
+                        Text("Lap", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
                     }
 
                     Button(
@@ -136,9 +144,9 @@ fun StopwatchScreen(
                             .weight(1f)
                             .height(58.dp),
                         shape = RoundedCornerShape(29.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = OneUiCardHover)
+                        colors = ButtonDefaults.buttonColors(containerColor = GeminiGlassBackgroundHover)
                     ) {
-                        Text("Reset", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = OneUiTextPrimary)
+                        Text("Reset", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = GeminiLavender)
                     }
 
                     Button(
@@ -147,7 +155,7 @@ fun StopwatchScreen(
                             .weight(1f)
                             .height(58.dp),
                         shape = RoundedCornerShape(29.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = OneUiOrange)
+                        colors = ButtonDefaults.buttonColors(containerColor = GeminiPurple)
                     ) {
                         Text("Resume", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
@@ -155,64 +163,75 @@ fun StopwatchScreen(
             }
         }
 
-        // Lap Times Table
+        // Lap Times Table Glass Container
         if (laps.isNotEmpty()) {
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .weight(1f)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(GeminiGlassBackgroundDark)
+                    .border(1.dp, GeminiGlassBorderGradientDark, RoundedCornerShape(24.dp))
+                    .padding(16.dp)
             ) {
-                Text("Lap", color = OneUiTextSecondary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                Text("Lap times", color = OneUiTextSecondary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                Text("Overall time", color = OneUiTextSecondary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-            }
-            HorizontalDivider(color = OneUiDivider)
-
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentPadding = PaddingValues(bottom = 96.dp)
-            ) {
-                items(laps, key = { it.lapIndex }) { lap ->
-                    val lapColor = when (lap.lapIndex) {
-                        fastestLapIndex -> OneUiGreen
-                        slowestLapIndex -> OneUiRed
-                        else -> OneUiTextPrimary
-                    }
-
+                Column {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = String.format("%02d", lap.lapIndex),
-                            color = OneUiTextSecondary,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "+${lap.formatLapTime()}",
-                            color = lapColor,
-                            fontSize = 16.sp,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = lap.formatTotalTime(),
-                            color = OneUiTextSecondary,
-                            fontSize = 16.sp,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Normal
-                        )
+                        Text("Lap", color = GeminiLavender, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Lap times", color = GeminiLavender, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Overall time", color = GeminiLavender, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                     }
-                    HorizontalDivider(color = OneUiDivider)
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(bottom = 60.dp)
+                    ) {
+                        items(laps, key = { it.lapIndex }) { lap ->
+                            val lapColor = when (lap.lapIndex) {
+                                fastestLapIndex -> OneUiGreen
+                                slowestLapIndex -> OneUiRed
+                                else -> Color.White
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = String.format("%02d", lap.lapIndex),
+                                    color = GeminiLavender,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "+${lap.formatLapTime()}",
+                                    color = lapColor,
+                                    fontSize = 16.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = lap.formatTotalTime(),
+                                    color = GeminiLavender.copy(alpha = 0.8f),
+                                    fontSize = 16.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Normal
+                                )
+                            }
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+                        }
+                    }
                 }
             }
+            Spacer(modifier = Modifier.height(80.dp))
         } else {
             Spacer(modifier = Modifier.weight(1f))
         }

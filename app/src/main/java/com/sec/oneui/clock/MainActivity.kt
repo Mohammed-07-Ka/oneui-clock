@@ -14,12 +14,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.HourglassBottom
@@ -44,6 +47,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -58,10 +62,14 @@ import com.sec.oneui.clock.settings.SettingsScreen
 import com.sec.oneui.clock.settings.ThemeMode
 import com.sec.oneui.clock.stopwatch.ui.StopwatchScreen
 import com.sec.oneui.clock.stopwatch.ui.StopwatchViewModel
-import com.sec.oneui.clock.theme.OneUiBlack
-import com.sec.oneui.clock.theme.OneUiBlue
+import com.sec.oneui.clock.theme.GeminiAnimatedBackground
+import com.sec.oneui.clock.theme.GeminiGlassBackgroundDark
+import com.sec.oneui.clock.theme.GeminiGlassBackgroundLight
+import com.sec.oneui.clock.theme.GeminiGlassBorderGradientDark
+import com.sec.oneui.clock.theme.GeminiGlassBorderGradientLight
+import com.sec.oneui.clock.theme.GeminiLavender
+import com.sec.oneui.clock.theme.GeminiPurple
 import com.sec.oneui.clock.theme.OneUIClockTheme
-import com.sec.oneui.clock.theme.OneUiTextSecondary
 import com.sec.oneui.clock.timer.ui.TimerScreen
 import com.sec.oneui.clock.timer.ui.TimerViewModel
 
@@ -74,7 +82,7 @@ class MainActivity : ComponentActivity() {
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { _ ->
-        // Notification permission handled
+        // Notification permission result handled
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -90,15 +98,23 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val themeMode by settingsManager.themeMode.collectAsState()
+            val animationEnabled by settingsManager.animationEnabled.collectAsState()
+            val animationSpeed by settingsManager.animationSpeed.collectAsState()
 
             OneUIClockTheme(themeMode = themeMode) {
-                MainClockApp(
-                    alarmViewModel = alarmViewModel,
-                    stopwatchViewModel = stopwatchViewModel,
-                    timerViewModel = timerViewModel,
-                    settingsManager = settingsManager,
-                    themeMode = themeMode
-                )
+                GeminiAnimatedBackground(
+                    themeMode = themeMode,
+                    animationEnabled = animationEnabled,
+                    animationSpeed = animationSpeed
+                ) {
+                    MainClockApp(
+                        alarmViewModel = alarmViewModel,
+                        stopwatchViewModel = stopwatchViewModel,
+                        timerViewModel = timerViewModel,
+                        settingsManager = settingsManager,
+                        themeMode = themeMode
+                    )
+                }
             }
         }
     }
@@ -150,19 +166,11 @@ fun MainClockApp(
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
 
-    val bgColor = when (themeMode) {
-        ThemeMode.AMOLED -> OneUiBlack
-        ThemeMode.DARK -> Color(0xFF121212)
-        ThemeMode.LIGHT -> Color(0xFFF5F5F5)
-    }
-    val navTextSelected = when (themeMode) {
-        ThemeMode.LIGHT -> OneUiBlue
-        else -> OneUiBlue
-    }
-    val navTextUnselected = when (themeMode) {
-        ThemeMode.LIGHT -> Color(0xFF6E6E73)
-        else -> OneUiTextSecondary
-    }
+    val isLight = themeMode == ThemeMode.LIGHT_PEARL
+    val glassBg = if (isLight) GeminiGlassBackgroundLight else GeminiGlassBackgroundDark
+    val glassBorder = if (isLight) GeminiGlassBorderGradientLight else GeminiGlassBorderGradientDark
+    val navSelectedColor = if (isLight) GeminiPurple else Color.White
+    val navUnselectedColor = if (isLight) Color(0xFF6B5887) else GeminiLavender.copy(alpha = 0.65f)
 
     if (showSettings) {
         SettingsScreen(
@@ -175,19 +183,33 @@ fun MainClockApp(
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .background(bgColor)
             .statusBarsPadding()
             .navigationBarsPadding(),
-        containerColor = bgColor,
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = {},
+                title = {
+                    Text(
+                        text = "✦ Gemini Clock",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isLight) Color(0xFF1E1035) else Color.White
+                    )
+                },
                 actions = {
-                    IconButton(onClick = { showSettings = true }) {
+                    IconButton(
+                        onClick = { showSettings = true },
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(glassBg)
+                            .border(1.dp, glassBorder, RoundedCornerShape(16.dp))
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = "Settings",
-                            tint = navTextUnselected
+                            tint = if (isLight) GeminiPurple else Color.White,
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 },
@@ -197,36 +219,49 @@ fun MainClockApp(
             )
         },
         bottomBar = {
-            NavigationBar(
-                containerColor = bgColor,
-                tonalElevation = 0.dp
+            // Glassmorphic Floating Bottom Bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                ClockTab.items.forEach { tab ->
-                    val isSelected = selectedTabIndex == tab.index
-                    NavigationBarItem(
-                        selected = isSelected,
-                        onClick = { selectedTabIndex = tab.index },
-                        icon = {
-                            Icon(
-                                imageVector = tab.icon,
-                                contentDescription = tab.title
+                NavigationBar(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(32.dp))
+                        .background(glassBg)
+                        .border(1.dp, glassBorder, RoundedCornerShape(32.dp)),
+                    containerColor = Color.Transparent,
+                    tonalElevation = 0.dp
+                ) {
+                    ClockTab.items.forEach { tab ->
+                        val isSelected = selectedTabIndex == tab.index
+                        NavigationBarItem(
+                            selected = isSelected,
+                            onClick = { selectedTabIndex = tab.index },
+                            icon = {
+                                Icon(
+                                    imageVector = tab.icon,
+                                    contentDescription = tab.title,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = tab.title,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = navSelectedColor,
+                                selectedTextColor = navSelectedColor,
+                                unselectedIconColor = navUnselectedColor,
+                                unselectedTextColor = navUnselectedColor,
+                                indicatorColor = GeminiPurple.copy(alpha = 0.22f)
                             )
-                        },
-                        label = {
-                            Text(
-                                text = tab.title,
-                                fontSize = 12.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = navTextSelected,
-                            selectedTextColor = navTextSelected,
-                            unselectedIconColor = navTextUnselected,
-                            unselectedTextColor = navTextUnselected,
-                            indicatorColor = Color.Transparent
                         )
-                    )
+                    }
                 }
             }
         }

@@ -6,7 +6,9 @@ import android.media.RingtoneManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -61,6 +63,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -68,10 +71,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sec.oneui.clock.alarm.data.AlarmEntity
-import com.sec.oneui.clock.theme.OneUiBlack
-import com.sec.oneui.clock.theme.OneUiBlue
-import com.sec.oneui.clock.theme.OneUiCard
-import com.sec.oneui.clock.theme.OneUiCardHover
+import com.sec.oneui.clock.theme.GeminiCyanSparkle
+import com.sec.oneui.clock.theme.GeminiDarkViolet
+import com.sec.oneui.clock.theme.GeminiGlassBackgroundDark
+import com.sec.oneui.clock.theme.GeminiGlassBackgroundHover
+import com.sec.oneui.clock.theme.GeminiGlassBorderGradientDark
+import com.sec.oneui.clock.theme.GeminiLavender
+import com.sec.oneui.clock.theme.GeminiPurple
+import com.sec.oneui.clock.theme.GeminiPurpleLight
 import com.sec.oneui.clock.theme.OneUiRed
 import com.sec.oneui.clock.theme.OneUiTextPrimary
 import com.sec.oneui.clock.theme.OneUiTextSecondary
@@ -94,15 +101,14 @@ fun AlarmScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(OneUiBlack)
+            .background(Color.Transparent)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 20.dp)
         ) {
-            // One UI Header
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(18.dp))
             Text(
                 text = "Alarm",
                 fontSize = 34.sp,
@@ -114,7 +120,7 @@ fun AlarmScreen(
                 text = nearestRemaining,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Normal,
-                color = OneUiTextSecondary
+                color = GeminiLavender
             )
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -125,18 +131,26 @@ fun AlarmScreen(
                         .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "No alarms\nTap + to set an alarm",
-                        fontSize = 18.sp,
-                        color = OneUiTextSecondary,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "✦",
+                            fontSize = 38.sp,
+                            color = GeminiPurpleLight
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "No alarms\nTap + to set an alarm",
+                            fontSize = 17.sp,
+                            color = GeminiLavender,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 96.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    contentPadding = PaddingValues(bottom = 100.dp)
                 ) {
                     items(alarms, key = { it.id }) { alarm ->
                         AlarmCard(
@@ -153,21 +167,28 @@ fun AlarmScreen(
             }
         }
 
-        // Floating Action Button
+        // Floating Action Button with Glowing Gemini Gradient
         FloatingActionButton(
             onClick = {
                 editingAlarm = null
                 showEditSheet = true
             },
-            containerColor = OneUiBlue,
+            containerColor = Color.Transparent,
             contentColor = Color.White,
             shape = CircleShape,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = 24.dp, bottom = 24.dp)
-                .size(62.dp)
+                .size(64.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.linearGradient(
+                        listOf(GeminiPurple, GeminiDarkViolet)
+                    )
+                )
+                .border(1.dp, GeminiGlassBorderGradientDark, CircleShape)
         ) {
-            Icon(Icons.Default.Add, contentDescription = "Add Alarm", modifier = Modifier.size(32.dp))
+            Icon(Icons.Default.Add, contentDescription = "Add Alarm", modifier = Modifier.size(34.dp))
         }
 
         if (showEditSheet) {
@@ -204,9 +225,11 @@ fun AlarmCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(26.dp))
+            .border(1.dp, GeminiGlassBorderGradientDark, RoundedCornerShape(26.dp))
             .clickable { onClick() },
         shape = RoundedCornerShape(26.dp),
-        colors = CardDefaults.cardColors(containerColor = OneUiCard)
+        colors = CardDefaults.cardColors(containerColor = GeminiGlassBackgroundDark)
     ) {
         Row(
             modifier = Modifier
@@ -218,16 +241,16 @@ fun AlarmCard(
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
                         text = alarm.formattedTime(),
-                        fontSize = 32.sp,
+                        fontSize = 34.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (alarm.isEnabled) OneUiTextPrimary else OneUiTextSecondary
+                        color = if (alarm.isEnabled) Color.White else OneUiTextSecondary
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = alarm.amPm(),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (alarm.isEnabled) OneUiTextPrimary else OneUiTextSecondary,
+                        color = if (alarm.isEnabled) GeminiLavender else OneUiTextSecondary,
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
                 }
@@ -235,23 +258,23 @@ fun AlarmCard(
                 Text(
                     text = "${alarm.label.ifBlank { "Alarm" }} · ${alarm.daysDescription()}",
                     fontSize = 14.sp,
-                    color = OneUiTextSecondary
+                    color = GeminiLavender
                 )
                 // Show scheduled date if set
                 alarm.formattedScheduledDate()?.let { dateStr ->
                     Text(
                         text = "📅 $dateStr",
                         fontSize = 13.sp,
-                        color = OneUiBlue,
+                        color = GeminiCyanSparkle,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }
-                // Show ringtone name if custom
+                // Show custom ringtone name
                 if (alarm.ringtoneName != "Default") {
                     Text(
                         text = "🔔 ${alarm.ringtoneName}",
                         fontSize = 13.sp,
-                        color = OneUiTextSecondary,
+                        color = GeminiLavender.copy(alpha = 0.8f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 2.dp)
@@ -263,7 +286,7 @@ fun AlarmCard(
                 Icon(
                     imageVector = Icons.Default.DeleteOutline,
                     contentDescription = "Delete Alarm",
-                    tint = OneUiTextSecondary
+                    tint = GeminiLavender.copy(alpha = 0.7f)
                 )
             }
 
@@ -274,9 +297,9 @@ fun AlarmCard(
                 onCheckedChange = { onToggle() },
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = Color.White,
-                    checkedTrackColor = OneUiBlue,
-                    uncheckedThumbColor = OneUiTextSecondary,
-                    uncheckedTrackColor = OneUiCardHover
+                    checkedTrackColor = GeminiPurple,
+                    uncheckedThumbColor = GeminiLavender.copy(alpha = 0.5f),
+                    uncheckedTrackColor = GeminiGlassBackgroundHover
                 )
             )
         }
@@ -309,7 +332,6 @@ fun AlarmEditSheet(
     var scheduledDateMillis by remember { mutableStateOf(existingAlarm?.scheduledDateMillis) }
     var showDatePicker by remember { mutableStateOf(false) }
 
-    // Ringtone Picker launcher
     val ringtoneLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -326,24 +348,21 @@ fun AlarmEditSheet(
         }
     }
 
-    // Custom file picker launcher
     val fileLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) {
-            // Take persistable permission so the URI survives reboots
             try {
                 context.contentResolver.takePersistableUriPermission(
                     uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
             } catch (_: Exception) { }
             ringtoneUri = uri.toString()
-            // Extract filename
             val cursor = context.contentResolver.query(uri, null, null, null, null)
             val name = cursor?.use {
                 val idx = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
                 if (it.moveToFirst() && idx >= 0) it.getString(idx) else null
-            } ?: "Custom file"
+            } ?: "Custom audio"
             ringtoneName = name
         }
     }
@@ -351,8 +370,8 @@ fun AlarmEditSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = OneUiCard,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        containerColor = Color(0xFF130E29),
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
     ) {
         Column(
             modifier = Modifier
@@ -362,10 +381,10 @@ fun AlarmEditSheet(
                 .padding(bottom = 36.dp)
         ) {
             Text(
-                text = if (existingAlarm == null) "Add Alarm" else "Edit Alarm",
+                text = if (existingAlarm == null) "✦ Add Alarm" else "✦ Edit Alarm",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
-                color = OneUiTextPrimary
+                color = Color.White
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -374,32 +393,34 @@ fun AlarmEditSheet(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(OneUiBlack, RoundedCornerShape(20.dp))
-                    .padding(vertical = 16.dp),
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(GeminiGlassBackgroundDark)
+                    .border(1.dp, GeminiGlassBorderGradientDark, RoundedCornerShape(24.dp))
+                    .padding(vertical = 18.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Hour Buttons
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("▲", color = OneUiBlue, modifier = Modifier.clickable { hour = (hour + 1) % 24 }.padding(8.dp))
-                    Text(String.format("%02d", hour), fontSize = 42.sp, fontWeight = FontWeight.Bold, color = OneUiTextPrimary)
-                    Text("▼", color = OneUiBlue, modifier = Modifier.clickable { hour = if (hour == 0) 23 else hour - 1 }.padding(8.dp))
+                    Text("▲", color = GeminiPurple, modifier = Modifier.clickable { hour = (hour + 1) % 24 }.padding(8.dp))
+                    Text(String.format("%02d", hour), fontSize = 44.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("▼", color = GeminiPurple, modifier = Modifier.clickable { hour = if (hour == 0) 23 else hour - 1 }.padding(8.dp))
                 }
 
-                Text(" : ", fontSize = 42.sp, fontWeight = FontWeight.Bold, color = OneUiTextSecondary, modifier = Modifier.padding(horizontal = 16.dp))
+                Text(" : ", fontSize = 44.sp, fontWeight = FontWeight.Bold, color = GeminiLavender, modifier = Modifier.padding(horizontal = 16.dp))
 
                 // Minute Buttons
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("▲", color = OneUiBlue, modifier = Modifier.clickable { minute = (minute + 1) % 60 }.padding(8.dp))
-                    Text(String.format("%02d", minute), fontSize = 42.sp, fontWeight = FontWeight.Bold, color = OneUiTextPrimary)
-                    Text("▼", color = OneUiBlue, modifier = Modifier.clickable { minute = if (minute == 0) 59 else minute - 1 }.padding(8.dp))
+                    Text("▲", color = GeminiPurple, modifier = Modifier.clickable { minute = (minute + 1) % 60 }.padding(8.dp))
+                    Text(String.format("%02d", minute), fontSize = 44.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("▼", color = GeminiPurple, modifier = Modifier.clickable { minute = if (minute == 0) 59 else minute - 1 }.padding(8.dp))
                 }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
             // Day of Week selector
-            Text("Repeat", fontSize = 15.sp, color = OneUiTextSecondary, fontWeight = FontWeight.SemiBold)
+            Text("Repeat", fontSize = 15.sp, color = GeminiLavender, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -413,9 +434,10 @@ fun AlarmEditSheet(
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(40.dp)
+                            .size(42.dp)
                             .clip(CircleShape)
-                            .background(if (isSelected) OneUiBlue else OneUiCardHover)
+                            .background(if (isSelected) GeminiPurple else GeminiGlassBackgroundDark)
+                            .border(1.dp, if (isSelected) BorderStroke(1.dp, Color.White) else BorderStroke(1.dp, GeminiGlassBorderGradientDark), CircleShape)
                             .clickable {
                                 selectedDays = if (isSelected) {
                                     selectedDays - dayNum
@@ -427,7 +449,7 @@ fun AlarmEditSheet(
                         Text(
                             text = dayLetter,
                             fontWeight = FontWeight.Bold,
-                            color = if (isSelected) Color.White else OneUiTextSecondary
+                            color = if (isSelected) Color.White else GeminiLavender
                         )
                     }
                 }
@@ -435,12 +457,13 @@ fun AlarmEditSheet(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Calendar Date Picker
+            // Calendar Date Picker Glass Card
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(OneUiCardHover)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(GeminiGlassBackgroundDark)
+                    .border(1.dp, GeminiGlassBorderGradientDark, RoundedCornerShape(18.dp))
                     .clickable { showDatePicker = true }
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -448,18 +471,18 @@ fun AlarmEditSheet(
                 Icon(
                     imageVector = Icons.Default.CalendarMonth,
                     contentDescription = "Pick Date",
-                    tint = OneUiBlue,
+                    tint = GeminiPurpleLight,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Schedule Date", fontSize = 15.sp, color = OneUiTextPrimary, fontWeight = FontWeight.SemiBold)
+                    Text("Schedule Date", fontSize = 15.sp, color = Color.White, fontWeight = FontWeight.SemiBold)
                     Text(
                         text = if (scheduledDateMillis != null) {
                             SimpleDateFormat("EEE, MMM d, yyyy", Locale.getDefault()).format(Date(scheduledDateMillis!!))
                         } else "Not set (next occurrence)",
                         fontSize = 13.sp,
-                        color = OneUiTextSecondary
+                        color = GeminiLavender
                     )
                 }
                 if (scheduledDateMillis != null) {
@@ -475,12 +498,13 @@ fun AlarmEditSheet(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Ringtone Picker
+            // Ringtone Picker Glass Card
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(OneUiCardHover)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(GeminiGlassBackgroundDark)
+                    .border(1.dp, GeminiGlassBorderGradientDark, RoundedCornerShape(18.dp))
                     .clickable {
                         val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
                             putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
@@ -499,16 +523,16 @@ fun AlarmEditSheet(
                 Icon(
                     imageVector = Icons.Default.MusicNote,
                     contentDescription = "Ringtone",
-                    tint = OneUiBlue,
+                    tint = GeminiPurpleLight,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Alarm Ringtone", fontSize = 15.sp, color = OneUiTextPrimary, fontWeight = FontWeight.SemiBold)
+                    Text("Alarm Ringtone", fontSize = 15.sp, color = Color.White, fontWeight = FontWeight.SemiBold)
                     Text(
                         text = ringtoneName,
                         fontSize = 13.sp,
-                        color = OneUiTextSecondary,
+                        color = GeminiLavender,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -528,35 +552,35 @@ fun AlarmEditSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Or pick from files…",
+                    text = "✦ Or pick from local audio files…",
                     fontSize = 13.sp,
-                    color = OneUiBlue,
+                    color = GeminiPurpleLight,
                     fontWeight = FontWeight.Medium
                 )
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Alarm Label
+            // Alarm Label TextField
             OutlinedTextField(
                 value = label,
                 onValueChange = { label = it },
-                label = { Text("Alarm Name") },
+                label = { Text("Alarm Name", color = GeminiLavender) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = OneUiBlue,
-                    unfocusedBorderColor = OneUiCardHover,
-                    focusedTextColor = OneUiTextPrimary,
-                    unfocusedTextColor = OneUiTextPrimary
+                    focusedBorderColor = GeminiPurple,
+                    unfocusedBorderColor = GeminiLavender.copy(alpha = 0.3f),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
                 )
             )
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Snooze Interval Chips (3m, 5m, 10m, 15m)
-            Text("Snooze Duration", fontSize = 15.sp, color = OneUiTextSecondary, fontWeight = FontWeight.SemiBold)
+            // Snooze Interval Chips
+            Text("Snooze Duration", fontSize = 15.sp, color = GeminiLavender, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(3, 5, 10, 15).forEach { mins ->
@@ -564,13 +588,14 @@ fun AlarmEditSheet(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) OneUiBlue else OneUiCardHover)
+                            .background(if (isSelected) GeminiPurple else GeminiGlassBackgroundDark)
+                            .border(1.dp, GeminiGlassBorderGradientDark, RoundedCornerShape(12.dp))
                             .clickable { snoozeMinutes = mins }
                             .padding(horizontal = 14.dp, vertical = 8.dp)
                     ) {
                         Text(
                             text = "${mins}m",
-                            color = if (isSelected) Color.White else OneUiTextSecondary,
+                            color = if (isSelected) Color.White else GeminiLavender,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
@@ -586,9 +611,10 @@ fun AlarmEditSheet(
             ) {
                 OutlinedButton(
                     onClick = onDismiss,
-                    modifier = Modifier.weight(1f).height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = OneUiTextSecondary)
+                    modifier = Modifier.weight(1f).height(54.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    border = BorderStroke(1.dp, GeminiLavender.copy(alpha = 0.4f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = GeminiLavender)
                 ) {
                     Text("Cancel", fontSize = 16.sp)
                 }
@@ -597,9 +623,12 @@ fun AlarmEditSheet(
                     onClick = {
                         onSave(hour, minute, label, selectedDays, snoozeMinutes, vibrate, ringtoneUri, ringtoneName, scheduledDateMillis)
                     },
-                    modifier = Modifier.weight(1f).height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = OneUiBlue)
+                    modifier = Modifier.weight(1f).height(54.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = GeminiPurple,
+                        contentColor = Color.White
+                    )
                 ) {
                     Text("Save", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
@@ -607,7 +636,7 @@ fun AlarmEditSheet(
         }
     }
 
-    // Material 3 DatePickerDialog
+    // Material 3 DatePickerDialog with Gemini Purple theme
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = scheduledDateMillis ?: System.currentTimeMillis()
@@ -619,12 +648,12 @@ fun AlarmEditSheet(
                     scheduledDateMillis = datePickerState.selectedDateMillis
                     showDatePicker = false
                 }) {
-                    Text("OK", color = OneUiBlue)
+                    Text("OK", color = GeminiPurpleLight, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel", color = OneUiTextSecondary)
+                    Text("Cancel", color = GeminiLavender)
                 }
             }
         ) {

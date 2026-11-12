@@ -5,7 +5,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,16 +29,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sec.oneui.clock.alarm.service.AlarmForegroundService
-import com.sec.oneui.clock.theme.OneUiBlue
-import com.sec.oneui.clock.theme.OneUiCard
+import com.sec.oneui.clock.theme.GeminiGlassBorderGradientDark
+import com.sec.oneui.clock.theme.GeminiLavender
 import com.sec.oneui.clock.theme.OneUiRed
-import com.sec.oneui.clock.theme.OneUiTextPrimary
-import com.sec.oneui.clock.theme.OneUiTextSecondary
 
 @Composable
 fun InAppAlarmBanner(
@@ -56,15 +55,17 @@ fun InAppAlarmBanner(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(24.dp),
-                color = OneUiCard,
-                shadowElevation = 8.dp
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .clip(RoundedCornerShape(26.dp))
+                    .border(1.dp, GeminiGlassBorderGradientDark, RoundedCornerShape(26.dp)),
+                shape = RoundedCornerShape(26.dp),
+                color = Color(0xF0181133),
+                shadowElevation = 12.dp
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(18.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically
@@ -72,20 +73,20 @@ fun InAppAlarmBanner(
                         Icon(
                             imageVector = Icons.Default.Alarm,
                             contentDescription = "Alarm Ringing",
-                            tint = OneUiRed,
+                            tint = Color.White,
                             modifier = Modifier.size(28.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = alarm.label.ifBlank { "Alarm Ringing" },
-                                color = OneUiTextPrimary,
+                                text = "✦ " + (alarm.label.ifBlank { "Alarm Ringing" }),
+                                color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 17.sp
                             )
                             Text(
                                 text = "${alarm.formattedTime()} ${alarm.amPm()}",
-                                color = OneUiTextSecondary,
+                                color = GeminiLavender,
                                 fontSize = 14.sp
                             )
                         }
@@ -102,7 +103,7 @@ fun InAppAlarmBanner(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = OneUiBlue
+                                contentColor = GeminiLavender
                             )
                         ) {
                             Text("Snooze (${alarm.snoozeDurationMinutes}m)", fontWeight = FontWeight.SemiBold)

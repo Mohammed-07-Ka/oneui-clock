@@ -14,7 +14,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -51,7 +54,13 @@ import com.sec.oneui.clock.alarm.data.AlarmDatabase
 import com.sec.oneui.clock.alarm.data.AlarmEntity
 import com.sec.oneui.clock.alarm.receiver.AlarmReceiver
 import com.sec.oneui.clock.alarm.scheduler.AlarmScheduler
-import com.sec.oneui.clock.theme.OneUiBlack
+import com.sec.oneui.clock.settings.ThemeMode
+import com.sec.oneui.clock.theme.GeminiAnimatedBackground
+import com.sec.oneui.clock.theme.GeminiGlassBackgroundDark
+import com.sec.oneui.clock.theme.GeminiGlassBorderGradientDark
+import com.sec.oneui.clock.theme.GeminiLavender
+import com.sec.oneui.clock.theme.GeminiPurple
+import com.sec.oneui.clock.theme.GeminiPurpleLight
 import com.sec.oneui.clock.theme.OneUIClockTheme
 import com.sec.oneui.clock.theme.OneUiRed
 import com.sec.oneui.clock.theme.OneUiTextPrimary
@@ -71,7 +80,7 @@ class AlarmRingingActivity : ComponentActivity() {
         val alarmId = intent.getIntExtra(AlarmScheduler.EXTRA_ALARM_ID, -1)
 
         setContent {
-            OneUIClockTheme {
+            OneUIClockTheme(themeMode = ThemeMode.DARK_GEMINI) {
                 var alarm by remember { mutableStateOf<AlarmEntity?>(null) }
 
                 LaunchedEffect(alarmId) {
@@ -83,25 +92,31 @@ class AlarmRingingActivity : ComponentActivity() {
                     }
                 }
 
-                AlarmRingingContent(
-                    alarm = alarm,
-                    onDismiss = {
-                        val dismissIntent = Intent(this, AlarmReceiver::class.java).apply {
-                            action = AlarmReceiver.ACTION_DISMISS
-                            putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
+                GeminiAnimatedBackground(
+                    themeMode = ThemeMode.DARK_GEMINI,
+                    animationEnabled = true,
+                    animationSpeed = 1.2f
+                ) {
+                    AlarmRingingContent(
+                        alarm = alarm,
+                        onDismiss = {
+                            val dismissIntent = Intent(this@AlarmRingingActivity, AlarmReceiver::class.java).apply {
+                                action = AlarmReceiver.ACTION_DISMISS
+                                putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
+                            }
+                            sendBroadcast(dismissIntent)
+                            finish()
+                        },
+                        onSnooze = {
+                            val snoozeIntent = Intent(this@AlarmRingingActivity, AlarmReceiver::class.java).apply {
+                                action = AlarmReceiver.ACTION_SNOOZE
+                                putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
+                            }
+                            sendBroadcast(snoozeIntent)
+                            finish()
                         }
-                        sendBroadcast(dismissIntent)
-                        finish()
-                    },
-                    onSnooze = {
-                        val snoozeIntent = Intent(this, AlarmReceiver::class.java).apply {
-                            action = AlarmReceiver.ACTION_SNOOZE
-                            putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
-                        }
-                        sendBroadcast(snoozeIntent)
-                        finish()
-                    }
-                )
+                    )
+                }
             }
         }
     }
@@ -139,8 +154,8 @@ fun AlarmRingingContent(
 
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.9f,
-        targetValue = 1.15f,
+        initialValue = 0.92f,
+        targetValue = 1.14f,
         animationSpec = infiniteRepeatable(
             animation = tween(1000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
@@ -151,7 +166,7 @@ fun AlarmRingingContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(OneUiBlack)
+            .background(Color.Transparent)
             .padding(32.dp)
     ) {
         Column(
@@ -161,37 +176,39 @@ fun AlarmRingingContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Pulsing Alarm Icon
+            // Pulsing Gemini Glowing Icon
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(120.dp)
+                    .size(130.dp)
                     .scale(pulseScale)
-                    .background(OneUiRed.copy(alpha = 0.2f), CircleShape)
+                    .clip(CircleShape)
+                    .background(GeminiPurple.copy(alpha = 0.25f))
+                    .border(2.dp, GeminiGlassBorderGradientDark, CircleShape)
             ) {
                 Icon(
                     imageVector = Icons.Default.Alarm,
                     contentDescription = "Ringing",
-                    tint = OneUiRed,
-                    modifier = Modifier.size(64.dp)
+                    tint = Color.White,
+                    modifier = Modifier.size(68.dp)
                 )
             }
 
             Spacer(modifier = Modifier.height(36.dp))
 
-            // Time text
+            // Time text with Glowing Glass effect
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = alarm?.formattedTime() ?: currentTime,
                     fontSize = 68.sp,
                     fontWeight = FontWeight.Bold,
-                    color = OneUiTextPrimary
+                    color = Color.White
                 )
                 Text(
                     text = " " + (alarm?.amPm() ?: currentAmPm),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Medium,
-                    color = OneUiTextSecondary,
+                    color = GeminiLavender,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
             }
@@ -202,11 +219,21 @@ fun AlarmRingingContent(
                 text = alarm?.label?.ifBlank { "Alarm" } ?: "Alarm",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = OneUiTextSecondary
+                color = GeminiLavender
             )
+
+            // Ringtone name indicator
+            if (alarm?.ringtoneName != null && alarm.ringtoneName != "Default") {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "🔔 ${alarm.ringtoneName}",
+                    fontSize = 15.sp,
+                    color = GeminiPurpleLight
+                )
+            }
         }
 
-        // Action Buttons at Bottom
+        // Action Buttons with Glassmorphic Styling
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -219,7 +246,9 @@ fun AlarmRingingContent(
                     .weight(1f)
                     .height(60.dp),
                 shape = RoundedCornerShape(30.dp),
+                border = BorderStroke(1.dp, GeminiLavender.copy(alpha = 0.5f)),
                 colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = GeminiGlassBackgroundDark,
                     contentColor = Color.White
                 )
             ) {

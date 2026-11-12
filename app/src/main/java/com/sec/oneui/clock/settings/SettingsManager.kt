@@ -7,8 +7,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 enum class ThemeMode(val key: String, val displayName: String) {
-    LIGHT("light", "Light Mode"),
-    DARK("dark", "Dark Mode"),
+    DARK_GEMINI("dark_gemini", "Dark Gemini"),
+    LIGHT_PEARL("light_pearl", "Light Pearl Purple"),
     AMOLED("amoled", "AMOLED Black")
 }
 
@@ -28,6 +28,12 @@ class SettingsManager(context: Context) {
 
     private val _gradualVolume = MutableStateFlow(prefs.getBoolean("gradual_volume", false))
     val gradualVolume: StateFlow<Boolean> = _gradualVolume.asStateFlow()
+
+    private val _animationEnabled = MutableStateFlow(prefs.getBoolean("bg_animation_enabled", true))
+    val animationEnabled: StateFlow<Boolean> = _animationEnabled.asStateFlow()
+
+    private val _animationSpeed = MutableStateFlow(prefs.getFloat("bg_animation_speed", 1.0f))
+    val animationSpeed: StateFlow<Float> = _animationSpeed.asStateFlow()
 
     fun setThemeMode(mode: ThemeMode) {
         prefs.edit().putString("theme_mode", mode.key).apply()
@@ -49,9 +55,19 @@ class SettingsManager(context: Context) {
         _gradualVolume.value = enabled
     }
 
+    fun setAnimationEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("bg_animation_enabled", enabled).apply()
+        _animationEnabled.value = enabled
+    }
+
+    fun setAnimationSpeed(speed: Float) {
+        prefs.edit().putFloat("bg_animation_speed", speed).apply()
+        _animationSpeed.value = speed
+    }
+
     private fun loadThemeMode(): ThemeMode {
-        val key = prefs.getString("theme_mode", ThemeMode.AMOLED.key)
-        return ThemeMode.entries.firstOrNull { it.key == key } ?: ThemeMode.AMOLED
+        val key = prefs.getString("theme_mode", ThemeMode.DARK_GEMINI.key)
+        return ThemeMode.entries.firstOrNull { it.key == key } ?: ThemeMode.DARK_GEMINI
     }
 
     private fun loadLanguage(): String {

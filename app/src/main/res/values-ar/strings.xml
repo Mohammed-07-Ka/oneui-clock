@@ -1,18 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">الساعة</string>
+    <string name="app_name">ساعة Gemini</string>
     <string name="tab_alarm">المنبه</string>
     <string name="tab_stopwatch">ساعة الإيقاف</string>
     <string name="tab_timer">المؤقت</string>
     <string name="dismiss">إلغاء</string>
     <string name="snooze">غفوة</string>
     <string name="settings">الإعدادات</string>
-    <string name="appearance">المظهر</string>
+    <string name="appearance">المظهر والتنسيق</string>
     <string name="language">اللغة</string>
     <string name="alarm_defaults">إعدادات المنبه الافتراضية</string>
-    <string name="theme_light">الوضع الفاتح</string>
-    <string name="theme_dark">الوضع الداكن</string>
+    <string name="theme_dark_gemini">Dark Gemini (بنفسجي داكن)</string>
+    <string name="theme_light_pearl">Light Pearl Purple (لؤلؤي فاتح)</string>
     <string name="theme_amoled">أسود AMOLED</string>
+    <string name="bg_animation">حركة خلفية Gemini</string>
+    <string name="bg_animation_title">حركة التدرج والنجوم المتموجة</string>
+    <string name="bg_animation_desc">قم بإيقافها لتوفير طاقة البطارية لأقصى حد</string>
+    <string name="animation_speed">سرعة الحركة</string>
+    <string name="speed_slow">بطيئة (توفير طاقة)</string>
+    <string name="speed_normal">عادية</string>
+    <string name="speed_dynamic">ديناميكية سريعة</string>
     <string name="lang_english">English</string>
     <string name="lang_arabic">العربية</string>
     <string name="default_vibration">الاهتزاز الافتراضي</string>

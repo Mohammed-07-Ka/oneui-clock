@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,12 +20,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -40,13 +38,14 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sec.oneui.clock.theme.OneUiBlack
-import com.sec.oneui.clock.theme.OneUiCard
-import com.sec.oneui.clock.theme.OneUiCardHover
-import com.sec.oneui.clock.theme.OneUiOrange
+import com.sec.oneui.clock.theme.GeminiGlassBackgroundDark
+import com.sec.oneui.clock.theme.GeminiGlassBackgroundHover
+import com.sec.oneui.clock.theme.GeminiGlassBorderGradientDark
+import com.sec.oneui.clock.theme.GeminiLavender
+import com.sec.oneui.clock.theme.GeminiPurple
+import com.sec.oneui.clock.theme.GeminiPurpleLight
 import com.sec.oneui.clock.theme.OneUiRed
 import com.sec.oneui.clock.theme.OneUiTextPrimary
-import com.sec.oneui.clock.theme.OneUiTextSecondary
 
 @Composable
 fun TimerScreen(
@@ -64,10 +63,10 @@ fun TimerScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(OneUiBlack)
+            .background(Color.Transparent)
             .padding(horizontal = 20.dp)
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(18.dp))
         Text(
             text = "Timer",
             fontSize = 34.sp,
@@ -79,7 +78,7 @@ fun TimerScreen(
 
         when (state) {
             TimerState.IDLE -> {
-                // Time Input Dial
+                // Time Input Glass Dial
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -89,33 +88,36 @@ fun TimerScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Row(
                             modifier = Modifier
-                                .background(OneUiCard, RoundedCornerShape(28.dp))
-                                .padding(horizontal = 24.dp, vertical = 20.dp),
+                                .clip(RoundedCornerShape(32.dp))
+                                .background(GeminiGlassBackgroundDark)
+                                .border(1.dp, GeminiGlassBorderGradientDark, RoundedCornerShape(32.dp))
+                                .padding(horizontal = 26.dp, vertical = 22.dp),
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             TimerDigitColumn("h", inputHours, onInc = { viewModel.inputHours.value = (inputHours + 1) % 100 }, onDec = { viewModel.inputHours.value = if (inputHours == 0) 99 else inputHours - 1 })
-                            Text(":", fontSize = 36.sp, color = OneUiTextSecondary, modifier = Modifier.padding(horizontal = 12.dp))
+                            Text(":", fontSize = 38.sp, color = GeminiLavender, modifier = Modifier.padding(horizontal = 12.dp))
                             TimerDigitColumn("m", inputMinutes, onInc = { viewModel.inputMinutes.value = (inputMinutes + 1) % 60 }, onDec = { viewModel.inputMinutes.value = if (inputMinutes == 0) 59 else inputMinutes - 1 })
-                            Text(":", fontSize = 36.sp, color = OneUiTextSecondary, modifier = Modifier.padding(horizontal = 12.dp))
+                            Text(":", fontSize = 38.sp, color = GeminiLavender, modifier = Modifier.padding(horizontal = 12.dp))
                             TimerDigitColumn("s", inputSeconds, onInc = { viewModel.inputSeconds.value = (inputSeconds + 1) % 60 }, onDec = { viewModel.inputSeconds.value = if (inputSeconds == 0) 59 else inputSeconds - 1 })
                         }
 
-                        Spacer(modifier = Modifier.height(28.dp))
+                        Spacer(modifier = Modifier.height(30.dp))
 
                         // Quick Presets
-                        Text("Presets", color = OneUiTextSecondary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Text("Presets", color = GeminiLavender, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(modifier = Modifier.height(12.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             listOf(5, 10, 15, 30).forEach { mins ->
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(16.dp))
-                                        .background(OneUiCardHover)
+                                        .background(GeminiGlassBackgroundDark)
+                                        .border(1.dp, GeminiGlassBorderGradientDark, RoundedCornerShape(16.dp))
                                         .clickable { viewModel.applyPreset(mins) }
-                                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                                        .padding(horizontal = 18.dp, vertical = 10.dp)
                                 ) {
-                                    Text("${mins}m", color = OneUiTextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                                    Text("${mins}m", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                                 }
                             }
                         }
@@ -130,14 +132,14 @@ fun TimerScreen(
                         .padding(bottom = 96.dp)
                         .height(58.dp),
                     shape = RoundedCornerShape(29.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = OneUiOrange)
+                    colors = ButtonDefaults.buttonColors(containerColor = GeminiPurple)
                 ) {
                     Text("Start", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
 
             TimerState.RUNNING, TimerState.PAUSED -> {
-                // Circular Progress countdown display
+                // Circular Progress countdown display with Gemini Purple Glow
                 val progress = if (totalMillis > 0) (remainingMillis.toFloat() / totalMillis.toFloat()).coerceIn(0f, 1f) else 0f
                 val h = (remainingMillis / 3600000L)
                 val m = (remainingMillis % 3600000L) / 60000L
@@ -154,15 +156,15 @@ fun TimerScreen(
                         .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(260.dp)) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(270.dp)) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
                             drawCircle(
-                                color = OneUiCardHover,
+                                color = Color.White.copy(alpha = 0.08f),
                                 radius = size.minDimension / 2 - 12.dp.toPx(),
                                 style = Stroke(width = 12.dp.toPx())
                             )
                             drawArc(
-                                color = OneUiOrange,
+                                color = GeminiPurple,
                                 startAngle = -90f,
                                 sweepAngle = 360f * progress,
                                 useCenter = false,
@@ -172,21 +174,22 @@ fun TimerScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 text = formattedRemain,
-                                fontSize = 46.sp,
+                                fontSize = 48.sp,
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = FontFamily.Monospace,
-                                color = OneUiTextPrimary
+                                color = Color.White
                             )
                             Spacer(modifier = Modifier.height(10.dp))
-                            // Active +1 min button
+                            // Active +1 min glass button
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(14.dp))
-                                    .background(OneUiCardHover)
+                                    .background(GeminiGlassBackgroundDark)
+                                    .border(1.dp, GeminiGlassBorderGradientDark, RoundedCornerShape(14.dp))
                                     .clickable { viewModel.addOneMinute() }
-                                    .padding(horizontal = 14.dp, vertical = 6.dp)
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
                             ) {
-                                Text("+1 min", color = OneUiOrange, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Text("+1 min", color = GeminiPurpleLight, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -205,9 +208,9 @@ fun TimerScreen(
                             .weight(1f)
                             .height(58.dp),
                         shape = RoundedCornerShape(29.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = OneUiCardHover)
+                        colors = ButtonDefaults.buttonColors(containerColor = GeminiGlassBackgroundHover)
                     ) {
-                        Text("Cancel", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = OneUiTextPrimary)
+                        Text("Cancel", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = GeminiLavender)
                     }
 
                     if (state == TimerState.RUNNING) {
@@ -217,7 +220,7 @@ fun TimerScreen(
                                 .weight(1f)
                                 .height(58.dp),
                             shape = RoundedCornerShape(29.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = OneUiOrange)
+                            colors = ButtonDefaults.buttonColors(containerColor = GeminiPurple)
                         ) {
                             Text("Pause", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
@@ -228,7 +231,7 @@ fun TimerScreen(
                                 .weight(1f)
                                 .height(58.dp),
                             shape = RoundedCornerShape(29.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = OneUiOrange)
+                            colors = ButtonDefaults.buttonColors(containerColor = GeminiPurple)
                         ) {
                             Text("Resume", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
@@ -267,10 +270,10 @@ fun TimerScreen(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "Time's up!",
+                            text = "✦ Time's up!",
                             fontSize = 26.sp,
                             fontWeight = FontWeight.Bold,
-                            color = OneUiTextPrimary
+                            color = Color.White
                         )
                     }
                 }
@@ -299,9 +302,9 @@ fun TimerDigitColumn(
     onDec: () -> Unit
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("▲", color = OneUiOrange, modifier = Modifier.clickable { onInc() }.padding(6.dp))
-        Text(String.format("%02d", value), fontSize = 42.sp, fontWeight = FontWeight.Bold, color = OneUiTextPrimary)
-        Text(unit, fontSize = 12.sp, color = OneUiTextSecondary, fontWeight = FontWeight.Medium)
-        Text("▼", color = OneUiOrange, modifier = Modifier.clickable { onDec() }.padding(6.dp))
+        Text("▲", color = GeminiPurple, modifier = Modifier.clickable { onInc() }.padding(6.dp))
+        Text(String.format("%02d", value), fontSize = 42.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Text(unit, fontSize = 12.sp, color = GeminiLavender, fontWeight = FontWeight.Medium)
+        Text("▼", color = GeminiPurple, modifier = Modifier.clickable { onDec() }.padding(6.dp))
     }
 }

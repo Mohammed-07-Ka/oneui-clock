@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.LocaleList
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,13 +42,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.os.LocaleListCompat
-import com.sec.oneui.clock.theme.OneUiBlack
-import com.sec.oneui.clock.theme.OneUiBlue
-import com.sec.oneui.clock.theme.OneUiCard
-import com.sec.oneui.clock.theme.OneUiCardHover
-import com.sec.oneui.clock.theme.OneUiDivider
-import com.sec.oneui.clock.theme.OneUiTextPrimary
-import com.sec.oneui.clock.theme.OneUiTextSecondary
+import com.sec.oneui.clock.theme.GeminiGlassBackgroundDark
+import com.sec.oneui.clock.theme.GeminiGlassBackgroundHover
+import com.sec.oneui.clock.theme.GeminiGlassBackgroundLight
+import com.sec.oneui.clock.theme.GeminiGlassBorderGradientDark
+import com.sec.oneui.clock.theme.GeminiGlassBorderGradientLight
+import com.sec.oneui.clock.theme.GeminiLavender
+import com.sec.oneui.clock.theme.GeminiPurple
+import com.sec.oneui.clock.theme.GeminiPurpleLight
 
 @Composable
 fun SettingsScreen(
@@ -58,45 +60,41 @@ fun SettingsScreen(
     val language by settingsManager.language.collectAsState()
     val defaultVibrate by settingsManager.defaultVibrate.collectAsState()
     val gradualVolume by settingsManager.gradualVolume.collectAsState()
+    val animationEnabled by settingsManager.animationEnabled.collectAsState()
+    val animationSpeed by settingsManager.animationSpeed.collectAsState()
     val context = LocalContext.current
 
-    val bgColor = when (themeMode) {
-        ThemeMode.AMOLED -> OneUiBlack
-        ThemeMode.DARK -> Color(0xFF121212)
-        ThemeMode.LIGHT -> Color(0xFFF5F5F5)
-    }
-    val textColor = when (themeMode) {
-        ThemeMode.LIGHT -> Color(0xFF1C1C1E)
-        else -> OneUiTextPrimary
-    }
-    val subTextColor = when (themeMode) {
-        ThemeMode.LIGHT -> Color(0xFF6E6E73)
-        else -> OneUiTextSecondary
-    }
-    val cardColor = when (themeMode) {
-        ThemeMode.LIGHT -> Color.White
-        ThemeMode.DARK -> Color(0xFF1E1E1E)
-        ThemeMode.AMOLED -> OneUiCard
-    }
+    val isLight = themeMode == ThemeMode.LIGHT_PEARL
+    val textColor = if (isLight) Color(0xFF1E1035) else Color.White
+    val subTextColor = if (isLight) Color(0xFF6B5887) else GeminiLavender
+    val cardColor = if (isLight) GeminiGlassBackgroundLight else GeminiGlassBackgroundDark
+    val cardBorder = if (isLight) GeminiGlassBorderGradientLight else GeminiGlassBorderGradientDark
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(bgColor)
+            .background(Color.Transparent)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
     ) {
         Spacer(modifier = Modifier.height(16.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(cardColor)
+                    .border(1.dp, cardBorder, RoundedCornerShape(14.dp))
+            ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
                     tint = textColor
                 )
             }
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "Settings",
+                text = "✦ Settings",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = textColor
@@ -105,15 +103,16 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ── Theme Section ──
-        SectionTitle("Appearance", textColor = subTextColor)
+        // ── 1. Theme Section ──
+        SectionTitle("Theme Appearance", textColor = subTextColor)
         Spacer(modifier = Modifier.height(8.dp))
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(24.dp))
                 .background(cardColor)
+                .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
         ) {
             ThemeMode.entries.forEach { mode ->
                 val isSelected = themeMode == mode
@@ -126,9 +125,10 @@ fun SettingsScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(22.dp)
-                            .clip(RoundedCornerShape(11.dp))
-                            .background(if (isSelected) OneUiBlue else OneUiCardHover)
+                            .size(24.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isSelected) GeminiPurple else GeminiGlassBackgroundHover)
+                            .border(1.dp, if (isSelected) cardBorder else cardBorder, RoundedCornerShape(12.dp))
                     ) {
                         if (isSelected) {
                             Box(
@@ -149,22 +149,98 @@ fun SettingsScreen(
                     )
                 }
                 if (mode != ThemeMode.entries.last()) {
-                    HorizontalDivider(color = OneUiDivider, modifier = Modifier.padding(horizontal = 20.dp))
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ── Language Section ──
-        SectionTitle("Language", textColor = subTextColor)
+        // ── 2. Animated Background Control (Battery Saver) ──
+        SectionTitle("Gemini Background Animation", textColor = subTextColor)
         Spacer(modifier = Modifier.height(8.dp))
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(24.dp))
                 .background(cardColor)
+                .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
+        ) {
+            // Enable/Disable Switch
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Mesh & Particle Animation", fontSize = 16.sp, color = textColor)
+                    Text("Turn off to maximize battery life", fontSize = 13.sp, color = subTextColor)
+                }
+                Switch(
+                    checked = animationEnabled,
+                    onCheckedChange = { settingsManager.setAnimationEnabled(it) },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = GeminiPurple,
+                        uncheckedThumbColor = subTextColor,
+                        uncheckedTrackColor = GeminiGlassBackgroundHover
+                    )
+                )
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
+
+            // Speed Selector Chips
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
+            ) {
+                Text("Animation Speed", fontSize = 15.sp, color = textColor)
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    val speeds = listOf(
+                        0.5f to "Slow (Eco)",
+                        1.0f to "Normal",
+                        1.5f to "Dynamic"
+                    )
+                    speeds.forEach { (spVal, spLabel) ->
+                        val isSelected = animationSpeed == spVal
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(if (isSelected) GeminiPurple else GeminiGlassBackgroundHover)
+                                .border(1.dp, cardBorder, RoundedCornerShape(14.dp))
+                                .clickable { settingsManager.setAnimationSpeed(spVal) }
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = spLabel,
+                                color = if (isSelected) Color.White else subTextColor,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ── 3. Language Section ──
+        SectionTitle("Language / اللغة", textColor = subTextColor)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(cardColor)
+                .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
         ) {
             listOf("en" to "English", "ar" to "العربية").forEach { (code, name) ->
                 val isSelected = language == code
@@ -180,9 +256,10 @@ fun SettingsScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(22.dp)
-                            .clip(RoundedCornerShape(11.dp))
-                            .background(if (isSelected) OneUiBlue else OneUiCardHover)
+                            .size(24.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isSelected) GeminiPurple else GeminiGlassBackgroundHover)
+                            .border(1.dp, cardBorder, RoundedCornerShape(12.dp))
                     ) {
                         if (isSelected) {
                             Box(
@@ -203,22 +280,23 @@ fun SettingsScreen(
                     )
                 }
                 if (code == "en") {
-                    HorizontalDivider(color = OneUiDivider, modifier = Modifier.padding(horizontal = 20.dp))
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ── Alarm Defaults Section ──
+        // ── 4. Alarm Defaults Section ──
         SectionTitle("Alarm Defaults", textColor = subTextColor)
         Spacer(modifier = Modifier.height(8.dp))
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(24.dp))
                 .background(cardColor)
+                .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
         ) {
             // Vibration toggle
             Row(
@@ -237,14 +315,14 @@ fun SettingsScreen(
                     onCheckedChange = { settingsManager.setDefaultVibrate(it) },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
-                        checkedTrackColor = OneUiBlue,
+                        checkedTrackColor = GeminiPurple,
                         uncheckedThumbColor = subTextColor,
-                        uncheckedTrackColor = OneUiCardHover
+                        uncheckedTrackColor = GeminiGlassBackgroundHover
                     )
                 )
             }
 
-            HorizontalDivider(color = OneUiDivider, modifier = Modifier.padding(horizontal = 20.dp))
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
 
             // Gradual Volume toggle
             Row(
@@ -263,9 +341,9 @@ fun SettingsScreen(
                     onCheckedChange = { settingsManager.setGradualVolume(it) },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
-                        checkedTrackColor = OneUiBlue,
+                        checkedTrackColor = GeminiPurple,
                         uncheckedThumbColor = subTextColor,
-                        uncheckedTrackColor = OneUiCardHover
+                        uncheckedTrackColor = GeminiGlassBackgroundHover
                     )
                 )
             }
