@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -80,16 +81,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -103,7 +107,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.statusBarsPadding
 import com.sec.oneui.clock.alarm.data.AlarmEntity
+import com.sec.oneui.clock.alarm.service.AlarmAudioPreviewer
 import com.sec.oneui.clock.alarm.service.AlarmForegroundService
+import kotlinx.coroutines.launch
 import com.sec.oneui.clock.settings.SettingsManager
 import com.sec.oneui.clock.settings.ThemeMode
 import com.sec.oneui.clock.theme.ClockTheme
@@ -491,6 +497,14 @@ fun AlarmEditSheet(
     }
 
     val palette = ClockTheme.palette
+    val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
+
+    DisposableEffect(Unit) {
+        onDispose {
+            AlarmAudioPreviewer.stopPreview()
+        }
+    }
 
     BackHandler { onCancel() }
 
@@ -508,6 +522,7 @@ fun AlarmEditSheet(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
+                .imePadding()
                 .navigationBarsPadding()
                 .padding(top = 40.dp)
                 .clickable(
@@ -521,7 +536,7 @@ fun AlarmEditSheet(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(horizontal = 24.dp)
                     .padding(top = 16.dp, bottom = 32.dp)
             ) {
@@ -896,6 +911,13 @@ fun AlarmEditSheet(
                     Slider(
                         value = editorState.volume,
                         onValueChange = onVolumeChanged,
+                        onValueChangeFinished = {
+                            AlarmAudioPreviewer.playPreview(
+                                context = context,
+                                volumeFraction = editorState.volume,
+                                customUri = editorState.ringtoneUri
+                            )
+                        },
                         valueRange = 0f..1f,
                         colors = SliderDefaults.colors(
                             thumbColor = if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.primaryAccent,
@@ -921,7 +943,15 @@ fun AlarmEditSheet(
                 onValueChange = onLabelChanged,
                 label = { Text("Alarm Name", color = palette.textSecondary) },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focusState ->
+                        if (focusState.isFocused) {
+                            coroutineScope.launch {
+                                scrollState.animateScrollTo(scrollState.maxValue)
+                            }
+                        }
+                    },
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = if (palette.isBlueTheme) palette.primaryAccent else Color.White,

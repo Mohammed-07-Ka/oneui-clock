@@ -33,6 +33,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,10 +44,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sec.oneui.clock.alarm.service.AlarmAudioPreviewer
 import com.sec.oneui.clock.theme.ClockTheme
 import com.sec.oneui.clock.theme.iosClickable
 import com.sec.oneui.clock.theme.iosPressEffect
@@ -69,7 +72,14 @@ fun SettingsScreen(
 
     var customGradualVolumeExpanded by remember { mutableStateOf(gradualVolumeDuration !in listOf(0, 3, 5, 10)) }
 
+    val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
+
+    DisposableEffect(Unit) {
+        onDispose {
+            AlarmAudioPreviewer.stopPreview()
+        }
+    }
 
     val palette = ClockTheme.palette
     val textColor = palette.textPrimary
@@ -330,6 +340,12 @@ fun SettingsScreen(
                     Slider(
                         value = alarmCustomVolume,
                         onValueChange = { settingsManager.setAlarmCustomVolume(it) },
+                        onValueChangeFinished = {
+                            AlarmAudioPreviewer.playPreview(
+                                context = context,
+                                volumeFraction = alarmCustomVolume
+                            )
+                        },
                         valueRange = 0f..1f,
                         colors = SliderDefaults.colors(
                             thumbColor = palette.primaryAccent,

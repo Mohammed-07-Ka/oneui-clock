@@ -403,41 +403,27 @@ fun MainClockApp(
                         .fillMaxSize()
                         .padding(bottom = innerPadding.calculateBottomPadding())
                 ) {
-                    val fastFlingBehavior = PagerDefaults.flingBehavior(
+                    val instantFling = PagerDefaults.flingBehavior(
                         state = pagerState,
-                        snapPositionalThreshold = 0.15f,
-                        snapAnimationSpec = tween(
-                            durationMillis = 220,
-                            easing = FastOutSlowInEasing
+                        snapPositionalThreshold = 0.08f,
+                        snapAnimationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessHigh
                         )
                     )
 
-                    // Horizontal Pager with Left/Right Swiping between Alarm, Stopwatch, and Timer with instant snappy fling physics
+                    // Horizontal Pager with Left/Right Swiping between Alarm, Stopwatch, and Timer with instant zero-lag physics
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
                         userScrollEnabled = true,
                         beyondBoundsPageCount = 2,
-                        flingBehavior = fastFlingBehavior
+                        flingBehavior = instantFling
                     ) { pageIndex ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .graphicsLayer {
-                                    // Calculate in Draw/Graphics phase only -> ZERO recompositions while swiping
-                                    val pageOffset = ((pagerState.currentPage - pageIndex) + pagerState.currentPageOffsetFraction).absoluteValue
-                                    val pageScale = 1f - (0.08f * pageOffset.coerceIn(0f, 1f))
-                                    val pageAlpha = 1f - (0.40f * pageOffset.coerceIn(0f, 1f))
-                                    scaleX = pageScale
-                                    scaleY = pageScale
-                                    alpha = pageAlpha
-                                }
-                        ) {
-                            when (pageIndex) {
-                                0 -> AlarmScreen(viewModel = alarmViewModel)
-                                1 -> StopwatchScreen(viewModel = stopwatchViewModel)
-                                2 -> TimerScreen(viewModel = timerViewModel)
-                            }
+                        when (pageIndex) {
+                            0 -> AlarmScreen(viewModel = alarmViewModel)
+                            1 -> StopwatchScreen(viewModel = stopwatchViewModel)
+                            2 -> TimerScreen(viewModel = timerViewModel)
                         }
                     }
 
