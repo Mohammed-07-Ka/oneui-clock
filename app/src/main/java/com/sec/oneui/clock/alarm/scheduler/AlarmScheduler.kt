@@ -17,9 +17,27 @@ object AlarmScheduler {
     private const val TAG = "AlarmScheduler"
 
     /**
-     * Reverse-engineered algorithm from Samsung Clock AlarmItem.calculateAlertTime
+     * Reverse-engineered algorithm from Samsung Clock AlarmItem.calculateAlertTime.
+     * Enhanced with scheduledDateMillis for calendar-specific scheduling.
      */
-    fun calculateNextTriggerTime(hour: Int, minute: Int, daysOfWeek: Set<Int>): Long {
+    fun calculateNextTriggerTime(
+        hour: Int,
+        minute: Int,
+        daysOfWeek: Set<Int>,
+        scheduledDateMillis: Long? = null
+    ): Long {
+        // If a specific date is chosen from the calendar picker
+        if (scheduledDateMillis != null) {
+            val calendar = Calendar.getInstance().apply {
+                timeInMillis = scheduledDateMillis
+                set(Calendar.HOUR_OF_DAY, hour)
+                set(Calendar.MINUTE, minute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            return calendar.timeInMillis
+        }
+
         val now = Calendar.getInstance()
         val calendar = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, hour)
@@ -61,7 +79,9 @@ object AlarmScheduler {
      */
     fun schedule(context: Context, alarm: AlarmEntity, triggerTimeOverride: Long? = null) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
-        val triggerTime = triggerTimeOverride ?: calculateNextTriggerTime(alarm.hour, alarm.minute, alarm.getDaysSet())
+        val triggerTime = triggerTimeOverride ?: calculateNextTriggerTime(
+            alarm.hour, alarm.minute, alarm.getDaysSet(), alarm.scheduledDateMillis
+        )
 
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             action = ACTION_ALARM_TRIGGER

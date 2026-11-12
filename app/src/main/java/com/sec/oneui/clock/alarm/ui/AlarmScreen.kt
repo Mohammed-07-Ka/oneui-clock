@@ -1,5 +1,11 @@
 package com.sec.oneui.clock.alarm.ui
 
+import android.app.Activity
+import android.content.Intent
+import android.media.RingtoneManager
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,15 +22,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -36,6 +48,8 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -48,7 +62,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sec.oneui.clock.alarm.data.AlarmEntity
@@ -59,6 +75,9 @@ import com.sec.oneui.clock.theme.OneUiCardHover
 import com.sec.oneui.clock.theme.OneUiRed
 import com.sec.oneui.clock.theme.OneUiTextPrimary
 import com.sec.oneui.clock.theme.OneUiTextSecondary
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -155,7 +174,7 @@ fun AlarmScreen(
             AlarmEditSheet(
                 existingAlarm = editingAlarm,
                 onDismiss = { showEditSheet = false },
-                onSave = { h, m, label, days, snooze, vib ->
+                onSave = { h, m, label, days, snooze, vib, rUri, rName, dateMs ->
                     viewModel.saveAlarm(
                         id = editingAlarm?.id ?: 0,
                         hour = h,
@@ -163,7 +182,10 @@ fun AlarmScreen(
                         label = label,
                         daysSet = days,
                         snoozeDuration = snooze,
-                        vibrate = vib
+                        vibrate = vib,
+                        ringtoneUri = rUri,
+                        ringtoneName = rName,
+                        scheduledDateMillis = dateMs
                     )
                     showEditSheet = false
                 }
@@ -215,6 +237,26 @@ fun AlarmCard(
                     fontSize = 14.sp,
                     color = OneUiTextSecondary
                 )
+                // Show scheduled date if set
+                alarm.formattedScheduledDate()?.let { dateStr ->
+                    Text(
+                        text = "📅 $dateStr",
+                        fontSize = 13.sp,
+                        color = OneUiBlue,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+                // Show ringtone name if custom
+                if (alarm.ringtoneName != "Default") {
+                    Text(
+                        text = "🔔 ${alarm.ringtoneName}",
+                        fontSize = 13.sp,
+                        color = OneUiTextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
             }
 
             IconButton(onClick = onDelete) {
@@ -246,9 +288,15 @@ fun AlarmCard(
 fun AlarmEditSheet(
     existingAlarm: AlarmEntity?,
     onDismiss: () -> Unit,
-    onSave: (hour: Int, minute: Int, label: String, days: Set<Int>, snooze: Int, vibrate: Boolean) -> Unit
+    onSave: (
+        hour: Int, minute: Int, label: String, days: Set<Int>,
+        snooze: Int, vibrate: Boolean,
+        ringtoneUri: String?, ringtoneName: String,
+        scheduledDateMillis: Long?
+    ) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val context = LocalContext.current
 
     var hour by remember { mutableIntStateOf(existingAlarm?.hour ?: 7) }
     var minute by remember { mutableIntStateOf(existingAlarm?.minute ?: 0) }
@@ -256,6 +304,49 @@ fun AlarmEditSheet(
     var selectedDays by remember { mutableStateOf(existingAlarm?.getDaysSet() ?: emptySet()) }
     var snoozeMinutes by remember { mutableIntStateOf(existingAlarm?.snoozeDurationMinutes ?: 5) }
     var vibrate by remember { mutableStateOf(existingAlarm?.vibrate ?: true) }
+    var ringtoneUri by remember { mutableStateOf(existingAlarm?.ringtoneUri) }
+    var ringtoneName by remember { mutableStateOf(existingAlarm?.ringtoneName ?: "Default") }
+    var scheduledDateMillis by remember { mutableStateOf(existingAlarm?.scheduledDateMillis) }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    // Ringtone Picker launcher
+    val ringtoneLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val uri = result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            if (uri != null) {
+                ringtoneUri = uri.toString()
+                val ringtone = RingtoneManager.getRingtone(context, uri)
+                ringtoneName = ringtone?.getTitle(context) ?: "Custom"
+            } else {
+                ringtoneUri = null
+                ringtoneName = "Silent"
+            }
+        }
+    }
+
+    // Custom file picker launcher
+    val fileLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            // Take persistable permission so the URI survives reboots
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: Exception) { }
+            ringtoneUri = uri.toString()
+            // Extract filename
+            val cursor = context.contentResolver.query(uri, null, null, null, null)
+            val name = cursor?.use {
+                val idx = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (it.moveToFirst() && idx >= 0) it.getString(idx) else null
+            } ?: "Custom file"
+            ringtoneName = name
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -266,6 +357,7 @@ fun AlarmEditSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 36.dp)
         ) {
@@ -343,6 +435,108 @@ fun AlarmEditSheet(
 
             Spacer(modifier = Modifier.height(18.dp))
 
+            // Calendar Date Picker
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(OneUiCardHover)
+                    .clickable { showDatePicker = true }
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CalendarMonth,
+                    contentDescription = "Pick Date",
+                    tint = OneUiBlue,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Schedule Date", fontSize = 15.sp, color = OneUiTextPrimary, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = if (scheduledDateMillis != null) {
+                            SimpleDateFormat("EEE, MMM d, yyyy", Locale.getDefault()).format(Date(scheduledDateMillis!!))
+                        } else "Not set (next occurrence)",
+                        fontSize = 13.sp,
+                        color = OneUiTextSecondary
+                    )
+                }
+                if (scheduledDateMillis != null) {
+                    Text(
+                        text = "✕",
+                        color = OneUiRed,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        modifier = Modifier.clickable { scheduledDateMillis = null }.padding(8.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Ringtone Picker
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(OneUiCardHover)
+                    .clickable {
+                        val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                            putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
+                            putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Select Alarm Ringtone")
+                            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+                            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                            if (ringtoneUri != null) {
+                                putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(ringtoneUri))
+                            }
+                        }
+                        ringtoneLauncher.launch(intent)
+                    }
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = "Ringtone",
+                    tint = OneUiBlue,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Alarm Ringtone", fontSize = 15.sp, color = OneUiTextPrimary, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = ringtoneName,
+                        fontSize = 13.sp,
+                        color = OneUiTextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Custom audio file picker
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 36.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { fileLauncher.launch(arrayOf("audio/*")) }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Or pick from files…",
+                    fontSize = 13.sp,
+                    color = OneUiBlue,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
             // Alarm Label
             OutlinedTextField(
                 value = label,
@@ -401,7 +595,7 @@ fun AlarmEditSheet(
 
                 Button(
                     onClick = {
-                        onSave(hour, minute, label, selectedDays, snoozeMinutes, vibrate)
+                        onSave(hour, minute, label, selectedDays, snoozeMinutes, vibrate, ringtoneUri, ringtoneName, scheduledDateMillis)
                     },
                     modifier = Modifier.weight(1f).height(52.dp),
                     shape = RoundedCornerShape(16.dp),
@@ -410,6 +604,31 @@ fun AlarmEditSheet(
                     Text("Save", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
+        }
+    }
+
+    // Material 3 DatePickerDialog
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = scheduledDateMillis ?: System.currentTimeMillis()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    scheduledDateMillis = datePickerState.selectedDateMillis
+                    showDatePicker = false
+                }) {
+                    Text("OK", color = OneUiBlue)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel", color = OneUiTextSecondary)
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }

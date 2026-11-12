@@ -10,6 +10,7 @@ import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.os.VibrationEffect
@@ -24,6 +25,8 @@ import com.sec.oneui.clock.alarm.scheduler.AlarmScheduler
 import com.sec.oneui.clock.alarm.ui.AlarmRingingActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -45,6 +48,7 @@ class AlarmForegroundService : Service() {
 
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
+    private var gradualVolumeJob: Job? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -86,11 +90,13 @@ class AlarmForegroundService : Service() {
             val notification = buildAlarmNotification(alarm)
             startForeground(NOTIFICATION_ID, notification)
 
-            // 2. Play audio tone
-            playRingtone()
+            // 2. Play audio tone (custom ringtone if set)
+            playRingtone(alarm?.ringtoneUri)
 
-            // 3. Vibrate if enabled
-            if (alarm?.vibrate != false) {
+            // 3. Vibrate if enabled (check global preference too)
+            val prefs = applicationContext.getSharedPreferences("clock_settings", Context.MODE_PRIVATE)
+            val globalVibrate = prefs.getBoolean("default_vibrate", true)
+            if (alarm?.vibrate != false && globalVibrate) {
                 startVibration()
             }
         }
@@ -98,6 +104,8 @@ class AlarmForegroundService : Service() {
 
     private fun stopAlarm() {
         _currentRingingAlarm.value = null
+        gradualVolumeJob?.cancel()
+        gradualVolumeJob = null
         try {
             mediaPlayer?.stop()
             mediaPlayer?.release()
@@ -117,10 +125,17 @@ class AlarmForegroundService : Service() {
         stopSelf()
     }
 
-    private fun playRingtone() {
+    private fun playRingtone(customRingtoneUri: String?) {
         try {
-            val alertUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            val alertUri: Uri = if (!customRingtoneUri.isNullOrBlank()) {
+                Uri.parse(customRingtoneUri)
+            } else {
+                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            }
+
+            val prefs = applicationContext.getSharedPreferences("clock_settings", Context.MODE_PRIVATE)
+            val gradualVolume = prefs.getBoolean("gradual_volume", false)
 
             mediaPlayer = MediaPlayer().apply {
                 setDataSource(applicationContext, alertUri)
@@ -131,8 +146,27 @@ class AlarmForegroundService : Service() {
                         .build()
                 )
                 isLooping = true
+
+                if (gradualVolume) {
+                    setVolume(0.05f, 0.05f)
+                }
+
                 prepare()
                 start()
+            }
+
+            // Gradual volume increase over 30 seconds
+            if (gradualVolume) {
+                gradualVolumeJob = CoroutineScope(Dispatchers.Main).launch {
+                    val steps = 30
+                    for (i in 1..steps) {
+                        delay(1000L)
+                        val vol = (i.toFloat() / steps).coerceIn(0f, 1f)
+                        try {
+                            mediaPlayer?.setVolume(vol, vol)
+                        } catch (_: Exception) { break }
+                    }
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error playing ringtone: ${e.message}")
@@ -169,7 +203,7 @@ class AlarmForegroundService : Service() {
         // Fullscreen intent
         val fullScreenIntent = Intent(this, AlarmRingingActivity::class.java).apply {
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
         val fullScreenPendingIntent = PendingIntent.getActivity(
             this, alarmId, fullScreenIntent,

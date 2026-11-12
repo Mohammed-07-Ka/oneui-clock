@@ -59,7 +59,7 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
                 alarm.copy(isEnabled = false, snoozeDoneCount = 0)
             } else {
                 val nextTime = AlarmScheduler.calculateNextTriggerTime(
-                    alarm.hour, alarm.minute, alarm.getDaysSet()
+                    alarm.hour, alarm.minute, alarm.getDaysSet(), alarm.scheduledDateMillis
                 )
                 val newAlarm = alarm.copy(isEnabled = true, alertTimeMillis = nextTime, snoozeDoneCount = 0)
                 AlarmScheduler.schedule(context, newAlarm)
@@ -76,11 +76,16 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
         label: String,
         daysSet: Set<Int>,
         snoozeDuration: Int,
-        vibrate: Boolean
+        vibrate: Boolean,
+        ringtoneUri: String? = null,
+        ringtoneName: String = "Default",
+        scheduledDateMillis: Long? = null
     ) {
         viewModelScope.launch {
             val daysString = daysSet.sorted().joinToString(",")
-            val nextTime = AlarmScheduler.calculateNextTriggerTime(hour, minute, daysSet)
+            val nextTime = AlarmScheduler.calculateNextTriggerTime(
+                hour, minute, daysSet, scheduledDateMillis
+            )
             val entity = AlarmEntity(
                 id = id,
                 hour = hour,
@@ -91,7 +96,10 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
                 snoozeDurationMinutes = snoozeDuration,
                 snoozeDoneCount = 0,
                 vibrate = vibrate,
-                alertTimeMillis = nextTime
+                alertTimeMillis = nextTime,
+                ringtoneUri = ringtoneUri,
+                ringtoneName = ringtoneName,
+                scheduledDateMillis = scheduledDateMillis
             )
 
             val savedId = if (id == 0) {

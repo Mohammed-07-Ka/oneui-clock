@@ -3,12 +3,64 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- Clock Face Dial (Crisp White Circle with subtle elevation shadow) -->
     <path
-        android:fillColor="#2A65F0"
-        android:pathData="M54,54m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0" />
+        android:fillColor="#15000000"
+        android:pathData="M54,55m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0" />
     <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="4"
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,54m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0" />
+
+    <!-- Subtle Hour Markers (12, 3, 6, 9) -->
+    <path
+        android:strokeColor="#CBD5E1"
+        android:strokeWidth="2"
         android:strokeLineCap="round"
-        android:pathData="M54,28 L54,54 L72,54" />
+        android:pathData="M54,28 L54,32" />
+    <path
+        android:strokeColor="#CBD5E1"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M54,76 L54,80" />
+    <path
+        android:strokeColor="#CBD5E1"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M80,54 L76,54" />
+    <path
+        android:strokeColor="#CBD5E1"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M32,54 L28,54" />
+
+    <!-- Hour Hand (pointing to 10:10) -->
+    <path
+        android:strokeColor="#1E293B"
+        android:strokeWidth="3.6"
+        android:strokeLineCap="round"
+        android:pathData="M54,54 L42,42" />
+
+    <!-- Minute Hand (pointing to 10:10) -->
+    <path
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.8"
+        android:strokeLineCap="round"
+        android:pathData="M54,54 L68,38" />
+
+    <!-- Second Hand (One UI vibrant orange accent with tail) -->
+    <path
+        android:strokeColor="#FF5722"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M51,57 L60,46 M51,57 L49,60" />
+
+    <!-- Center Pivot Pin -->
+    <path
+        android:fillColor="#FF5722"
+        android:pathData="M54,54m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,54m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
+
 </vector>

@@ -23,17 +23,23 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.HourglassBottom
-import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -47,34 +53,34 @@ import androidx.core.content.ContextCompat
 import com.sec.oneui.clock.alarm.ui.AlarmScreen
 import com.sec.oneui.clock.alarm.ui.AlarmViewModel
 import com.sec.oneui.clock.alarm.ui.InAppAlarmBanner
+import com.sec.oneui.clock.settings.SettingsManager
+import com.sec.oneui.clock.settings.SettingsScreen
+import com.sec.oneui.clock.settings.ThemeMode
 import com.sec.oneui.clock.stopwatch.ui.StopwatchScreen
 import com.sec.oneui.clock.stopwatch.ui.StopwatchViewModel
 import com.sec.oneui.clock.theme.OneUiBlack
 import com.sec.oneui.clock.theme.OneUiBlue
-import com.sec.oneui.clock.theme.OneUiCard
 import com.sec.oneui.clock.theme.OneUIClockTheme
-import com.sec.oneui.clock.theme.OneUiTextPrimary
 import com.sec.oneui.clock.theme.OneUiTextSecondary
 import com.sec.oneui.clock.timer.ui.TimerScreen
 import com.sec.oneui.clock.timer.ui.TimerViewModel
-import com.sec.oneui.clock.worldclock.ui.WorldClockScreen
-import com.sec.oneui.clock.worldclock.ui.WorldClockViewModel
 
 class MainActivity : ComponentActivity() {
 
     private val alarmViewModel: AlarmViewModel by viewModels()
     private val stopwatchViewModel: StopwatchViewModel by viewModels()
     private val timerViewModel: TimerViewModel by viewModels()
-    private val worldClockViewModel: WorldClockViewModel by viewModels()
 
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
+    ) { _ ->
         // Notification permission handled
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val settingsManager = SettingsManager.getInstance(this)
 
         // 1. Request POST_NOTIFICATIONS on Android 13+ (Tiramisu)
         checkAndRequestNotificationPermission()
@@ -83,12 +89,15 @@ class MainActivity : ComponentActivity() {
         checkAndRequestExactAlarmPermission()
 
         setContent {
-            OneUIClockTheme {
+            val themeMode by settingsManager.themeMode.collectAsState()
+
+            OneUIClockTheme(themeMode = themeMode) {
                 MainClockApp(
                     alarmViewModel = alarmViewModel,
                     stopwatchViewModel = stopwatchViewModel,
                     timerViewModel = timerViewModel,
-                    worldClockViewModel = worldClockViewModel
+                    settingsManager = settingsManager,
+                    themeMode = themeMode
                 )
             }
         }
@@ -120,35 +129,76 @@ class MainActivity : ComponentActivity() {
 }
 
 sealed class ClockTab(val index: Int, val title: String, val icon: ImageVector) {
-    object Alarm : ClockTab(0, "Alarm", Icons.Default.Alarm)
-    object WorldClock : ClockTab(1, "World Clock", Icons.Default.Public)
-    object Stopwatch : ClockTab(2, "Stopwatch", Icons.Default.Timer)
-    object Timer : ClockTab(3, "Timer", Icons.Default.HourglassBottom)
+    data object Alarm : ClockTab(0, "Alarm", Icons.Default.Alarm)
+    data object Stopwatch : ClockTab(1, "Stopwatch", Icons.Default.Timer)
+    data object Timer : ClockTab(2, "Timer", Icons.Default.HourglassBottom)
 
     companion object {
-        val items = listOf(Alarm, WorldClock, Stopwatch, Timer)
+        val items = listOf(Alarm, Stopwatch, Timer)
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainClockApp(
     alarmViewModel: AlarmViewModel,
     stopwatchViewModel: StopwatchViewModel,
     timerViewModel: TimerViewModel,
-    worldClockViewModel: WorldClockViewModel
+    settingsManager: SettingsManager,
+    themeMode: ThemeMode
 ) {
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
+    var showSettings by rememberSaveable { mutableStateOf(false) }
+
+    val bgColor = when (themeMode) {
+        ThemeMode.AMOLED -> OneUiBlack
+        ThemeMode.DARK -> Color(0xFF121212)
+        ThemeMode.LIGHT -> Color(0xFFF5F5F5)
+    }
+    val navTextSelected = when (themeMode) {
+        ThemeMode.LIGHT -> OneUiBlue
+        else -> OneUiBlue
+    }
+    val navTextUnselected = when (themeMode) {
+        ThemeMode.LIGHT -> Color(0xFF6E6E73)
+        else -> OneUiTextSecondary
+    }
+
+    if (showSettings) {
+        SettingsScreen(
+            settingsManager = settingsManager,
+            onBack = { showSettings = false }
+        )
+        return
+    }
 
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .background(OneUiBlack)
+            .background(bgColor)
             .statusBarsPadding()
             .navigationBarsPadding(),
-        containerColor = OneUiBlack,
+        containerColor = bgColor,
+        topBar = {
+            TopAppBar(
+                title = {},
+                actions = {
+                    IconButton(onClick = { showSettings = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = navTextUnselected
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent
+                )
+            )
+        },
         bottomBar = {
             NavigationBar(
-                containerColor = OneUiBlack,
+                containerColor = bgColor,
                 tonalElevation = 0.dp
             ) {
                 ClockTab.items.forEach { tab ->
@@ -170,10 +220,10 @@ fun MainClockApp(
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = OneUiBlue,
-                            selectedTextColor = OneUiBlue,
-                            unselectedIconColor = OneUiTextSecondary,
-                            unselectedTextColor = OneUiTextSecondary,
+                            selectedIconColor = navTextSelected,
+                            selectedTextColor = navTextSelected,
+                            unselectedIconColor = navTextUnselected,
+                            unselectedTextColor = navTextUnselected,
                             indicatorColor = Color.Transparent
                         )
                     )
@@ -189,9 +239,8 @@ fun MainClockApp(
             // Main Screen Body
             when (selectedTabIndex) {
                 0 -> AlarmScreen(viewModel = alarmViewModel)
-                1 -> WorldClockScreen(viewModel = worldClockViewModel)
-                2 -> StopwatchScreen(viewModel = stopwatchViewModel)
-                3 -> TimerScreen(viewModel = timerViewModel)
+                1 -> StopwatchScreen(viewModel = stopwatchViewModel)
+                2 -> TimerScreen(viewModel = timerViewModel)
             }
 
             // In-App Ringing Banner floating at top
