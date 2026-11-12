@@ -78,7 +78,7 @@ fun SettingsScreen(
                     .clip(RoundedCornerShape(14.dp))
                     .background(cardColor)
                     .border(1.dp, palette.cardBorderSubtle, RoundedCornerShape(14.dp))
-                    .iosPressEffect(targetScale = 0.95f)
+                    .iosPressEffect(targetScale = 0.96f)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -113,7 +113,7 @@ fun SettingsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .iosClickable(targetScale = 0.97f) { settingsManager.setThemeMode(mode) }
+                        .iosClickable(targetScale = 0.96f) { settingsManager.setThemeMode(mode) }
                         .padding(horizontal = 20.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -176,7 +176,7 @@ fun SettingsScreen(
                 Switch(
                     checked = animationEnabled,
                     onCheckedChange = { settingsManager.setAnimationEnabled(it) },
-                    modifier = Modifier.iosPressEffect(targetScale = 0.95f),
+                    modifier = Modifier.iosPressEffect(targetScale = 0.96f),
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = palette.toggleActiveThumb,
                         checkedTrackColor = palette.toggleActiveTrack,
@@ -259,7 +259,7 @@ fun SettingsScreen(
                 Switch(
                     checked = use24HourFormat,
                     onCheckedChange = { settingsManager.setUse24HourFormat(it) },
-                    modifier = Modifier.iosPressEffect(targetScale = 0.95f),
+                    modifier = Modifier.iosPressEffect(targetScale = 0.96f),
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = palette.toggleActiveThumb,
                         checkedTrackColor = palette.toggleActiveTrack,
@@ -419,7 +419,7 @@ fun SettingsScreen(
                 Switch(
                     checked = defaultVibrate,
                     onCheckedChange = { settingsManager.setDefaultVibrate(it) },
-                    modifier = Modifier.iosPressEffect(targetScale = 0.95f),
+                    modifier = Modifier.iosPressEffect(targetScale = 0.96f),
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = palette.toggleActiveThumb,
                         checkedTrackColor = palette.toggleActiveTrack,

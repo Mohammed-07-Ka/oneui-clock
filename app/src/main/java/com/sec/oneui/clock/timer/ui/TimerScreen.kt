@@ -125,7 +125,7 @@ fun TimerScreen(
                                         .clip(RoundedCornerShape(16.dp))
                                         .background(palette.cardBackground)
                                         .border(1.dp, palette.cardBorderSubtle, RoundedCornerShape(16.dp))
-                                        .iosClickable(targetScale = 0.95f) { viewModel.applyPreset(mins) }
+                                        .iosClickable(targetScale = 0.96f) { viewModel.applyPreset(mins) }
                                         .padding(horizontal = 18.dp, vertical = 10.dp)
                                 ) {
                                     Text("${mins}m", color = palette.textPrimary, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
@@ -142,7 +142,7 @@ fun TimerScreen(
                         .fillMaxWidth()
                         .padding(bottom = 96.dp)
                         .height(58.dp)
-                        .iosPressEffect(targetScale = 0.95f),
+                        .iosPressEffect(targetScale = 0.96f),
                     shape = RoundedCornerShape(29.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = palette.primaryAccent,
@@ -200,7 +200,7 @@ fun TimerScreen(
                                     .clip(RoundedCornerShape(14.dp))
                                     .background(palette.cardBackground)
                                     .border(1.dp, palette.cardBorderSubtle, RoundedCornerShape(14.dp))
-                                    .iosClickable(targetScale = 0.95f) { viewModel.addOneMinute() }
+                                    .iosClickable(targetScale = 0.96f) { viewModel.addOneMinute() }
                                     .padding(horizontal = 16.dp, vertical = 8.dp)
                             ) {
                                 Text("+1 min", color = palette.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
@@ -221,7 +221,7 @@ fun TimerScreen(
                         modifier = Modifier
                             .weight(1f)
                             .height(58.dp)
-                            .iosPressEffect(targetScale = 0.95f),
+                            .iosPressEffect(targetScale = 0.96f),
                         shape = RoundedCornerShape(29.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
                         colors = ButtonDefaults.buttonColors(
@@ -238,7 +238,7 @@ fun TimerScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(58.dp)
-                                .iosPressEffect(targetScale = 0.95f),
+                                .iosPressEffect(targetScale = 0.96f),
                             shape = RoundedCornerShape(29.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = palette.primaryAccent,
@@ -253,7 +253,7 @@ fun TimerScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(58.dp)
-                                .iosPressEffect(targetScale = 0.95f),
+                                .iosPressEffect(targetScale = 0.96f),
                             shape = RoundedCornerShape(29.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = palette.primaryAccent,
@@ -311,7 +311,7 @@ fun TimerScreen(
                         .fillMaxWidth()
                         .padding(bottom = 96.dp)
                         .height(58.dp)
-                        .iosPressEffect(targetScale = 0.95f),
+                        .iosPressEffect(targetScale = 0.96f),
                     shape = RoundedCornerShape(29.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = OneUiRed,

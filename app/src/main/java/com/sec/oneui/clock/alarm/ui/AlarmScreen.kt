@@ -5,13 +5,22 @@ import android.content.Intent
 import android.media.RingtoneManager
 import android.net.Uri
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +30,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -48,15 +58,14 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -175,7 +184,10 @@ fun AlarmScreen(
                             use24HourFormat = use24HourFormat,
                             onToggle = { viewModel.toggleAlarm(alarm) },
                             onClick = { viewModel.openEditorForExisting(alarm) },
-                            onDelete = { viewModel.deleteAlarm(alarm) }
+                            onDelete = { viewModel.deleteAlarm(alarm) },
+                            modifier = Modifier.animateItemPlacement(
+                                animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                            )
                         )
                     }
                 }
@@ -194,13 +206,27 @@ fun AlarmScreen(
                 .size(62.dp)
                 .clip(CircleShape)
                 .border(1.dp, palette.cardBorder, CircleShape)
-                .iosPressEffect(targetScale = 0.95f)
+                .iosPressEffect(targetScale = 0.96f)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Add Alarm", modifier = Modifier.size(32.dp))
         }
 
-        // Bottom Sheet tied to ViewModel editorState (Preserves draft across picker/accidental dismiss)
-        if (editorState.isOpen) {
+        // Edit Alarm Sheet with smooth vertical slide + fade transition (320ms, FastOutSlowInEasing)
+        AnimatedVisibility(
+            visible = editorState.isOpen,
+            enter = slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = tween(320, easing = FastOutSlowInEasing)
+            ) + fadeIn(
+                animationSpec = tween(320, easing = FastOutSlowInEasing)
+            ),
+            exit = slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = tween(320, easing = FastOutSlowInEasing)
+            ) + fadeOut(
+                animationSpec = tween(320, easing = FastOutSlowInEasing)
+            )
+        ) {
             AlarmEditSheet(
                 editorState = editorState,
                 use24HourFormat = use24HourFormat,
@@ -219,21 +245,25 @@ fun AlarmScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AlarmCard(
     alarm: AlarmEntity,
     use24HourFormat: Boolean,
     onToggle: () -> Unit,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val palette = ClockTheme.palette
+    val cardInteractionSource = remember { MutableInteractionSource() }
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(26.dp))
             .border(1.dp, palette.cardBorder, RoundedCornerShape(26.dp))
-            .clickable { onClick() },
+            .iosPressEffect(targetScale = 0.96f, interactionSource = cardInteractionSource)
+            .clickable(interactionSource = cardInteractionSource, indication = null) { onClick() },
         shape = RoundedCornerShape(26.dp),
         colors = CardDefaults.cardColors(containerColor = palette.cardBackground)
     ) {
@@ -295,7 +325,7 @@ fun AlarmCard(
                 }
             }
 
-            IconButton(onClick = onDelete, modifier = Modifier.iosPressEffect(targetScale = 0.95f)) {
+            IconButton(onClick = onDelete, modifier = Modifier.iosPressEffect(targetScale = 0.96f)) {
                 Icon(
                     imageVector = Icons.Default.DeleteOutline,
                     contentDescription = "Delete Alarm",
@@ -308,7 +338,7 @@ fun AlarmCard(
             Switch(
                 checked = alarm.isEnabled,
                 onCheckedChange = { onToggle() },
-                modifier = Modifier.iosPressEffect(targetScale = 0.95f),
+                modifier = Modifier.iosPressEffect(targetScale = 0.96f),
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = palette.toggleActiveThumb,
                     checkedTrackColor = palette.toggleActiveTrack,
@@ -336,7 +366,6 @@ fun AlarmEditSheet(
     onRingtonePicked: (uri: String?, name: String) -> Unit,
     onScheduledDateChanged: (Long?) -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -377,25 +406,57 @@ fun AlarmEditSheet(
 
     val palette = ClockTheme.palette
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = if (palette.themeMode == ThemeMode.AMOLED_PITCH || palette.themeMode == ThemeMode.MIDNIGHT_BLUE) Color(0xFF040407) else Color(0xFF0C0914),
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+    BackHandler { onCancel() }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.55f))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onCancel
+            ),
+        contentAlignment = Alignment.BottomCenter
     ) {
-        Column(
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 36.dp)
+                .navigationBarsPadding()
+                .padding(top = 40.dp)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {},
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+            color = if (palette.themeMode == ThemeMode.AMOLED_PITCH || palette.themeMode == ThemeMode.MIDNIGHT_BLUE) Color(0xFF07050C) else Color(0xFF0E0B18),
+            border = androidx.compose.foundation.BorderStroke(1.dp, palette.cardBorderSubtle)
         ) {
-            Text(
-                text = if (editorState.editingAlarmId == null) "Add Alarm" else "Edit Alarm",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = palette.textPrimary
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 16.dp, bottom = 32.dp)
+            ) {
+                // iOS Drag Handle
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .width(44.dp)
+                        .height(4.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.25f))
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = if (editorState.editingAlarmId == null) "Add Alarm" else "Edit Alarm",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = palette.textPrimary
+                )
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -533,7 +594,7 @@ fun AlarmEditSheet(
                                 if (isSelected) palette.cardBorder else palette.cardBorderSubtle,
                                 CircleShape
                             )
-                            .iosClickable(targetScale = 0.95f) { onDayToggled(dayNum) }
+                            .iosClickable(targetScale = 0.96f) { onDayToggled(dayNum) }
                     ) {
                         Text(
                             text = dayLetter,
@@ -553,7 +614,7 @@ fun AlarmEditSheet(
                     .clip(RoundedCornerShape(18.dp))
                     .background(palette.cardBackground)
                     .border(1.dp, palette.cardBorder, RoundedCornerShape(18.dp))
-                    .iosClickable(targetScale = 0.97f) { showDatePicker = true }
+                    .iosClickable(targetScale = 0.96f) { showDatePicker = true }
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -594,7 +655,7 @@ fun AlarmEditSheet(
                     .clip(RoundedCornerShape(18.dp))
                     .background(palette.cardBackground)
                     .border(1.dp, palette.cardBorder, RoundedCornerShape(18.dp))
-                    .iosClickable(targetScale = 0.97f) {
+                    .iosClickable(targetScale = 0.96f) {
                         val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
                             putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
                             putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Select Alarm Ringtone")
@@ -734,6 +795,7 @@ fun AlarmEditSheet(
             }
         }
     }
+}
 
     // Material 3 DatePickerDialog
     if (showDatePicker) {

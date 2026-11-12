@@ -21,7 +21,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -198,29 +200,29 @@ fun MainClockApp(
     val coroutineScope = rememberCoroutineScope()
     val palette = ClockTheme.palette
 
-    // Smooth iOS-style push/pop slide transition for Settings screen (350ms)
+    // Smooth iOS-style vertical slide transition for Settings screen (320ms, easeOut)
     AnimatedContent(
         targetState = showSettings,
         transitionSpec = {
             if (targetState) {
-                (slideInHorizontally(
-                    initialOffsetX = { it },
-                    animationSpec = tween(350, easing = FastOutSlowInEasing)
-                ) + fadeIn(animationSpec = tween(350))).togetherWith(
-                    slideOutHorizontally(
-                        targetOffsetX = { -it / 3 },
-                        animationSpec = tween(350, easing = FastOutSlowInEasing)
-                    ) + fadeOut(animationSpec = tween(350))
+                (slideInVertically(
+                    initialOffsetY = { it },
+                    animationSpec = tween(320, easing = FastOutSlowInEasing)
+                ) + fadeIn(animationSpec = tween(320, easing = FastOutSlowInEasing))).togetherWith(
+                    slideOutVertically(
+                        targetOffsetY = { -it / 4 },
+                        animationSpec = tween(320, easing = FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(320, easing = FastOutSlowInEasing))
                 )
             } else {
-                (slideInHorizontally(
-                    initialOffsetX = { -it / 3 },
-                    animationSpec = tween(350, easing = FastOutSlowInEasing)
-                ) + fadeIn(animationSpec = tween(350))).togetherWith(
-                    slideOutHorizontally(
-                        targetOffsetX = { it },
-                        animationSpec = tween(350, easing = FastOutSlowInEasing)
-                    ) + fadeOut(animationSpec = tween(350))
+                (slideInVertically(
+                    initialOffsetY = { -it / 4 },
+                    animationSpec = tween(320, easing = FastOutSlowInEasing)
+                ) + fadeIn(animationSpec = tween(320, easing = FastOutSlowInEasing))).togetherWith(
+                    slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = tween(320, easing = FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(320, easing = FastOutSlowInEasing))
                 )
             }
         },
@@ -268,7 +270,7 @@ fun MainClockApp(
                                             )
                                         }
                                     },
-                                    modifier = Modifier.iosPressEffect(targetScale = 0.95f),
+                                    modifier = Modifier.iosPressEffect(targetScale = 0.96f),
                                     icon = {
                                         Icon(
                                             imageVector = tab.icon,
@@ -331,7 +333,7 @@ fun MainClockApp(
                                 .clip(CircleShape)
                                 .background(palette.cardBackground)
                                 .border(1.dp, palette.cardBorderSubtle, CircleShape)
-                                .iosPressEffect(targetScale = 0.95f)
+                                .iosPressEffect(targetScale = 0.96f)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Settings,

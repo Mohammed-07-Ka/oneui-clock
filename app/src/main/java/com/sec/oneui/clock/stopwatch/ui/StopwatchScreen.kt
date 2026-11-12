@@ -113,7 +113,7 @@ fun StopwatchScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(58.dp)
-                            .iosPressEffect(targetScale = 0.95f),
+                            .iosPressEffect(targetScale = 0.96f),
                         shape = RoundedCornerShape(29.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = palette.primaryAccent,
@@ -129,7 +129,7 @@ fun StopwatchScreen(
                         modifier = Modifier
                             .weight(1f)
                             .height(58.dp)
-                            .iosPressEffect(targetScale = 0.95f),
+                            .iosPressEffect(targetScale = 0.96f),
                         shape = RoundedCornerShape(29.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
                         colors = ButtonDefaults.buttonColors(
@@ -145,7 +145,7 @@ fun StopwatchScreen(
                         modifier = Modifier
                             .weight(1f)
                             .height(58.dp)
-                            .iosPressEffect(targetScale = 0.95f),
+                            .iosPressEffect(targetScale = 0.96f),
                         shape = RoundedCornerShape(29.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = OneUiRed,
@@ -161,7 +161,7 @@ fun StopwatchScreen(
                         modifier = Modifier
                             .weight(1f)
                             .height(58.dp)
-                            .iosPressEffect(targetScale = 0.95f),
+                            .iosPressEffect(targetScale = 0.96f),
                         shape = RoundedCornerShape(29.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
                         colors = ButtonDefaults.buttonColors(
@@ -177,7 +177,7 @@ fun StopwatchScreen(
                         modifier = Modifier
                             .weight(1f)
                             .height(58.dp)
-                            .iosPressEffect(targetScale = 0.95f),
+                            .iosPressEffect(targetScale = 0.96f),
                         shape = RoundedCornerShape(29.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = palette.primaryAccent,
