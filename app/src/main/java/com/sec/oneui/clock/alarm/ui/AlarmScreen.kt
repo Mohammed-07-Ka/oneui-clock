@@ -53,6 +53,9 @@ import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.VolumeDown
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -66,6 +69,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -277,7 +282,8 @@ fun AlarmScreen(
                 onSnoozeChanged = { viewModel.updateEditorSnooze(it) },
                 onVibrateChanged = { viewModel.updateEditorVibrate(it) },
                 onRingtonePicked = { uri, name -> viewModel.updateEditorRingtone(uri, name) },
-                onScheduledDateChanged = { viewModel.updateEditorScheduledDate(it) }
+                onScheduledDateChanged = { viewModel.updateEditorScheduledDate(it) },
+                onVolumeChanged = { viewModel.updateEditorVolume(it) }
             )
         }
     }
@@ -416,7 +422,8 @@ fun AlarmEditSheet(
     onSnoozeChanged: (Int) -> Unit,
     onVibrateChanged: (Boolean) -> Unit,
     onRingtonePicked: (uri: String?, name: String) -> Unit,
-    onScheduledDateChanged: (Long?) -> Unit
+    onScheduledDateChanged: (Long?) -> Unit,
+    onVolumeChanged: (Float) -> Unit
 ) {
     val context = LocalContext.current
     var showDatePicker by remember { mutableStateOf(false) }
@@ -803,6 +810,85 @@ fun AlarmEditSheet(
                     color = palette.textPrimary.copy(alpha = 0.85f),
                     fontWeight = FontWeight.Medium
                 )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Alarm Volume Glass Card
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(palette.cardBackground)
+                    .border(1.dp, palette.cardBorder, RoundedCornerShape(18.dp))
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = if (editorState.volume == 0f) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                            contentDescription = "Alarm Volume",
+                            tint = palette.textPrimary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Alarm Volume",
+                                fontSize = 15.sp,
+                                color = palette.textPrimary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Volume level: ${(editorState.volume * 100).toInt()}%",
+                                fontSize = 13.sp,
+                                color = palette.textSecondary
+                            )
+                        }
+                    }
+                    Text(
+                        text = "${(editorState.volume * 100).toInt()}%",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.primaryAccent
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.VolumeDown,
+                        contentDescription = "Volume Low",
+                        tint = palette.textSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Slider(
+                        value = editorState.volume,
+                        onValueChange = onVolumeChanged,
+                        valueRange = 0f..1f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.primaryAccent,
+                            activeTrackColor = if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.primaryAccent,
+                            inactiveTrackColor = Color.White.copy(alpha = 0.15f)
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        imageVector = Icons.Default.VolumeUp,
+                        contentDescription = "Volume High",
+                        tint = palette.textSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(14.dp))

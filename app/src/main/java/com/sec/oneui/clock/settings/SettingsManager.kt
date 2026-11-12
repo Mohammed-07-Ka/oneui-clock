@@ -39,6 +39,9 @@ class SettingsManager(context: Context) {
     private val _gradualVolumeDuration = MutableStateFlow(prefs.getInt("gradual_volume_seconds", 0))
     val gradualVolumeDuration: StateFlow<Int> = _gradualVolumeDuration.asStateFlow()
 
+    private val _alarmCustomVolume = MutableStateFlow(prefs.getFloat("alarm_custom_volume", 0.8f))
+    val alarmCustomVolume: StateFlow<Float> = _alarmCustomVolume.asStateFlow()
+
     private val _autoSilenceMinutes = MutableStateFlow(prefs.getInt("auto_silence_minutes", 10))
     val autoSilenceMinutes: StateFlow<Int> = _autoSilenceMinutes.asStateFlow()
 
@@ -75,6 +78,12 @@ class SettingsManager(context: Context) {
     fun setGradualVolumeDuration(seconds: Int) {
         prefs.edit().putInt("gradual_volume_seconds", seconds).apply()
         _gradualVolumeDuration.value = seconds
+    }
+
+    fun setAlarmCustomVolume(volume: Float) {
+        val clamped = volume.coerceIn(0f, 1f)
+        prefs.edit().putFloat("alarm_custom_volume", clamped).apply()
+        _alarmCustomVolume.value = clamped
     }
 
     fun setAutoSilenceMinutes(minutes: Int) {

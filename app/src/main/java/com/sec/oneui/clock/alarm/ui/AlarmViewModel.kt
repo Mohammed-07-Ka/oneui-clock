@@ -10,6 +10,7 @@ import com.sec.oneui.clock.alarm.data.AlarmDatabase
 import com.sec.oneui.clock.alarm.data.AlarmEntity
 import com.sec.oneui.clock.alarm.receiver.AlarmReceiver
 import com.sec.oneui.clock.alarm.scheduler.AlarmScheduler
+import com.sec.oneui.clock.settings.SettingsManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,7 +33,8 @@ data class AlarmEditorState(
     val vibrate: Boolean = true,
     val ringtoneUri: String? = null,
     val ringtoneName: String = "Default",
-    val scheduledDateMillis: Long? = null
+    val scheduledDateMillis: Long? = null,
+    val volume: Float = 0.8f
 )
 
 class AlarmViewModel(application: Application) : AndroidViewModel(application) {
@@ -94,6 +96,7 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val (defUri, defName) = getDefaultRingtone()
+        val currentVol = SettingsManager.getInstance(context).alarmCustomVolume.value
         val now = Calendar.getInstance()
         _editorState.value = AlarmEditorState(
             isOpen = true,
@@ -107,7 +110,8 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
             vibrate = defaultVibrate,
             ringtoneUri = defUri,
             ringtoneName = defName,
-            scheduledDateMillis = null
+            scheduledDateMillis = null,
+            volume = currentVol
         )
     }
 
@@ -120,6 +124,7 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val (defUri, defName) = getDefaultRingtone()
+        val currentVol = SettingsManager.getInstance(context).alarmCustomVolume.value
         _editorState.value = AlarmEditorState(
             isOpen = true,
             isEditing = true,
@@ -132,7 +137,8 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
             vibrate = alarm.vibrate,
             ringtoneUri = alarm.ringtoneUri ?: defUri,
             ringtoneName = if (alarm.ringtoneName != "Default") alarm.ringtoneName else defName,
-            scheduledDateMillis = alarm.scheduledDateMillis
+            scheduledDateMillis = alarm.scheduledDateMillis,
+            volume = currentVol
         )
     }
 
@@ -187,9 +193,18 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
         _editorState.value = _editorState.value.copy(scheduledDateMillis = dateMillis)
     }
 
+    fun updateEditorVolume(volume: Float) {
+        val clamped = volume.coerceIn(0f, 1f)
+        _editorState.value = _editorState.value.copy(volume = clamped)
+        SettingsManager.getInstance(context).setAlarmCustomVolume(clamped)
+    }
+
     fun saveDraft() {
         val draft = _editorState.value
         if (!draft.isEditing) return
+
+        // Persist alarm volume to settings
+        SettingsManager.getInstance(context).setAlarmCustomVolume(draft.volume)
 
         viewModelScope.launch {
             val daysString = draft.daysOfWeek.sorted().joinToString(",")

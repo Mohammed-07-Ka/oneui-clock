@@ -111,14 +111,30 @@ class MainActivity : ComponentActivity() {
     private val stopwatchViewModel: StopwatchViewModel by viewModels()
     private val timerViewModel: TimerViewModel by viewModels()
 
+    private val navTabFlow = kotlinx.coroutines.flow.MutableStateFlow<Int?>(null)
+
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { _ ->
         // Notification permission result handled
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleNavIntent(intent)
+    }
+
+    private fun handleNavIntent(intent: Intent?) {
+        val tab = intent?.getIntExtra("nav_tab", -1) ?: -1
+        if (tab in 0..2) {
+            navTabFlow.value = tab
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handleNavIntent(intent)
 
         // 1. Full Edge-to-Edge with transparent system bars & light icons
         enableEdgeToEdge(
@@ -161,7 +177,8 @@ class MainActivity : ComponentActivity() {
                             alarmViewModel = alarmViewModel,
                             stopwatchViewModel = stopwatchViewModel,
                             timerViewModel = timerViewModel,
-                            settingsManager = settingsManager
+                            settingsManager = settingsManager,
+                            navTabFlow = navTabFlow
                         )
                     }
                 }
@@ -210,13 +227,24 @@ fun MainClockApp(
     alarmViewModel: AlarmViewModel,
     stopwatchViewModel: StopwatchViewModel,
     timerViewModel: TimerViewModel,
-    settingsManager: SettingsManager
+    settingsManager: SettingsManager,
+    navTabFlow: kotlinx.coroutines.flow.StateFlow<Int?>
 ) {
     var showSettings by rememberSaveable { mutableStateOf(false) }
     val editorState by alarmViewModel.editorState.collectAsState()
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { ClockTab.items.size })
     val coroutineScope = rememberCoroutineScope()
     val palette = ClockTheme.palette
+
+    // Handle navigation tab changes (e.g. from notification clicks)
+    val targetTab by navTabFlow.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(targetTab) {
+        targetTab?.let { page ->
+            if (page in 0 until ClockTab.items.size) {
+                pagerState.scrollToPage(page)
+            }
+        }
+    }
 
     // System Back Button Navigation
     BackHandler(enabled = showSettings) {

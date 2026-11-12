@@ -68,6 +68,12 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
+        <!-- Foreground Service for active Timer countdown and ringing -->
+        <service
+            android:name=".timer.service.TimerForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
     </application>
 
 </manifest>

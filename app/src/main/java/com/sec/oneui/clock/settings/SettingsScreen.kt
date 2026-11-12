@@ -21,6 +21,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.VolumeDown
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,6 +58,7 @@ fun SettingsScreen(
 ) {
     val themeMode by settingsManager.themeMode.collectAsState()
     val use24HourFormat by settingsManager.use24HourFormat.collectAsState()
+    val alarmCustomVolume by settingsManager.alarmCustomVolume.collectAsState()
     val gradualVolumeDuration by settingsManager.gradualVolumeDuration.collectAsState()
     val autoSilenceMinutes by settingsManager.autoSilenceMinutes.collectAsState()
     val volumeButtonsAction by settingsManager.volumeButtonsAction.collectAsState()
@@ -285,6 +289,62 @@ fun SettingsScreen(
                         uncheckedTrackColor = palette.cardBackground
                     )
                 )
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
+
+            // In-App Alarm Volume Slider (0% to 100%)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("Alarm Volume", fontSize = 15.sp, color = textColor)
+                        Text("In-app alarm volume control", fontSize = 13.sp, color = subTextColor)
+                    }
+                    Text(
+                        text = "${(alarmCustomVolume * 100).toInt()}%",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = palette.primaryAccent
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = if (alarmCustomVolume == 0f) Icons.Default.VolumeOff else Icons.Default.VolumeDown,
+                        contentDescription = "Volume Low",
+                        tint = subTextColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Slider(
+                        value = alarmCustomVolume,
+                        onValueChange = { settingsManager.setAlarmCustomVolume(it) },
+                        valueRange = 0f..1f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = palette.primaryAccent,
+                            activeTrackColor = palette.primaryAccent,
+                            inactiveTrackColor = Color.White.copy(alpha = 0.15f)
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        imageVector = Icons.Default.VolumeUp,
+                        contentDescription = "Volume High",
+                        tint = subTextColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
 
             HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))

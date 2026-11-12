@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.net.Uri
@@ -23,6 +24,7 @@ import com.sec.oneui.clock.alarm.data.AlarmDatabase
 import com.sec.oneui.clock.alarm.data.AlarmEntity
 import com.sec.oneui.clock.alarm.receiver.AlarmReceiver
 import com.sec.oneui.clock.alarm.scheduler.AlarmScheduler
+import kotlin.math.roundToInt
 import com.sec.oneui.clock.alarm.ui.AlarmRingingActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -154,6 +156,17 @@ class AlarmForegroundService : Service() {
         val prefs = applicationContext.getSharedPreferences("clock_settings", Context.MODE_PRIVATE)
         val gradualSeconds = prefs.getInt("gradual_volume_seconds", 0)
         val gradualVolume = gradualSeconds > 0
+        val targetVolumeFraction = prefs.getFloat("alarm_custom_volume", 0.8f).coerceIn(0.01f, 1.0f)
+
+        // Programmatically adjust system alarm stream volume based on custom volume percentage
+        try {
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val maxStreamVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+            val calculatedStreamVolume = (maxStreamVolume * targetVolumeFraction).roundToInt().coerceIn(1, maxStreamVolume)
+            audioManager.setStreamVolume(AudioManager.STREAM_ALARM, calculatedStreamVolume, 0)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed setting alarm stream volume: ${e.message}")
+        }
 
         fun createAndStartPlayer(uri: Uri): MediaPlayer {
             return MediaPlayer().apply {
@@ -166,9 +179,10 @@ class AlarmForegroundService : Service() {
                 )
                 isLooping = true
                 if (gradualVolume) {
-                    setVolume(0.05f, 0.05f)
+                    val initialVol = (0.05f * targetVolumeFraction).coerceIn(0.01f, targetVolumeFraction)
+                    setVolume(initialVol, initialVol)
                 } else {
-                    setVolume(1.0f, 1.0f)
+                    setVolume(targetVolumeFraction, targetVolumeFraction)
                 }
                 prepare()
                 start()
@@ -211,12 +225,12 @@ class AlarmForegroundService : Service() {
                     val totalDurationMs = (gradualSeconds.coerceIn(1, 120)) * 1000L
                     val stepIntervalMs = if (totalDurationMs <= 5000L) 100L else 250L
                     val totalSteps = (totalDurationMs / stepIntervalMs).toInt().coerceAtLeast(1)
-                    val initialVol = 0.05f
+                    val initialVol = (0.05f * targetVolumeFraction).coerceIn(0.01f, targetVolumeFraction)
 
                     for (step in 1..totalSteps) {
                         delay(stepIntervalMs)
                         val fraction = step.toFloat() / totalSteps
-                        val vol = (initialVol + fraction * (1.0f - initialVol)).coerceIn(0.05f, 1.0f)
+                        val vol = (initialVol + fraction * (targetVolumeFraction - initialVol)).coerceIn(initialVol, targetVolumeFraction)
                         try {
                             mediaPlayer?.setVolume(vol, vol)
                         } catch (_: Exception) {
@@ -224,7 +238,7 @@ class AlarmForegroundService : Service() {
                         }
                     }
                     try {
-                        mediaPlayer?.setVolume(1.0f, 1.0f)
+                        mediaPlayer?.setVolume(targetVolumeFraction, targetVolumeFraction)
                     } catch (_: Exception) {}
                 }
             }
