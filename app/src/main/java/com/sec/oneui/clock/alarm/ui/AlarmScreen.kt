@@ -1,5 +1,10 @@
 package com.sec.oneui.clock.alarm.ui
 
+@file:OptIn(
+    androidx.compose.foundation.ExperimentalFoundationApi::class,
+    androidx.compose.material3.ExperimentalMaterial3Api::class
+)
+
 import android.app.Activity
 import android.content.Intent
 import android.media.RingtoneManager
@@ -106,7 +111,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun AlarmScreen(
     viewModel: AlarmViewModel,
