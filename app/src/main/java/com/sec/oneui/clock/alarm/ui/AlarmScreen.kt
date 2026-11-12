@@ -131,6 +131,11 @@ fun AlarmScreen(
     val editorState by viewModel.editorState.collectAsState()
     val palette = ClockTheme.palette
 
+    // System Back Button closes Add/Edit Alarm sheet
+    BackHandler(enabled = editorState.isOpen) {
+        viewModel.dismissEditorSheet()
+    }
+
     // Authentic iOS Modal Sheet background scale down and dimming
     val bgScale by animateFloatAsState(
         targetValue = if (editorState.isOpen) 0.94f else 1f,
@@ -415,6 +420,11 @@ fun AlarmEditSheet(
 ) {
     val context = LocalContext.current
     var showDatePicker by remember { mutableStateOf(false) }
+
+    // System Back Button closes DatePickerDialog if open
+    BackHandler(enabled = showDatePicker) {
+        showDatePicker = false
+    }
 
     val ringtoneLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()

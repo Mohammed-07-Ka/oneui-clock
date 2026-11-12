@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,6 +19,7 @@ import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -49,6 +51,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -215,6 +218,15 @@ fun MainClockApp(
     val coroutineScope = rememberCoroutineScope()
     val palette = ClockTheme.palette
 
+    // System Back Button Navigation
+    BackHandler(enabled = showSettings) {
+        showSettings = false
+    }
+
+    BackHandler(enabled = editorState.isOpen) {
+        alarmViewModel.dismissEditorSheet()
+    }
+
     // Smooth iOS-style vertical slide transition for Settings screen (320ms, easeOut)
     AnimatedContent(
         targetState = showSettings,
@@ -364,21 +376,28 @@ fun MainClockApp(
                         .fillMaxSize()
                         .padding(bottom = innerPadding.calculateBottomPadding())
                 ) {
-                    // Horizontal Pager with Left/Right Swiping between Alarm, Stopwatch, and Timer with iOS physics
+                    // Horizontal Pager with Left/Right Swiping between Alarm, Stopwatch, and Timer with instant iOS physics
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
                         userScrollEnabled = true,
-                        beyondBoundsPageCount = 2
+                        beyondViewportPageCount = 2,
+                        flingBehavior = PagerDefaults.flingBehavior(
+                            state = pagerState,
+                            snapAnimationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        )
                     ) { pageIndex ->
-                        val pageOffset = ((pagerState.currentPage - pageIndex) + pagerState.currentPageOffsetFraction).absoluteValue
-                        val pageScale = 1f - (0.08f * pageOffset.coerceIn(0f, 1f))
-                        val pageAlpha = 1f - (0.40f * pageOffset.coerceIn(0f, 1f))
-
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .graphicsLayer {
+                                    // Calculate in Draw/Graphics phase only -> ZERO recompositions while swiping
+                                    val pageOffset = ((pagerState.currentPage - pageIndex) + pagerState.currentPageOffsetFraction).absoluteValue
+                                    val pageScale = 1f - (0.08f * pageOffset.coerceIn(0f, 1f))
+                                    val pageAlpha = 1f - (0.40f * pageOffset.coerceIn(0f, 1f))
                                     scaleX = pageScale
                                     scaleY = pageScale
                                     alpha = pageAlpha

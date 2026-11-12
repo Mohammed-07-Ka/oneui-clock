@@ -33,6 +33,8 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             isDebuggable = true
+            isMinifyEnabled = false
+            isProfileable = false
         }
     }
 
