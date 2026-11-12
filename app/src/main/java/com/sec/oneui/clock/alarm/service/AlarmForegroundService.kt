@@ -64,7 +64,7 @@ class AlarmForegroundService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action = intent?.action ?: return START_NOT_STICKY
         val alarmId = intent.getIntExtra(AlarmScheduler.EXTRA_ALARM_ID, -1)
-        Log.d(TAG, "onStartCommand: action=$action, alarmId=$alarmId")
+
 
         when (action) {
             ACTION_START_ALARM -> {
@@ -120,7 +120,7 @@ class AlarmForegroundService : Service() {
                 autoSilenceJob?.cancel()
                 autoSilenceJob = CoroutineScope(Dispatchers.Main).launch {
                     delay(autoSilenceMinutes * 60 * 1000L)
-                    Log.d(TAG, "Auto-silence reached after $autoSilenceMinutes mins. Stopping alarm.")
+
                     stopAlarm()
                 }
             }

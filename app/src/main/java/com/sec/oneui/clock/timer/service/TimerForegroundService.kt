@@ -139,7 +139,7 @@ class TimerForegroundService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action = intent?.action ?: return START_NOT_STICKY
-        Log.d(TAG, "onStartCommand: action=$action")
+
 
         when (action) {
             ACTION_START_TIMER -> {
