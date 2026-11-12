@@ -52,7 +52,7 @@ import com.sec.oneui.clock.stopwatch.ui.StopwatchViewModel
 import com.sec.oneui.clock.theme.OneUiBlack
 import com.sec.oneui.clock.theme.OneUiBlue
 import com.sec.oneui.clock.theme.OneUiCard
-import com.sec.oneui.clock.theme.OneUiClockTheme
+import com.sec.oneui.clock.theme.OneUIClockTheme
 import com.sec.oneui.clock.theme.OneUiTextPrimary
 import com.sec.oneui.clock.theme.OneUiTextSecondary
 import com.sec.oneui.clock.timer.ui.TimerScreen

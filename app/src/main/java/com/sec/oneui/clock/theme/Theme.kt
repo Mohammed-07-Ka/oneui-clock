@@ -31,3 +31,8 @@ fun OneUIClockTheme(
         content = content
     )
 }
+
+@Composable
+fun OneUiClockTheme(
+    content: @Composable () -> Unit
+) = OneUIClockTheme(content = content)

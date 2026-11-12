@@ -72,7 +72,7 @@ object AlarmScheduler {
         val pendingIntent = PendingIntent.getBroadcast(context, alarm.id, intent, flags)
 
         val showIntent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
         val showPendingIntent = PendingIntent.getActivity(context, alarm.id, showIntent, flags)
 

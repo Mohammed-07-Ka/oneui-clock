@@ -52,7 +52,7 @@ import com.sec.oneui.clock.alarm.data.AlarmEntity
 import com.sec.oneui.clock.alarm.receiver.AlarmReceiver
 import com.sec.oneui.clock.alarm.scheduler.AlarmScheduler
 import com.sec.oneui.clock.theme.OneUiBlack
-import com.sec.oneui.clock.theme.OneUiClockTheme
+import com.sec.oneui.clock.theme.OneUIClockTheme
 import com.sec.oneui.clock.theme.OneUiRed
 import com.sec.oneui.clock.theme.OneUiTextPrimary
 import com.sec.oneui.clock.theme.OneUiTextSecondary
