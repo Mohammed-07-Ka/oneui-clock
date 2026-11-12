@@ -146,31 +146,8 @@ fun <T> WheelPicker(
             .padding(horizontal = 4.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Selection highlight bar in iOS glass style
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(itemHeight)
-                .clip(RoundedCornerShape(14.dp))
-                .background(Color.White.copy(alpha = 0.08f))
-                .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(14.dp))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    enabled = isNumeric && !isEditing
-                ) {
-                    if (currentIndex in items.indices) {
-                        val currentStr = formatItem(items[currentIndex])
-                        textFieldValue = TextFieldValue(
-                            text = currentStr,
-                            selection = TextRange(0, currentStr.length)
-                        )
-                        isEditing = true
-                    }
-                }
-        )
-
         if (!isEditing) {
+            // 1. Wheel scroll list
             LazyColumn(
                 state = listState,
                 flingBehavior = flingBehavior,
@@ -183,19 +160,7 @@ fun <T> WheelPicker(
                     Box(
                         modifier = Modifier
                             .height(itemHeight)
-                            .fillMaxWidth()
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                enabled = isNumeric
-                            ) {
-                                val currentStr = if (currentIndex in items.indices) formatItem(items[currentIndex]) else ""
-                                textFieldValue = TextFieldValue(
-                                    text = currentStr,
-                                    selection = TextRange(0, currentStr.length)
-                                )
-                                isEditing = true
-                            },
+                            .fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -207,15 +172,41 @@ fun <T> WheelPicker(
                     }
                 }
             }
-        } else {
-            // Direct Keypad Input Field with Numeric Keyboard
+
+            // 2. Central Highlight Bar placed ON TOP of LazyColumn so it explicitly catches taps!
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(itemHeight)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color.White.copy(alpha = 0.16f))
-                    .border(1.5.dp, Color.White.copy(alpha = 0.45f), RoundedCornerShape(14.dp)),
+                    .background(Color.White.copy(alpha = 0.08f))
+                    .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(14.dp))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        enabled = isNumeric
+                    ) {
+                        if (currentIndex in items.indices) {
+                            val currentStr = formatItem(items[currentIndex])
+                            textFieldValue = TextFieldValue(
+                                text = currentStr,
+                                selection = TextRange(0, currentStr.length)
+                            )
+                            isEditing = true
+                        }
+                    }
+            )
+        } else {
+            // Direct Keypad Input Field with Numeric Keyboard
+            var hasFocused by remember { mutableStateOf(false) }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(itemHeight)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color.White.copy(alpha = 0.22f))
+                    .border(2.dp, Color(0xFF60A5FA), RoundedCornerShape(14.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 BasicTextField(
@@ -265,7 +256,9 @@ fun <T> WheelPicker(
                         .fillMaxWidth()
                         .focusRequester(focusRequester)
                         .onFocusChanged { focusState ->
-                            if (!focusState.isFocused && isEditing) {
+                            if (focusState.isFocused) {
+                                hasFocused = true
+                            } else if (hasFocused && isEditing) {
                                 val num = textFieldValue.text.toIntOrNull()
                                 if (num != null && num in minValue..maxValue) {
                                     applyInputValue(textFieldValue.text)
@@ -281,6 +274,8 @@ fun <T> WheelPicker(
             }
 
             LaunchedEffect(Unit) {
+                hasFocused = false
+                kotlinx.coroutines.delay(60)
                 focusRequester.requestFocus()
                 keyboardController?.show()
             }

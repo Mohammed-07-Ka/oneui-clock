@@ -282,22 +282,8 @@ fun AlarmScreen(
             }
         }
 
-        // Edit Alarm Sheet with smooth vertical slide + fade transition (320ms, FastOutSlowInEasing)
-        AnimatedVisibility(
-            visible = editorState.isOpen,
-            enter = slideInVertically(
-                initialOffsetY = { it },
-                animationSpec = tween(320, easing = FastOutSlowInEasing)
-            ) + fadeIn(
-                animationSpec = tween(320, easing = FastOutSlowInEasing)
-            ),
-            exit = slideOutVertically(
-                targetOffsetY = { it },
-                animationSpec = tween(320, easing = FastOutSlowInEasing)
-            ) + fadeOut(
-                animationSpec = tween(320, easing = FastOutSlowInEasing)
-            )
-        ) {
+        // Edit Alarm Sheet rendered instantly in Frame 0 without delayed transitions
+        if (editorState.isOpen) {
             AlarmEditSheet(
                 editorState = editorState,
                 use24HourFormat = use24HourFormat,
@@ -511,7 +497,7 @@ fun AlarmEditSheet(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.55f))
+            .background(Color.Black.copy(alpha = 0.65f))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -521,10 +507,10 @@ fun AlarmEditSheet(
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .imePadding()
                 .navigationBarsPadding()
-                .padding(top = 40.dp)
+                .padding(top = 24.dp)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
@@ -535,7 +521,7 @@ fun AlarmEditSheet(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
                     .verticalScroll(scrollState)
                     .padding(horizontal = 24.dp)
                     .padding(top = 16.dp, bottom = 32.dp)
