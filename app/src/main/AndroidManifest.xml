@@ -53,6 +53,8 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="com.sec.oneui.clock.ACTION_ALARM_TRIGGER" />
+                <action android:name="com.sec.oneui.clock.ACTION_UPCOMING_ALARM" />
+                <action android:name="com.sec.oneui.clock.ACTION_DISMISS_EARLY" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.TIME_SET" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />

@@ -34,6 +34,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,6 +56,9 @@ fun SettingsScreen(
     val defaultVibrate by settingsManager.defaultVibrate.collectAsState()
     val animationEnabled by settingsManager.animationEnabled.collectAsState()
     val animationSpeed by settingsManager.animationSpeed.collectAsState()
+    val upcomingAlarmMinutes by settingsManager.upcomingAlarmMinutes.collectAsState()
+
+    val haptic = LocalHapticFeedback.current
 
     val palette = ClockTheme.palette
     val textColor = palette.textPrimary
@@ -175,7 +180,10 @@ fun SettingsScreen(
                 }
                 Switch(
                     checked = animationEnabled,
-                    onCheckedChange = { settingsManager.setAnimationEnabled(it) },
+                    onCheckedChange = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        settingsManager.setAnimationEnabled(it)
+                    },
                     modifier = Modifier.iosPressEffect(targetScale = 0.96f),
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = palette.toggleActiveThumb,
@@ -258,7 +266,10 @@ fun SettingsScreen(
                 }
                 Switch(
                     checked = use24HourFormat,
-                    onCheckedChange = { settingsManager.setUse24HourFormat(it) },
+                    onCheckedChange = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        settingsManager.setUse24HourFormat(it)
+                    },
                     modifier = Modifier.iosPressEffect(targetScale = 0.96f),
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = palette.toggleActiveThumb,
@@ -404,6 +415,55 @@ fun SettingsScreen(
 
             HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
 
+            // Upcoming Alarm Notification (Early Warning with Dismiss Early)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
+            ) {
+                Text("Upcoming Alarm Notification", fontSize = 15.sp, color = textColor)
+                Text("Silent notification prior to alarm with Dismiss Early option", fontSize = 13.sp, color = subTextColor)
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val upcomingOptions = listOf(
+                        0 to "Off",
+                        15 to "15m before",
+                        30 to "30m before",
+                        60 to "1h before"
+                    )
+                    upcomingOptions.forEach { (minsVal, minsLabel) ->
+                        val isSelected = upcomingAlarmMinutes == minsVal
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(if (isSelected) palette.primaryAccent else palette.cardBackground)
+                                .border(1.dp, if (isSelected) cardBorder else palette.cardBorderSubtle, RoundedCornerShape(14.dp))
+                                .iosClickable(targetScale = 0.96f) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    settingsManager.setUpcomingAlarmMinutes(minsVal)
+                                }
+                                .padding(vertical = 10.dp, horizontal = 2.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = minsLabel,
+                                color = if (isSelected) palette.onPrimaryAccent else subTextColor,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
+
             // Vibrate by Default Switch
             Row(
                 modifier = Modifier
@@ -418,7 +478,10 @@ fun SettingsScreen(
                 }
                 Switch(
                     checked = defaultVibrate,
-                    onCheckedChange = { settingsManager.setDefaultVibrate(it) },
+                    onCheckedChange = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        settingsManager.setDefaultVibrate(it)
+                    },
                     modifier = Modifier.iosPressEffect(targetScale = 0.96f),
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = palette.toggleActiveThumb,

@@ -16,7 +16,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -27,16 +30,24 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -58,6 +69,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -65,6 +77,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
@@ -73,6 +86,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import kotlin.math.absoluteValue
 import com.sec.oneui.clock.alarm.ui.AlarmScreen
 import com.sec.oneui.clock.alarm.ui.AlarmViewModel
 import com.sec.oneui.clock.alarm.ui.InAppAlarmBanner
@@ -196,6 +210,7 @@ fun MainClockApp(
     settingsManager: SettingsManager
 ) {
     var showSettings by rememberSaveable { mutableStateOf(false) }
+    val editorState by alarmViewModel.editorState.collectAsState()
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { ClockTab.items.size })
     val coroutineScope = rememberCoroutineScope()
     val palette = ClockTheme.palette
@@ -239,60 +254,106 @@ fun MainClockApp(
                 containerColor = Color.Transparent,
                 contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 bottomBar = {
-                    // iOS Liquid Glass Floating Bottom Navigation Bar
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                    // iOS Liquid Glass Floating Bottom Navigation Bar with Spring Pill Morph
+                    AnimatedVisibility(
+                        visible = !editorState.isOpen,
+                        enter = slideInVertically(
+                            initialOffsetY = { it },
+                            animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f)
+                        ) + fadeIn(tween(250)),
+                        exit = slideOutVertically(
+                            targetOffsetY = { it },
+                            animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f)
+                        ) + fadeOut(tween(200))
                     ) {
-                        NavigationBar(
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(32.dp))
-                                .background(palette.cardBackground)
-                                .border(1.dp, palette.cardBorder, RoundedCornerShape(32.dp)),
-                            containerColor = Color.Transparent,
-                            tonalElevation = 0.dp
+                                .navigationBarsPadding()
+                                .padding(horizontal = 24.dp, vertical = 12.dp)
                         ) {
-                            ClockTab.items.forEach { tab ->
-                                val isSelected = pagerState.currentPage == tab.index
-                                NavigationBarItem(
-                                    selected = isSelected,
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            pagerState.animateScrollToPage(
-                                                page = tab.index,
-                                                animationSpec = tween(
-                                                    durationMillis = 350,
-                                                    easing = FastOutSlowInEasing
-                                                )
-                                            )
-                                        }
-                                    },
-                                    modifier = Modifier.iosPressEffect(targetScale = 0.96f),
-                                    icon = {
-                                        Icon(
-                                            imageVector = tab.icon,
-                                            contentDescription = tab.title,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    },
-                                    label = {
-                                        Text(
-                                            text = tab.title,
-                                            fontSize = 12.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                        )
-                                    },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.textPrimary,
-                                        selectedTextColor = if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.textPrimary,
-                                        unselectedIconColor = palette.textMuted,
-                                        unselectedTextColor = palette.textMuted,
-                                        indicatorColor = palette.tabSelectedIndicator
-                                    )
+                            BoxWithConstraints(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(64.dp)
+                                    .clip(RoundedCornerShape(32.dp))
+                                    .background(palette.cardBackground)
+                                    .border(1.dp, palette.cardBorder, RoundedCornerShape(32.dp))
+                                    .padding(4.dp)
+                            ) {
+                                val tabCount = ClockTab.items.size
+                                val tabWidth = maxWidth / tabCount
+                                val selectedTab = pagerState.currentPage.coerceIn(0, tabCount - 1)
+                                val pillOffset by animateDpAsState(
+                                    targetValue = tabWidth * selectedTab,
+                                    animationSpec = spring(dampingRatio = 0.7f, stiffness = 500f),
+                                    label = "activeTabPill"
                                 )
+
+                                // Physical sliding and stretching active pill indicator
+                                Box(
+                                    modifier = Modifier
+                                        .offset(x = pillOffset)
+                                        .width(tabWidth)
+                                        .fillMaxHeight()
+                                        .clip(RoundedCornerShape(28.dp))
+                                        .background(palette.tabSelectedIndicator)
+                                )
+
+                                // Tab items row
+                                Row(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    ClockTab.items.forEach { tab ->
+                                        val isSelected = selectedTab == tab.index
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .fillMaxHeight()
+                                                .clip(RoundedCornerShape(28.dp))
+                                                .clickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = null
+                                                ) {
+                                                    coroutineScope.launch {
+                                                        pagerState.animateScrollToPage(
+                                                            page = tab.index,
+                                                            animationSpec = spring(
+                                                                dampingRatio = 0.75f,
+                                                                stiffness = 500f
+                                                            )
+                                                        )
+                                                    }
+                                                }
+                                                .iosPressEffect(targetScale = 0.96f),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = tab.icon,
+                                                    contentDescription = tab.title,
+                                                    tint = if (isSelected) {
+                                                        if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.textPrimary
+                                                    } else palette.textMuted,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = tab.title,
+                                                    fontSize = 13.sp,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                    color = if (isSelected) {
+                                                        if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.textPrimary
+                                                    } else palette.textMuted
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -303,28 +364,43 @@ fun MainClockApp(
                         .fillMaxSize()
                         .padding(bottom = innerPadding.calculateBottomPadding())
                 ) {
-                    // Horizontal Pager with Left/Right Swiping between Alarm, Stopwatch, and Timer
+                    // Horizontal Pager with Left/Right Swiping between Alarm, Stopwatch, and Timer with iOS physics
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
                         userScrollEnabled = true,
                         beyondBoundsPageCount = 2
                     ) { pageIndex ->
-                        when (pageIndex) {
-                            0 -> AlarmScreen(viewModel = alarmViewModel)
-                            1 -> StopwatchScreen(viewModel = stopwatchViewModel)
-                            2 -> TimerScreen(viewModel = timerViewModel)
+                        val pageOffset = ((pagerState.currentPage - pageIndex) + pagerState.currentPageOffsetFraction).absoluteValue
+                        val pageScale = 1f - (0.08f * pageOffset.coerceIn(0f, 1f))
+                        val pageAlpha = 1f - (0.40f * pageOffset.coerceIn(0f, 1f))
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    scaleX = pageScale
+                                    scaleY = pageScale
+                                    alpha = pageAlpha
+                                }
+                        ) {
+                            when (pageIndex) {
+                                0 -> AlarmScreen(viewModel = alarmViewModel)
+                                1 -> StopwatchScreen(viewModel = stopwatchViewModel)
+                                2 -> TimerScreen(viewModel = timerViewModel)
+                            }
                         }
                     }
 
-                    // Discreet Settings Icon in Top-Right
-                    Row(
+                    // Discreet Settings Icon in Top-Right (hidden when Add/Edit Alarm sheet is open)
+                    AnimatedVisibility(
+                        visible = !editorState.isOpen,
+                        enter = fadeIn(tween(200)),
+                        exit = fadeOut(tween(200)),
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .align(Alignment.TopEnd)
                             .statusBarsPadding()
-                            .padding(horizontal = 20.dp, vertical = 16.dp),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(horizontal = 20.dp, vertical = 16.dp)
                     ) {
                         IconButton(
                             onClick = { showSettings = true },

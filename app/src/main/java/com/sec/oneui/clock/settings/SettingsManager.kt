@@ -54,6 +54,14 @@ class SettingsManager(context: Context) {
     private val _animationSpeed = MutableStateFlow(prefs.getFloat("bg_animation_speed", 1.0f))
     val animationSpeed: StateFlow<Float> = _animationSpeed.asStateFlow()
 
+    private val _upcomingAlarmMinutes = MutableStateFlow(prefs.getInt("upcoming_alarm_minutes", 0))
+    val upcomingAlarmMinutes: StateFlow<Int> = _upcomingAlarmMinutes.asStateFlow()
+
+    fun setUpcomingAlarmMinutes(minutes: Int) {
+        prefs.edit().putInt("upcoming_alarm_minutes", minutes).apply()
+        _upcomingAlarmMinutes.value = minutes
+    }
+
     fun setThemeMode(mode: ThemeMode) {
         prefs.edit().putString("theme_mode", mode.key).apply()
         _themeMode.value = mode

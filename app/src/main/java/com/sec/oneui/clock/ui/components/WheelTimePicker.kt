@@ -37,7 +37,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
@@ -77,6 +79,7 @@ fun <T> WheelPicker(
     val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
     val coroutineScope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
+    val haptic = LocalHapticFeedback.current
 
     val currentIndex by remember {
         derivedStateOf {
@@ -109,6 +112,7 @@ fun <T> WheelPicker(
     // Emit selection to parent when scrolled
     LaunchedEffect(currentIndex) {
         if (currentIndex in items.indices && !isEditing) {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             onItemSelected(items[currentIndex])
         }
     }

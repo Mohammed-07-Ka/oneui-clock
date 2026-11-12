@@ -16,6 +16,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -81,8 +83,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -125,6 +130,18 @@ fun AlarmScreen(
     val editorState by viewModel.editorState.collectAsState()
     val palette = ClockTheme.palette
 
+    // Authentic iOS Modal Sheet background scale down and dimming
+    val bgScale by animateFloatAsState(
+        targetValue = if (editorState.isOpen) 0.94f else 1f,
+        animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f),
+        label = "alarmBgScale"
+    )
+    val bgAlpha by animateFloatAsState(
+        targetValue = if (editorState.isOpen) 0.7f else 1f,
+        animationSpec = tween(320, easing = FastOutSlowInEasing),
+        label = "alarmBgAlpha"
+    )
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -133,6 +150,11 @@ fun AlarmScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = bgScale
+                    scaleY = bgScale
+                    alpha = bgAlpha
+                }
                 .statusBarsPadding()
                 .padding(horizontal = 20.dp)
         ) {
@@ -198,20 +220,27 @@ fun AlarmScreen(
         }
 
         // iOS Liquid Glass Floating Action Button with Tactile Press Feedback
-        FloatingActionButton(
-            onClick = { viewModel.openEditorForNew(defaultVibrate) },
-            containerColor = palette.primaryAccent,
-            contentColor = palette.onPrimaryAccent,
-            shape = CircleShape,
+        AnimatedVisibility(
+            visible = !editorState.isOpen,
+            enter = fadeIn(tween(200)),
+            exit = fadeOut(tween(200)),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = 24.dp, bottom = 24.dp)
-                .size(62.dp)
-                .clip(CircleShape)
-                .border(1.dp, palette.cardBorder, CircleShape)
-                .iosPressEffect(targetScale = 0.96f)
         ) {
-            Icon(Icons.Default.Add, contentDescription = "Add Alarm", modifier = Modifier.size(32.dp))
+            FloatingActionButton(
+                onClick = { viewModel.openEditorForNew(defaultVibrate) },
+                containerColor = palette.primaryAccent,
+                contentColor = palette.onPrimaryAccent,
+                shape = CircleShape,
+                modifier = Modifier
+                    .size(62.dp)
+                    .clip(CircleShape)
+                    .border(1.dp, palette.cardBorder, CircleShape)
+                    .iosPressEffect(targetScale = 0.96f)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Alarm", modifier = Modifier.size(32.dp))
+            }
         }
 
         // Edit Alarm Sheet with smooth vertical slide + fade transition (320ms, FastOutSlowInEasing)
@@ -259,6 +288,7 @@ fun AlarmCard(
     modifier: Modifier = Modifier
 ) {
     val palette = ClockTheme.palette
+    val haptic = LocalHapticFeedback.current
     val cardInteractionSource = remember { MutableInteractionSource() }
     Card(
         modifier = modifier
@@ -350,7 +380,10 @@ fun AlarmCard(
 
             Switch(
                 checked = alarm.isEnabled,
-                onCheckedChange = { onToggle() },
+                onCheckedChange = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onToggle()
+                },
                 modifier = Modifier.iosPressEffect(targetScale = 0.96f),
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = palette.toggleActiveThumb,
@@ -462,16 +495,43 @@ fun AlarmEditSheet(
                         .background(Color.White.copy(alpha = 0.25f))
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                Text(
-                    text = if (editorState.editingAlarmId == null) "Add Alarm" else "Edit Alarm",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = palette.textPrimary
-                )
+                // iOS Sheet Header Bar: Cancel on left, Title in center, Save on right
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Cancel",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = Color(0xFF60A5FA),
+                        modifier = Modifier
+                            .iosClickable(targetScale = 0.95f) { onCancel() }
+                            .padding(vertical = 4.dp, horizontal = 4.dp)
+                    )
 
-            Spacer(modifier = Modifier.height(20.dp))
+                    Text(
+                        text = if (editorState.editingAlarmId == null) "Add Alarm" else "Edit Alarm",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = palette.textPrimary
+                    )
+
+                    Text(
+                        text = "Save",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.primaryAccent,
+                        modifier = Modifier
+                            .iosClickable(targetScale = 0.95f) { onSave() }
+                            .padding(vertical = 4.dp, horizontal = 4.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
 
             // iOS Liquid Glass Wheel Time Picker
             if (use24HourFormat) {
@@ -781,43 +841,7 @@ fun AlarmEditSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // Cancel and Save Buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Cancel Button (Clears draft explicitly)
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(54.dp)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(palette.cardBackground)
-                        .border(1.dp, palette.cardBorderSubtle, RoundedCornerShape(18.dp))
-                        .iosClickable(targetScale = 0.96f) { onCancel() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Cancel", fontSize = 16.sp, color = Color.White.copy(alpha = 0.85f), fontWeight = FontWeight.Medium)
-                }
-
-                // Save Button (Saves and clears draft explicitly)
-                Button(
-                    onClick = onSave,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(54.dp)
-                        .iosPressEffect(targetScale = 0.96f),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = palette.primaryAccent,
-                        contentColor = palette.onPrimaryAccent
-                    )
-                ) {
-                    Text("Save", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                }
-            }
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }

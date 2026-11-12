@@ -13,6 +13,8 @@ import java.util.Calendar
 
 object AlarmScheduler {
     const val ACTION_ALARM_TRIGGER = "com.sec.oneui.clock.ACTION_ALARM_TRIGGER"
+    const val ACTION_UPCOMING_ALARM = "com.sec.oneui.clock.ACTION_UPCOMING_ALARM"
+    const val ACTION_DISMISS_EARLY = "com.sec.oneui.clock.ACTION_DISMISS_EARLY"
     const val EXTRA_ALARM_ID = "extra_alarm_id"
     private const val TAG = "AlarmScheduler"
 
@@ -111,13 +113,33 @@ object AlarmScheduler {
                 alarmManager.setAlarmClock(clockInfo, pendingIntent)
                 Log.d(TAG, "Scheduled alarm clock #${alarm.id} at $triggerTime")
             }
+
+            // Schedule Upcoming Alarm Notification if enabled
+            val upcomingMinutes = com.sec.oneui.clock.settings.SettingsManager.getInstance(context).upcomingAlarmMinutes.value
+            if (upcomingMinutes > 0) {
+                val upcomingTime = triggerTime - (upcomingMinutes * 60 * 1000L)
+                if (upcomingTime > System.currentTimeMillis()) {
+                    val upcomingIntent = Intent(context, AlarmReceiver::class.java).apply {
+                        action = ACTION_UPCOMING_ALARM
+                        putExtra(EXTRA_ALARM_ID, alarm.id)
+                    }
+                    val upcomingPending = PendingIntent.getBroadcast(
+                        context,
+                        100000 + alarm.id,
+                        upcomingIntent,
+                        flags
+                    )
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, upcomingTime, upcomingPending)
+                    Log.d(TAG, "Scheduled upcoming alarm notification #${alarm.id} at $upcomingTime")
+                }
+            }
         } catch (e: SecurityException) {
             Log.e(TAG, "Failed to schedule exact alarm: ${e.message}")
         }
     }
 
     /**
-     * Cancels scheduled alarm
+     * Cancels scheduled alarm and its upcoming notification trigger
      */
     fun cancel(context: Context, alarmId: Int) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
@@ -129,6 +151,24 @@ object AlarmScheduler {
         val pendingIntent = PendingIntent.getBroadcast(context, alarmId, intent, flags)
         alarmManager.cancel(pendingIntent)
         pendingIntent.cancel()
+
+        // Also cancel upcoming notification trigger and active notification
+        val upcomingIntent = Intent(context, AlarmReceiver::class.java).apply {
+            action = ACTION_UPCOMING_ALARM
+            putExtra(EXTRA_ALARM_ID, alarmId)
+        }
+        val upcomingPending = PendingIntent.getBroadcast(
+            context,
+            100000 + alarmId,
+            upcomingIntent,
+            flags
+        )
+        alarmManager.cancel(upcomingPending)
+        upcomingPending.cancel()
+
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
+        notificationManager?.cancel(200000 + alarmId)
+
         Log.d(TAG, "Cancelled alarm #$alarmId")
     }
 
