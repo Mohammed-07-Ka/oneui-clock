@@ -1,9 +1,9 @@
-package com.sec.oneui.clock.alarm.ui
-
 @file:OptIn(
     androidx.compose.foundation.ExperimentalFoundationApi::class,
     androidx.compose.material3.ExperimentalMaterial3Api::class
 )
+
+package com.sec.oneui.clock.alarm.ui
 
 import android.app.Activity
 import android.content.Intent
