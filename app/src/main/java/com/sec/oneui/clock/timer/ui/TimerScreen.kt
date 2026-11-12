@@ -20,7 +20,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -39,6 +40,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sec.oneui.clock.theme.ClockTheme
 import com.sec.oneui.clock.theme.LiquidActiveText
 import com.sec.oneui.clock.theme.LiquidActiveWhite
 import com.sec.oneui.clock.theme.LiquidGlassActive
@@ -50,6 +52,8 @@ import com.sec.oneui.clock.theme.LiquidTextMuted
 import com.sec.oneui.clock.theme.LiquidTextPrimary
 import com.sec.oneui.clock.theme.LiquidTextSecondary
 import com.sec.oneui.clock.theme.OneUiRed
+import com.sec.oneui.clock.theme.iosClickable
+import com.sec.oneui.clock.theme.iosPressEffect
 
 @Composable
 fun TimerScreen(
@@ -64,10 +68,13 @@ fun TimerScreen(
     val inputMinutes by viewModel.inputMinutes.collectAsState()
     val inputSeconds by viewModel.inputSeconds.collectAsState()
 
+    val palette = ClockTheme.palette
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Transparent)
+            .statusBarsPadding()
             .padding(horizontal = 20.dp)
     ) {
         Spacer(modifier = Modifier.height(18.dp))
@@ -75,7 +82,7 @@ fun TimerScreen(
             text = "Timer",
             fontSize = 34.sp,
             fontWeight = FontWeight.Bold,
-            color = LiquidTextPrimary
+            color = palette.textPrimary
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -93,52 +100,53 @@ fun TimerScreen(
                         Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(32.dp))
-                                .background(LiquidGlassBackground)
-                                .border(1.dp, LiquidSpecularBorder, RoundedCornerShape(32.dp))
+                                .background(palette.cardBackground)
+                                .border(1.dp, palette.cardBorder, RoundedCornerShape(32.dp))
                                 .padding(horizontal = 26.dp, vertical = 22.dp),
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             TimerDigitColumn("h", inputHours, onInc = { viewModel.inputHours.value = (inputHours + 1) % 100 }, onDec = { viewModel.inputHours.value = if (inputHours == 0) 99 else inputHours - 1 })
-                            Text(":", fontSize = 38.sp, color = LiquidTextSecondary, modifier = Modifier.padding(horizontal = 12.dp))
+                            Text(":", fontSize = 38.sp, color = palette.textSecondary, modifier = Modifier.padding(horizontal = 12.dp))
                             TimerDigitColumn("m", inputMinutes, onInc = { viewModel.inputMinutes.value = (inputMinutes + 1) % 60 }, onDec = { viewModel.inputMinutes.value = if (inputMinutes == 0) 59 else inputMinutes - 1 })
-                            Text(":", fontSize = 38.sp, color = LiquidTextSecondary, modifier = Modifier.padding(horizontal = 12.dp))
+                            Text(":", fontSize = 38.sp, color = palette.textSecondary, modifier = Modifier.padding(horizontal = 12.dp))
                             TimerDigitColumn("s", inputSeconds, onInc = { viewModel.inputSeconds.value = (inputSeconds + 1) % 60 }, onDec = { viewModel.inputSeconds.value = if (inputSeconds == 0) 59 else inputSeconds - 1 })
                         }
 
                         Spacer(modifier = Modifier.height(30.dp))
 
                         // Quick Presets
-                        Text("Presets", color = LiquidTextSecondary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Presets", color = palette.textSecondary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                         Spacer(modifier = Modifier.height(12.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             listOf(5, 10, 15, 30).forEach { mins ->
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(16.dp))
-                                        .background(LiquidGlassBackground)
-                                        .border(1.dp, LiquidSpecularBorderSubtle, RoundedCornerShape(16.dp))
-                                        .clickable { viewModel.applyPreset(mins) }
+                                        .background(palette.cardBackground)
+                                        .border(1.dp, palette.cardBorderSubtle, RoundedCornerShape(16.dp))
+                                        .iosClickable(targetScale = 0.95f) { viewModel.applyPreset(mins) }
                                         .padding(horizontal = 18.dp, vertical = 10.dp)
                                 ) {
-                                    Text("${mins}m", color = LiquidTextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                                    Text("${mins}m", color = palette.textPrimary, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                                 }
                             }
                         }
                     }
                 }
 
-                // Start Button in Luminous White Liquid Glass
+                // Start Button with iOS Tactile Press
                 Button(
                     onClick = { viewModel.startTimer() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 96.dp)
-                        .height(58.dp),
+                        .height(58.dp)
+                        .iosPressEffect(targetScale = 0.95f),
                     shape = RoundedCornerShape(29.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = LiquidGlassActive,
-                        contentColor = LiquidActiveText
+                        containerColor = palette.primaryAccent,
+                        contentColor = palette.onPrimaryAccent
                     )
                 ) {
                     Text("Start", fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -170,7 +178,7 @@ fun TimerScreen(
                                 style = Stroke(width = 12.dp.toPx())
                             )
                             drawArc(
-                                color = LiquidActiveWhite,
+                                color = palette.primaryAccent,
                                 startAngle = -90f,
                                 sweepAngle = 360f * progress,
                                 useCenter = false,
@@ -183,19 +191,19 @@ fun TimerScreen(
                                 fontSize = 48.sp,
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = FontFamily.Monospace,
-                                color = LiquidTextPrimary
+                                color = palette.textPrimary
                             )
                             Spacer(modifier = Modifier.height(10.dp))
                             // Active +1 min glass button
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(14.dp))
-                                    .background(LiquidGlassBackground)
-                                    .border(1.dp, LiquidSpecularBorderSubtle, RoundedCornerShape(14.dp))
-                                    .clickable { viewModel.addOneMinute() }
+                                    .background(palette.cardBackground)
+                                    .border(1.dp, palette.cardBorderSubtle, RoundedCornerShape(14.dp))
+                                    .iosClickable(targetScale = 0.95f) { viewModel.addOneMinute() }
                                     .padding(horizontal = 16.dp, vertical = 8.dp)
                             ) {
-                                Text("+1 min", color = LiquidTextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Text("+1 min", color = palette.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -212,12 +220,13 @@ fun TimerScreen(
                         onClick = { viewModel.resetTimer() },
                         modifier = Modifier
                             .weight(1f)
-                            .height(58.dp),
+                            .height(58.dp)
+                            .iosPressEffect(targetScale = 0.95f),
                         shape = RoundedCornerShape(29.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = LiquidGlassBackground,
-                            contentColor = LiquidTextPrimary
+                            containerColor = palette.cardBackground,
+                            contentColor = palette.textPrimary
                         )
                     ) {
                         Text("Cancel", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
@@ -228,11 +237,12 @@ fun TimerScreen(
                             onClick = { viewModel.pauseTimer() },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(58.dp),
+                                .height(58.dp)
+                                .iosPressEffect(targetScale = 0.95f),
                             shape = RoundedCornerShape(29.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = LiquidGlassActive,
-                                contentColor = LiquidActiveText
+                                containerColor = palette.primaryAccent,
+                                contentColor = palette.onPrimaryAccent
                             )
                         ) {
                             Text("Pause", fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -242,11 +252,12 @@ fun TimerScreen(
                             onClick = { viewModel.resumeTimer() },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(58.dp),
+                                .height(58.dp)
+                                .iosPressEffect(targetScale = 0.95f),
                             shape = RoundedCornerShape(29.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = LiquidGlassActive,
-                                contentColor = LiquidActiveText
+                                containerColor = palette.primaryAccent,
+                                contentColor = palette.onPrimaryAccent
                             )
                         ) {
                             Text("Resume", fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -289,7 +300,7 @@ fun TimerScreen(
                             text = "Time's up!",
                             fontSize = 26.sp,
                             fontWeight = FontWeight.Bold,
-                            color = LiquidTextPrimary
+                            color = palette.textPrimary
                         )
                     }
                 }
@@ -299,7 +310,8 @@ fun TimerScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 96.dp)
-                        .height(58.dp),
+                        .height(58.dp)
+                        .iosPressEffect(targetScale = 0.95f),
                     shape = RoundedCornerShape(29.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = OneUiRed,
@@ -320,10 +332,11 @@ fun TimerDigitColumn(
     onInc: () -> Unit,
     onDec: () -> Unit
 ) {
+    val palette = ClockTheme.palette
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("▲", color = LiquidTextSecondary, modifier = Modifier.clickable { onInc() }.padding(6.dp))
-        Text(String.format("%02d", value), fontSize = 42.sp, fontWeight = FontWeight.Bold, color = LiquidTextPrimary)
-        Text(unit, fontSize = 12.sp, color = LiquidTextSecondary, fontWeight = FontWeight.Medium)
-        Text("▼", color = LiquidTextSecondary, modifier = Modifier.clickable { onDec() }.padding(6.dp))
+        Text("▲", color = palette.textSecondary, modifier = Modifier.clickable { onInc() }.padding(6.dp))
+        Text(String.format("%02d", value), fontSize = 42.sp, fontWeight = FontWeight.Bold, color = palette.textPrimary)
+        Text(unit, fontSize = 12.sp, color = palette.textSecondary, fontWeight = FontWeight.Medium)
+        Text("▼", color = palette.textSecondary, modifier = Modifier.clickable { onDec() }.padding(6.dp))
     }
 }

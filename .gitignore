@@ -12,6 +12,8 @@ captures/
 .externalNativeBuild/
 .cxx/
 output.json
+*.jar
+gradle/wrapper/gradle-wrapper.jar
 
 # ===================================================
 # REA Repository & Analysis Files (Excluded)

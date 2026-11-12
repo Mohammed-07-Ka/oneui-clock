@@ -35,11 +35,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sec.oneui.clock.alarm.service.AlarmForegroundService
-import com.sec.oneui.clock.theme.LiquidGlassBackground
-import com.sec.oneui.clock.theme.LiquidSpecularBorder
-import com.sec.oneui.clock.theme.LiquidTextPrimary
-import com.sec.oneui.clock.theme.LiquidTextSecondary
+import com.sec.oneui.clock.theme.ClockTheme
 import com.sec.oneui.clock.theme.OneUiRed
+import com.sec.oneui.clock.theme.iosPressEffect
 
 @Composable
 fun InAppAlarmBanner(
@@ -47,6 +45,7 @@ fun InAppAlarmBanner(
     onSnooze: (Int) -> Unit
 ) {
     val ringingAlarm by AlarmForegroundService.currentRingingAlarm.collectAsState()
+    val palette = ClockTheme.palette
 
     AnimatedVisibility(
         visible = ringingAlarm != null,
@@ -59,9 +58,9 @@ fun InAppAlarmBanner(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
                     .clip(RoundedCornerShape(26.dp))
-                    .border(1.dp, LiquidSpecularBorder, RoundedCornerShape(26.dp)),
+                    .border(1.dp, palette.cardBorder, RoundedCornerShape(26.dp)),
                 shape = RoundedCornerShape(26.dp),
-                color = Color(0xF5100B1A),
+                color = palette.cardBackground,
                 shadowElevation = 12.dp
             ) {
                 Column(
@@ -75,20 +74,20 @@ fun InAppAlarmBanner(
                         Icon(
                             imageVector = Icons.Default.Alarm,
                             contentDescription = "Alarm Ringing",
-                            tint = LiquidTextPrimary,
+                            tint = palette.textPrimary,
                             modifier = Modifier.size(28.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = alarm.label.ifBlank { "Alarm Ringing" },
-                                color = LiquidTextPrimary,
+                                color = palette.textPrimary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 17.sp
                             )
                             Text(
                                 text = "${alarm.formattedTime()} ${alarm.amPm()}",
-                                color = LiquidTextSecondary,
+                                color = palette.textSecondary,
                                 fontSize = 14.sp
                             )
                         }
@@ -102,12 +101,14 @@ fun InAppAlarmBanner(
                     ) {
                         OutlinedButton(
                             onClick = { onSnooze(alarm.id) },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .iosPressEffect(targetScale = 0.95f),
                             shape = RoundedCornerShape(16.dp),
                             border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = LiquidGlassBackground,
-                                contentColor = LiquidTextPrimary
+                                containerColor = palette.cardBackground,
+                                contentColor = palette.textPrimary
                             )
                         ) {
                             Text("Snooze (${alarm.snoozeDurationMinutes}m)", fontWeight = FontWeight.SemiBold)
@@ -115,7 +116,9 @@ fun InAppAlarmBanner(
 
                         Button(
                             onClick = { onDismiss(alarm.id) },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .iosPressEffect(targetScale = 0.95f),
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = OneUiRed,

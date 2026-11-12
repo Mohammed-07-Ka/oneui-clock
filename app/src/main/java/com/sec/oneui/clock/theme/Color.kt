@@ -39,6 +39,29 @@ val LiquidSpecularBorderSubtle = Brush.linearGradient(
     end = Offset(200f, 400f)
 )
 
+// Blue Specular Border for Midnight Blue Theme
+val BlueSpecularBorder = Brush.linearGradient(
+    colors = listOf(
+        Color(0xFF3B82F6).copy(alpha = 0.40f),
+        Color(0xFF1D4ED8).copy(alpha = 0.16f),
+        Color(0xFF4C1D95).copy(alpha = 0.08f)
+    ),
+    start = Offset(0f, 0f),
+    end = Offset(400f, 600f)
+)
+
+val BlueSpecularBorderSubtle = Brush.linearGradient(
+    colors = listOf(
+        Color(0xFF3B82F6).copy(alpha = 0.24f),
+        Color(0xFF1D4ED8).copy(alpha = 0.08f)
+    ),
+    start = Offset(0f, 0f),
+    end = Offset(200f, 400f)
+)
+
+val VibrantBlue = Color(0xFF2563EB)
+val VibrantBlueLight = Color(0xFF3B82F6)
+
 // Legacy aliases mapped to the new Liquid Glass Dark aesthetic
 val GeminiDeepCosmos = LiquidBlack
 val GeminiDarkViolet = LiquidDeepPurple

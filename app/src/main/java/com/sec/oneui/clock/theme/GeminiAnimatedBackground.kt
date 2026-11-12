@@ -1,5 +1,7 @@
 package com.sec.oneui.clock.theme
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -23,18 +25,15 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * Visible Minimalist Aurora Mesh Background (iOS & Gemini Aurora Style)
+ * Minimalist Aurora Mesh Background with iOS Fluid Animation
  *
- * Smoothly blends 3 luminous colors in 2D space:
- * - Mid Purple (#7C3AED @ 0.42f)
- * - Deep Indigo Navy (#2563EB @ 0.32f)
- * - Soft Silver Glow (#E2E8F0 @ 0.16f)
- * over an elegant dark violet floor (#090714).
+ * Supported Themes:
+ * 1. Aurora Purple (Default): Mid Purple + Deep Indigo + Soft Silver over dark violet (#090714).
+ * 2. Midnight Blue & Purple: 65% Pure Black (#000000) with darker, subdued Deep Indigo Navy
+ *    and Deep Violet glows occupying only 30-35% in corners.
+ * 3. AMOLED Pitch: 100% Pure OLED Black (#000000) with no mesh.
  *
- * Supports:
- * - Aurora Purple (Default)
- * - Silver Violet
- * - AMOLED Pitch (Pure OLED black)
+ * Smooth 350ms easeOut color transition when switching themes.
  */
 @Composable
 fun GeminiAnimatedBackground(
@@ -65,30 +64,38 @@ fun GeminiAnimatedBackground(
         remember { androidx.compose.runtime.mutableFloatStateOf(0.85f) }
     }
 
+    val targetGroundColor = when (themeMode) {
+        ThemeMode.AURORA_PURPLE -> Color(0xFF090714)
+        ThemeMode.MIDNIGHT_BLUE -> Color(0xFF000000)
+        ThemeMode.AMOLED_PITCH -> Color(0xFF000000)
+    }
+
+    // Smooth 350ms theme switch transition
+    val groundColor by animateColorAsState(
+        targetValue = targetGroundColor,
+        animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
+        label = "groundColorTransition"
+    )
+
     Box(modifier = modifier.fillMaxSize()) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val width = size.width
             val height = size.height
             if (width <= 0f || height <= 0f) return@Canvas
 
-            // 1. Ground floor color
-            val groundColor = when (themeMode) {
-                ThemeMode.AURORA_PURPLE -> Color(0xFF090714)
-                ThemeMode.SILVER_VIOLET -> Color(0xFF0D0B18)
-                ThemeMode.AMOLED_PITCH -> Color(0xFF000000)
-            }
+            // 1. Fill ground floor
             drawRect(color = groundColor)
 
-            // If AMOLED Pitch, keep pure black without mesh glow
+            // Pure black for AMOLED Pitch
             if (themeMode == ThemeMode.AMOLED_PITCH) {
                 return@Canvas
             }
 
-            val meshRadius = width * 0.95f
-
             when (themeMode) {
                 ThemeMode.AURORA_PURPLE -> {
-                    // Orb 1: Mid Purple (#7C3AED, alpha = 0.42f) undulating top-left to center
+                    val meshRadius = width * 0.95f
+
+                    // Orb 1: Mid Purple (#7C3AED @ 0.42f) undulating top-left to center
                     val orb1X = width * (0.30f + 0.15f * sin(animatedPhase))
                     val orb1Y = height * (0.24f + 0.12f * cos(animatedPhase * 0.8f))
                     drawCircle(
@@ -104,7 +111,7 @@ fun GeminiAnimatedBackground(
                         center = Offset(orb1X, orb1Y)
                     )
 
-                    // Orb 2: Deep Indigo Navy (#2563EB, alpha = 0.32f) undulating bottom-right
+                    // Orb 2: Deep Indigo Navy (#2563EB @ 0.32f) undulating bottom-right
                     val orb2X = width * (0.74f + 0.14f * cos(animatedPhase * 1.1f))
                     val orb2Y = height * (0.68f + 0.12f * sin(animatedPhase * 0.9f))
                     drawCircle(
@@ -120,7 +127,7 @@ fun GeminiAnimatedBackground(
                         center = Offset(orb2X, orb2Y)
                     )
 
-                    // Orb 3: Soft Silver-White Glow (#E2E8F0, alpha = 0.16f) undulating mid-screen
+                    // Orb 3: Soft Silver-White Glow (#E2E8F0 @ 0.16f) undulating mid-screen
                     val orb3X = width * (0.50f + 0.18f * sin(animatedPhase * 0.7f + 1.2f))
                     val orb3Y = height * (0.46f + 0.10f * cos(animatedPhase * 1.2f))
                     val silverRadius = width * 0.85f
@@ -138,54 +145,43 @@ fun GeminiAnimatedBackground(
                     )
                 }
 
-                ThemeMode.SILVER_VIOLET -> {
-                    // Luminous Lavender Violet
-                    val orb1X = width * (0.28f + 0.14f * sin(animatedPhase))
-                    val orb1Y = height * (0.26f + 0.10f * cos(animatedPhase * 0.8f))
+                ThemeMode.MIDNIGHT_BLUE -> {
+                    // Midnight Blue: Black is dominant (65%+).
+                    // Subdued, darker deep blue & purple glows covering only 30-35% in corners.
+                    val localizedRadius = width * 0.60f
+
+                    // Deep Indigo Blue (#1D4ED8 @ 0.22f) in top-right corner
+                    val orb1X = width * (0.82f + 0.08f * sin(animatedPhase))
+                    val orb1Y = height * (0.22f + 0.08f * cos(animatedPhase * 0.8f))
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                Color(0xFFA855F7).copy(alpha = 0.38f),
+                                Color(0xFF1D4ED8).copy(alpha = 0.22f),
+                                Color(0xFF1E3A8A).copy(alpha = 0.10f),
                                 Color.Transparent
                             ),
                             center = Offset(orb1X, orb1Y),
-                            radius = meshRadius
+                            radius = localizedRadius
                         ),
-                        radius = meshRadius,
+                        radius = localizedRadius,
                         center = Offset(orb1X, orb1Y)
                     )
 
-                    // Silver Slate
-                    val orb2X = width * (0.72f + 0.14f * cos(animatedPhase * 1.0f))
-                    val orb2Y = height * (0.70f + 0.12f * sin(animatedPhase * 0.9f))
+                    // Deep Dark Purple (#4C1D95 @ 0.20f) in bottom-left corner
+                    val orb2X = width * (0.20f + 0.08f * cos(animatedPhase * 1.1f))
+                    val orb2Y = height * (0.78f + 0.08f * sin(animatedPhase * 0.9f))
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                Color(0xFF94A3B8).copy(alpha = 0.28f),
+                                Color(0xFF4C1D95).copy(alpha = 0.20f),
+                                Color(0xFF3B0764).copy(alpha = 0.08f),
                                 Color.Transparent
                             ),
                             center = Offset(orb2X, orb2Y),
-                            radius = meshRadius
+                            radius = localizedRadius
                         ),
-                        radius = meshRadius,
+                        radius = localizedRadius,
                         center = Offset(orb2X, orb2Y)
-                    )
-
-                    // Crisp White Core
-                    val orb3X = width * (0.50f + 0.16f * sin(animatedPhase * 0.75f + 1.0f))
-                    val orb3Y = height * (0.48f + 0.08f * cos(animatedPhase * 1.1f))
-                    val whiteRadius = width * 0.75f
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = 0.18f),
-                                Color.Transparent
-                            ),
-                            center = Offset(orb3X, orb3Y),
-                            radius = whiteRadius
-                        ),
-                        radius = whiteRadius,
-                        center = Offset(orb3X, orb3Y)
                     )
                 }
 

@@ -1,10 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.OneUIClock" parent="android:Theme.Material.NoActionBar">
-        <item name="android:statusBarColor">#070510</item>
-        <item name="android:navigationBarColor">#070510</item>
-        <item name="android:windowBackground">#070510</item>
+        <!-- Transparent status and navigation bars for true Edge-to-Edge -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!-- Pitch black window background fallback -->
+        <item name="android:windowBackground">#000000</item>
+        <!-- Crisp white status and navigation bar icons -->
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
+        <!-- Disable automatic contrast scrims on API 29+ -->
+        <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
+        <item name="android:enforceStatusBarContrast" tools:targetApi="29">false</item>
+        <!-- Extend into display cutout / camera hole -->
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="28">shortEdges</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
     </style>
 
     <style name="Theme.OneUIClock.Fullscreen" parent="Theme.OneUIClock">

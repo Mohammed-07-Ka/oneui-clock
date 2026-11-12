@@ -8,8 +8,21 @@ import kotlinx.coroutines.flow.asStateFlow
 
 enum class ThemeMode(val key: String, val displayName: String) {
     AURORA_PURPLE("aurora_purple", "Aurora Purple"),
-    SILVER_VIOLET("silver_violet", "Silver Violet"),
-    AMOLED_PITCH("amoled_pitch", "AMOLED Pitch")
+    MIDNIGHT_BLUE("silver_violet", "Midnight Blue & Purple"),
+    AMOLED_PITCH("amoled_pitch", "AMOLED Pitch");
+
+    companion object {
+        val SILVER_VIOLET: ThemeMode get() = MIDNIGHT_BLUE
+
+        fun fromKey(key: String?): ThemeMode {
+            return when (key) {
+                AURORA_PURPLE.key -> AURORA_PURPLE
+                MIDNIGHT_BLUE.key, "midnight_blue" -> MIDNIGHT_BLUE
+                AMOLED_PITCH.key -> AMOLED_PITCH
+                else -> AURORA_PURPLE
+            }
+        }
+    }
 }
 
 class SettingsManager(context: Context) {
@@ -96,7 +109,7 @@ class SettingsManager(context: Context) {
 
     private fun loadThemeMode(): ThemeMode {
         val key = prefs.getString("theme_mode", ThemeMode.AURORA_PURPLE.key)
-        return ThemeMode.entries.firstOrNull { it.key == key } ?: ThemeMode.AURORA_PURPLE
+        return ThemeMode.fromKey(key)
     }
 
     companion object {

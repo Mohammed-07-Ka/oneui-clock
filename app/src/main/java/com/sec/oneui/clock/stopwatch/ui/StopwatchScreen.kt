@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,6 +31,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sec.oneui.clock.theme.ClockTheme
 import com.sec.oneui.clock.theme.LiquidActiveText
 import com.sec.oneui.clock.theme.LiquidGlassActive
 import com.sec.oneui.clock.theme.LiquidGlassBackground
@@ -40,6 +42,7 @@ import com.sec.oneui.clock.theme.LiquidTextPrimary
 import com.sec.oneui.clock.theme.LiquidTextSecondary
 import com.sec.oneui.clock.theme.OneUiGreen
 import com.sec.oneui.clock.theme.OneUiRed
+import com.sec.oneui.clock.theme.iosPressEffect
 
 @Composable
 fun StopwatchScreen(
@@ -49,6 +52,7 @@ fun StopwatchScreen(
     val state by viewModel.stopwatchState.collectAsState()
     val elapsedMillis by viewModel.elapsedMillis.collectAsState()
     val laps by viewModel.laps.collectAsState()
+    val palette = ClockTheme.palette
 
     val formattedTime = LapItem.formatStopwatchTime(elapsedMillis)
 
@@ -59,6 +63,7 @@ fun StopwatchScreen(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Transparent)
+            .statusBarsPadding()
             .padding(horizontal = 20.dp)
     ) {
         Spacer(modifier = Modifier.height(18.dp))
@@ -66,7 +71,7 @@ fun StopwatchScreen(
             text = "Stopwatch",
             fontSize = 34.sp,
             fontWeight = FontWeight.Bold,
-            color = LiquidTextPrimary
+            color = palette.textPrimary
         )
 
         // Time Display Area with Glassmorphism
@@ -79,8 +84,8 @@ fun StopwatchScreen(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(32.dp))
-                    .background(LiquidGlassBackground)
-                    .border(1.dp, LiquidSpecularBorder, RoundedCornerShape(32.dp))
+                    .background(palette.cardBackground)
+                    .border(1.dp, palette.cardBorder, RoundedCornerShape(32.dp))
                     .padding(horizontal = 28.dp, vertical = 20.dp)
             ) {
                 Text(
@@ -88,13 +93,13 @@ fun StopwatchScreen(
                     fontSize = 52.sp,
                     fontWeight = FontWeight.SemiBold,
                     fontFamily = FontFamily.Monospace,
-                    color = LiquidTextPrimary,
+                    color = palette.textPrimary,
                     letterSpacing = (-1).sp
                 )
             }
         }
 
-        // Action Buttons Row with iOS Liquid Glass Styling
+        // Action Buttons Row with iOS Liquid Glass Styling and Tactile Press
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -107,11 +112,12 @@ fun StopwatchScreen(
                         onClick = { viewModel.start() },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(58.dp),
+                            .height(58.dp)
+                            .iosPressEffect(targetScale = 0.95f),
                         shape = RoundedCornerShape(29.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = LiquidGlassActive,
-                            contentColor = LiquidActiveText
+                            containerColor = palette.primaryAccent,
+                            contentColor = palette.onPrimaryAccent
                         )
                     ) {
                         Text("Start", fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -122,12 +128,13 @@ fun StopwatchScreen(
                         onClick = { viewModel.addLap() },
                         modifier = Modifier
                             .weight(1f)
-                            .height(58.dp),
+                            .height(58.dp)
+                            .iosPressEffect(targetScale = 0.95f),
                         shape = RoundedCornerShape(29.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = LiquidGlassBackground,
-                            contentColor = LiquidTextPrimary
+                            containerColor = palette.cardBackground,
+                            contentColor = palette.textPrimary
                         )
                     ) {
                         Text("Lap", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
@@ -137,7 +144,8 @@ fun StopwatchScreen(
                         onClick = { viewModel.pause() },
                         modifier = Modifier
                             .weight(1f)
-                            .height(58.dp),
+                            .height(58.dp)
+                            .iosPressEffect(targetScale = 0.95f),
                         shape = RoundedCornerShape(29.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = OneUiRed,
@@ -152,12 +160,13 @@ fun StopwatchScreen(
                         onClick = { viewModel.reset() },
                         modifier = Modifier
                             .weight(1f)
-                            .height(58.dp),
+                            .height(58.dp)
+                            .iosPressEffect(targetScale = 0.95f),
                         shape = RoundedCornerShape(29.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = LiquidGlassBackground,
-                            contentColor = LiquidTextPrimary
+                            containerColor = palette.cardBackground,
+                            contentColor = palette.textPrimary
                         )
                     ) {
                         Text("Reset", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
@@ -167,11 +176,12 @@ fun StopwatchScreen(
                         onClick = { viewModel.resume() },
                         modifier = Modifier
                             .weight(1f)
-                            .height(58.dp),
+                            .height(58.dp)
+                            .iosPressEffect(targetScale = 0.95f),
                         shape = RoundedCornerShape(29.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = LiquidGlassActive,
-                            contentColor = LiquidActiveText
+                            containerColor = palette.primaryAccent,
+                            contentColor = palette.onPrimaryAccent
                         )
                     ) {
                         Text("Resume", fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -187,8 +197,8 @@ fun StopwatchScreen(
                     .fillMaxWidth()
                     .weight(1f)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(LiquidGlassBackground)
-                    .border(1.dp, LiquidSpecularBorder, RoundedCornerShape(24.dp))
+                    .background(palette.cardBackground)
+                    .border(1.dp, palette.cardBorder, RoundedCornerShape(24.dp))
                     .padding(16.dp)
             ) {
                 Column {

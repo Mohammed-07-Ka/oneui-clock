@@ -76,8 +76,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.statusBarsPadding
 import com.sec.oneui.clock.alarm.data.AlarmEntity
 import com.sec.oneui.clock.settings.SettingsManager
+import com.sec.oneui.clock.settings.ThemeMode
+import com.sec.oneui.clock.theme.ClockTheme
 import com.sec.oneui.clock.theme.LiquidActiveText
 import com.sec.oneui.clock.theme.LiquidGlassActive
 import com.sec.oneui.clock.theme.LiquidGlassBackground
@@ -88,6 +91,8 @@ import com.sec.oneui.clock.theme.LiquidTextMuted
 import com.sec.oneui.clock.theme.LiquidTextPrimary
 import com.sec.oneui.clock.theme.LiquidTextSecondary
 import com.sec.oneui.clock.theme.OneUiRed
+import com.sec.oneui.clock.theme.iosClickable
+import com.sec.oneui.clock.theme.iosPressEffect
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -106,6 +111,7 @@ fun AlarmScreen(
     val alarms by viewModel.alarms.collectAsState()
     val nearestRemaining by viewModel.nearestAlarmHeader.collectAsState()
     val editorState by viewModel.editorState.collectAsState()
+    val palette = ClockTheme.palette
 
     Box(
         modifier = modifier
@@ -115,6 +121,7 @@ fun AlarmScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .padding(horizontal = 20.dp)
         ) {
             Spacer(modifier = Modifier.height(18.dp))
@@ -122,14 +129,14 @@ fun AlarmScreen(
                 text = "Alarm",
                 fontSize = 34.sp,
                 fontWeight = FontWeight.Bold,
-                color = LiquidTextPrimary
+                color = palette.textPrimary
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = nearestRemaining,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Normal,
-                color = LiquidTextSecondary
+                color = palette.textSecondary
             )
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -151,7 +158,7 @@ fun AlarmScreen(
                         Text(
                             text = "No alarms\nTap + to set an alarm",
                             fontSize = 17.sp,
-                            color = LiquidTextSecondary,
+                            color = palette.textSecondary,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -175,18 +182,19 @@ fun AlarmScreen(
             }
         }
 
-        // iOS Liquid Glass Floating Action Button
+        // iOS Liquid Glass Floating Action Button with Tactile Press Feedback
         FloatingActionButton(
             onClick = { viewModel.openEditorForNew(defaultVibrate) },
-            containerColor = LiquidGlassActive,
-            contentColor = LiquidActiveText,
+            containerColor = palette.primaryAccent,
+            contentColor = palette.onPrimaryAccent,
             shape = CircleShape,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = 24.dp, bottom = 24.dp)
                 .size(62.dp)
                 .clip(CircleShape)
-                .border(1.dp, LiquidSpecularBorder, CircleShape)
+                .border(1.dp, palette.cardBorder, CircleShape)
+                .iosPressEffect(targetScale = 0.95f)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Add Alarm", modifier = Modifier.size(32.dp))
         }
@@ -219,14 +227,15 @@ fun AlarmCard(
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val palette = ClockTheme.palette
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(26.dp))
-            .border(1.dp, LiquidSpecularBorder, RoundedCornerShape(26.dp))
+            .border(1.dp, palette.cardBorder, RoundedCornerShape(26.dp))
             .clickable { onClick() },
         shape = RoundedCornerShape(26.dp),
-        colors = CardDefaults.cardColors(containerColor = LiquidGlassBackground)
+        colors = CardDefaults.cardColors(containerColor = palette.cardBackground)
     ) {
         Row(
             modifier = Modifier
@@ -241,21 +250,21 @@ fun AlarmCard(
                             text = String.format("%02d:%02d", alarm.hour, alarm.minute),
                             fontSize = 34.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (alarm.isEnabled) LiquidTextPrimary else LiquidTextMuted
+                            color = if (alarm.isEnabled) palette.textPrimary else palette.textMuted
                         )
                     } else {
                         Text(
                             text = alarm.formattedTime(),
                             fontSize = 34.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (alarm.isEnabled) LiquidTextPrimary else LiquidTextMuted
+                            color = if (alarm.isEnabled) palette.textPrimary else palette.textMuted
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = alarm.amPm(),
                             fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (alarm.isEnabled) LiquidTextSecondary else LiquidTextMuted,
+                            color = if (alarm.isEnabled) palette.textSecondary else palette.textMuted,
                             modifier = Modifier.padding(bottom = 4.dp)
                         )
                     }
@@ -264,13 +273,13 @@ fun AlarmCard(
                 Text(
                     text = "${alarm.label.ifBlank { "Alarm" }} · ${alarm.daysDescription()}",
                     fontSize = 14.sp,
-                    color = LiquidTextSecondary
+                    color = palette.textSecondary
                 )
                 alarm.formattedScheduledDate()?.let { dateStr ->
                     Text(
                         text = "📅 $dateStr",
                         fontSize = 13.sp,
-                        color = LiquidTextPrimary,
+                        color = palette.textPrimary,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }
@@ -278,7 +287,7 @@ fun AlarmCard(
                     Text(
                         text = "🔔 ${alarm.ringtoneName}",
                         fontSize = 13.sp,
-                        color = LiquidTextSecondary,
+                        color = palette.textSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 2.dp)
@@ -286,11 +295,11 @@ fun AlarmCard(
                 }
             }
 
-            IconButton(onClick = onDelete) {
+            IconButton(onClick = onDelete, modifier = Modifier.iosPressEffect(targetScale = 0.95f)) {
                 Icon(
                     imageVector = Icons.Default.DeleteOutline,
                     contentDescription = "Delete Alarm",
-                    tint = LiquidTextSecondary.copy(alpha = 0.7f)
+                    tint = palette.textSecondary.copy(alpha = 0.7f)
                 )
             }
 
@@ -299,11 +308,12 @@ fun AlarmCard(
             Switch(
                 checked = alarm.isEnabled,
                 onCheckedChange = { onToggle() },
+                modifier = Modifier.iosPressEffect(targetScale = 0.95f),
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = LiquidActiveText,
-                    checkedTrackColor = LiquidGlassActive,
-                    uncheckedThumbColor = Color.White.copy(alpha = 0.5f),
-                    uncheckedTrackColor = LiquidGlassHover
+                    checkedThumbColor = palette.toggleActiveThumb,
+                    checkedTrackColor = palette.toggleActiveTrack,
+                    uncheckedThumbColor = palette.textSecondary,
+                    uncheckedTrackColor = palette.cardBackground
                 )
             )
         }
@@ -365,10 +375,12 @@ fun AlarmEditSheet(
         }
     }
 
+    val palette = ClockTheme.palette
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF0C0914),
+        containerColor = if (palette.themeMode == ThemeMode.AMOLED_PITCH || palette.themeMode == ThemeMode.MIDNIGHT_BLUE) Color(0xFF040407) else Color(0xFF0C0914),
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
     ) {
         Column(
@@ -382,7 +394,7 @@ fun AlarmEditSheet(
                 text = if (editorState.editingAlarmId == null) "Add Alarm" else "Edit Alarm",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
-                color = LiquidTextPrimary
+                color = palette.textPrimary
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -393,8 +405,8 @@ fun AlarmEditSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(26.dp))
-                        .background(LiquidGlassBackground)
-                        .border(1.dp, LiquidSpecularBorder, RoundedCornerShape(26.dp))
+                        .background(palette.cardBackground)
+                        .border(1.dp, palette.cardBorder, RoundedCornerShape(26.dp))
                         .padding(vertical = 14.dp, horizontal = 24.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
@@ -436,8 +448,8 @@ fun AlarmEditSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(26.dp))
-                        .background(LiquidGlassBackground)
-                        .border(1.dp, LiquidSpecularBorder, RoundedCornerShape(26.dp))
+                        .background(palette.cardBackground)
+                        .border(1.dp, palette.cardBorder, RoundedCornerShape(26.dp))
                         .padding(vertical = 14.dp, horizontal = 16.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
@@ -499,7 +511,7 @@ fun AlarmEditSheet(
             Spacer(modifier = Modifier.height(20.dp))
 
             // Day of Week selector
-            Text("Repeat", fontSize = 15.sp, color = LiquidTextSecondary, fontWeight = FontWeight.SemiBold)
+            Text("Repeat", fontSize = 15.sp, color = palette.textSecondary, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -515,18 +527,18 @@ fun AlarmEditSheet(
                         modifier = Modifier
                             .size(42.dp)
                             .clip(CircleShape)
-                            .background(if (isSelected) LiquidGlassActive else LiquidGlassBackground)
+                            .background(if (isSelected) palette.primaryAccent else palette.cardBackground)
                             .border(
                                 1.dp,
-                                if (isSelected) LiquidSpecularBorder else LiquidSpecularBorderSubtle,
+                                if (isSelected) palette.cardBorder else palette.cardBorderSubtle,
                                 CircleShape
                             )
-                            .clickable { onDayToggled(dayNum) }
+                            .iosClickable(targetScale = 0.95f) { onDayToggled(dayNum) }
                     ) {
                         Text(
                             text = dayLetter,
                             fontWeight = FontWeight.Bold,
-                            color = if (isSelected) LiquidActiveText else LiquidTextSecondary
+                            color = if (isSelected) palette.onPrimaryAccent else palette.textSecondary
                         )
                     }
                 }
@@ -539,27 +551,27 @@ fun AlarmEditSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(18.dp))
-                    .background(LiquidGlassBackground)
-                    .border(1.dp, LiquidSpecularBorder, RoundedCornerShape(18.dp))
-                    .clickable { showDatePicker = true }
+                    .background(palette.cardBackground)
+                    .border(1.dp, palette.cardBorder, RoundedCornerShape(18.dp))
+                    .iosClickable(targetScale = 0.97f) { showDatePicker = true }
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = Icons.Default.CalendarMonth,
                     contentDescription = "Pick Date",
-                    tint = LiquidTextPrimary,
+                    tint = palette.textPrimary,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Schedule Date", fontSize = 15.sp, color = LiquidTextPrimary, fontWeight = FontWeight.SemiBold)
+                    Text("Schedule Date", fontSize = 15.sp, color = palette.textPrimary, fontWeight = FontWeight.SemiBold)
                     Text(
                         text = if (editorState.scheduledDateMillis != null) {
                             SimpleDateFormat("EEE, MMM d, yyyy", Locale.getDefault()).format(Date(editorState.scheduledDateMillis))
                         } else "Not set (next occurrence)",
                         fontSize = 13.sp,
-                        color = LiquidTextSecondary
+                        color = palette.textSecondary
                     )
                 }
                 if (editorState.scheduledDateMillis != null) {
@@ -580,9 +592,9 @@ fun AlarmEditSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(18.dp))
-                    .background(LiquidGlassBackground)
-                    .border(1.dp, LiquidSpecularBorder, RoundedCornerShape(18.dp))
-                    .clickable {
+                    .background(palette.cardBackground)
+                    .border(1.dp, palette.cardBorder, RoundedCornerShape(18.dp))
+                    .iosClickable(targetScale = 0.97f) {
                         val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
                             putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
                             putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Select Alarm Ringtone")
@@ -600,16 +612,16 @@ fun AlarmEditSheet(
                 Icon(
                     imageVector = Icons.Default.MusicNote,
                     contentDescription = "Ringtone",
-                    tint = LiquidTextPrimary,
+                    tint = palette.textPrimary,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Alarm Ringtone", fontSize = 15.sp, color = LiquidTextPrimary, fontWeight = FontWeight.SemiBold)
+                    Text("Alarm Ringtone", fontSize = 15.sp, color = palette.textPrimary, fontWeight = FontWeight.SemiBold)
                     Text(
                         text = editorState.ringtoneName,
                         fontSize = 13.sp,
-                        color = LiquidTextSecondary,
+                        color = palette.textSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -631,7 +643,7 @@ fun AlarmEditSheet(
                 Text(
                     text = "Or pick from local audio files…",
                     fontSize = 13.sp,
-                    color = LiquidTextPrimary.copy(alpha = 0.85f),
+                    color = palette.textPrimary.copy(alpha = 0.85f),
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -642,12 +654,12 @@ fun AlarmEditSheet(
             OutlinedTextField(
                 value = editorState.label,
                 onValueChange = onLabelChanged,
-                label = { Text("Alarm Name", color = LiquidTextSecondary) },
+                label = { Text("Alarm Name", color = palette.textSecondary) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.White,
+                    focusedBorderColor = if (palette.isBlueTheme) palette.primaryAccent else Color.White,
                     unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White
@@ -657,7 +669,7 @@ fun AlarmEditSheet(
             Spacer(modifier = Modifier.height(18.dp))
 
             // Snooze Interval Chips
-            Text("Snooze Duration", fontSize = 15.sp, color = LiquidTextSecondary, fontWeight = FontWeight.SemiBold)
+            Text("Snooze Duration", fontSize = 15.sp, color = palette.textSecondary, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(3, 5, 10, 15).forEach { mins ->
@@ -665,18 +677,18 @@ fun AlarmEditSheet(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) LiquidGlassActive else LiquidGlassBackground)
+                            .background(if (isSelected) palette.primaryAccent else palette.cardBackground)
                             .border(
                                 1.dp,
-                                if (isSelected) LiquidSpecularBorder else LiquidSpecularBorderSubtle,
+                                if (isSelected) palette.cardBorder else palette.cardBorderSubtle,
                                 RoundedCornerShape(12.dp)
                             )
-                            .clickable { onSnoozeChanged(mins) }
+                            .iosClickable(targetScale = 0.96f) { onSnoozeChanged(mins) }
                             .padding(horizontal = 14.dp, vertical = 8.dp)
                     ) {
                         Text(
                             text = "${mins}m",
-                            color = if (isSelected) LiquidActiveText else LiquidTextSecondary,
+                            color = if (isSelected) palette.onPrimaryAccent else palette.textSecondary,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
@@ -696,9 +708,9 @@ fun AlarmEditSheet(
                         .weight(1f)
                         .height(54.dp)
                         .clip(RoundedCornerShape(18.dp))
-                        .background(LiquidGlassBackground)
-                        .border(1.dp, LiquidSpecularBorderSubtle, RoundedCornerShape(18.dp))
-                        .clickable { onCancel() },
+                        .background(palette.cardBackground)
+                        .border(1.dp, palette.cardBorderSubtle, RoundedCornerShape(18.dp))
+                        .iosClickable(targetScale = 0.96f) { onCancel() },
                     contentAlignment = Alignment.Center
                 ) {
                     Text("Cancel", fontSize = 16.sp, color = Color.White.copy(alpha = 0.85f), fontWeight = FontWeight.Medium)
@@ -709,11 +721,12 @@ fun AlarmEditSheet(
                     onClick = onSave,
                     modifier = Modifier
                         .weight(1f)
-                        .height(54.dp),
+                        .height(54.dp)
+                        .iosPressEffect(targetScale = 0.96f),
                     shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = LiquidGlassActive,
-                        contentColor = LiquidActiveText
+                        containerColor = palette.primaryAccent,
+                        contentColor = palette.onPrimaryAccent
                     )
                 ) {
                     Text("Save", fontSize = 16.sp, fontWeight = FontWeight.Bold)

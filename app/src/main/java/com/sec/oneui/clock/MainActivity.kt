@@ -10,20 +10,33 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -42,8 +55,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -57,24 +70,21 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import com.sec.oneui.clock.alarm.ui.AlarmScreen
 import com.sec.oneui.clock.alarm.ui.AlarmViewModel
 import com.sec.oneui.clock.alarm.ui.InAppAlarmBanner
 import com.sec.oneui.clock.settings.SettingsManager
 import com.sec.oneui.clock.settings.SettingsScreen
-import com.sec.oneui.clock.settings.ThemeMode
 import com.sec.oneui.clock.stopwatch.ui.StopwatchScreen
 import com.sec.oneui.clock.stopwatch.ui.StopwatchViewModel
+import com.sec.oneui.clock.theme.ClockTheme
 import com.sec.oneui.clock.theme.GeminiAnimatedBackground
-import com.sec.oneui.clock.theme.LiquidGlassBackground
-import com.sec.oneui.clock.theme.LiquidSpecularBorder
-import com.sec.oneui.clock.theme.LiquidSpecularBorderSubtle
-import com.sec.oneui.clock.theme.LiquidTextMuted
-import com.sec.oneui.clock.theme.LiquidTextPrimary
-import com.sec.oneui.clock.theme.LiquidTextSecondary
 import com.sec.oneui.clock.theme.OneUIClockTheme
+import com.sec.oneui.clock.theme.iosPressEffect
 import com.sec.oneui.clock.timer.ui.TimerScreen
 import com.sec.oneui.clock.timer.ui.TimerViewModel
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -91,12 +101,29 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // 1. Full Edge-to-Edge with transparent system bars & light icons
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+        )
+
+        // 2. Disable system contrast enforcement to remove navy / dark scrims
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+            window.isStatusBarContrastEnforced = false
+        }
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+
+        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+        insetsController.isAppearanceLightStatusBars = false
+        insetsController.isAppearanceLightNavigationBars = false
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         val settingsManager = SettingsManager.getInstance(this)
 
-        // 1. Request POST_NOTIFICATIONS on Android 13+ (Tiramisu)
+        // 3. Permissions
         checkAndRequestNotificationPermission()
-
-        // 2. Check SCHEDULE_EXACT_ALARM on Android 12+ (S)
         checkAndRequestExactAlarmPermission()
 
         setContent {
@@ -158,6 +185,7 @@ sealed class ClockTab(val index: Int, val title: String, val icon: ImageVector) 
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun MainClockApp(
     alarmViewModel: AlarmViewModel,
@@ -165,118 +193,168 @@ fun MainClockApp(
     timerViewModel: TimerViewModel,
     settingsManager: SettingsManager
 ) {
-    var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
+    val pagerState = rememberPagerState(initialPage = 0, pageCount = { ClockTab.items.size })
+    val coroutineScope = rememberCoroutineScope()
+    val palette = ClockTheme.palette
 
-    if (showSettings) {
-        SettingsScreen(
-            settingsManager = settingsManager,
-            onBack = { showSettings = false }
-        )
-        return
-    }
-
-    Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .navigationBarsPadding(),
-        containerColor = Color.Transparent,
-        bottomBar = {
-            // iOS Liquid Glass Floating Bottom Bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-            ) {
-                NavigationBar(
+    // Smooth iOS-style push/pop slide transition for Settings screen (350ms)
+    AnimatedContent(
+        targetState = showSettings,
+        transitionSpec = {
+            if (targetState) {
+                (slideInHorizontally(
+                    initialOffsetX = { it },
+                    animationSpec = tween(350, easing = FastOutSlowInEasing)
+                ) + fadeIn(animationSpec = tween(350))).togetherWith(
+                    slideOutHorizontally(
+                        targetOffsetX = { -it / 3 },
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(350))
+                )
+            } else {
+                (slideInHorizontally(
+                    initialOffsetX = { -it / 3 },
+                    animationSpec = tween(350, easing = FastOutSlowInEasing)
+                ) + fadeIn(animationSpec = tween(350))).togetherWith(
+                    slideOutHorizontally(
+                        targetOffsetX = { it },
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(350))
+                )
+            }
+        },
+        label = "settingsTransition"
+    ) { isSettingsVisible ->
+        if (isSettingsVisible) {
+            SettingsScreen(
+                settingsManager = settingsManager,
+                onBack = { showSettings = false }
+            )
+        } else {
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                containerColor = Color.Transparent,
+                contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                bottomBar = {
+                    // iOS Liquid Glass Floating Bottom Navigation Bar
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                    ) {
+                        NavigationBar(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(32.dp))
+                                .background(palette.cardBackground)
+                                .border(1.dp, palette.cardBorder, RoundedCornerShape(32.dp)),
+                            containerColor = Color.Transparent,
+                            tonalElevation = 0.dp
+                        ) {
+                            ClockTab.items.forEach { tab ->
+                                val isSelected = pagerState.currentPage == tab.index
+                                NavigationBarItem(
+                                    selected = isSelected,
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(
+                                                page = tab.index,
+                                                animationSpec = tween(
+                                                    durationMillis = 350,
+                                                    easing = FastOutSlowInEasing
+                                                )
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier.iosPressEffect(targetScale = 0.95f),
+                                    icon = {
+                                        Icon(
+                                            imageVector = tab.icon,
+                                            contentDescription = tab.title,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    },
+                                    label = {
+                                        Text(
+                                            text = tab.title,
+                                            fontSize = 12.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.textPrimary,
+                                        selectedTextColor = if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.textPrimary,
+                                        unselectedIconColor = palette.textMuted,
+                                        unselectedTextColor = palette.textMuted,
+                                        indicatorColor = palette.tabSelectedIndicator
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+            ) { innerPadding ->
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(32.dp))
-                        .background(LiquidGlassBackground)
-                        .border(1.dp, LiquidSpecularBorder, RoundedCornerShape(32.dp)),
-                    containerColor = Color.Transparent,
-                    tonalElevation = 0.dp
+                        .fillMaxSize()
+                        .padding(bottom = innerPadding.calculateBottomPadding())
                 ) {
-                    ClockTab.items.forEach { tab ->
-                        val isSelected = selectedTabIndex == tab.index
-                        NavigationBarItem(
-                            selected = isSelected,
-                            onClick = { selectedTabIndex = tab.index },
-                            icon = {
-                                Icon(
-                                    imageVector = tab.icon,
-                                    contentDescription = tab.title,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            },
-                            label = {
-                                Text(
-                                    text = tab.title,
-                                    fontSize = 12.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                )
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = LiquidTextPrimary,
-                                selectedTextColor = LiquidTextPrimary,
-                                unselectedIconColor = LiquidTextMuted,
-                                unselectedTextColor = LiquidTextMuted,
-                                indicatorColor = Color.White.copy(alpha = 0.12f)
+                    // Horizontal Pager with Left/Right Swiping between Alarm, Stopwatch, and Timer
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize(),
+                        userScrollEnabled = true,
+                        beyondViewportPageCount = 2
+                    ) { pageIndex ->
+                        when (pageIndex) {
+                            0 -> AlarmScreen(viewModel = alarmViewModel)
+                            1 -> StopwatchScreen(viewModel = stopwatchViewModel)
+                            2 -> TimerScreen(viewModel = timerViewModel)
+                        }
+                    }
+
+                    // Discreet Settings Icon in Top-Right
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(horizontal = 20.dp, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = { showSettings = true },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(palette.cardBackground)
+                                .border(1.dp, palette.cardBorderSubtle, CircleShape)
+                                .iosPressEffect(targetScale = 0.95f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings",
+                                tint = palette.textSecondary,
+                                modifier = Modifier.size(20.dp)
                             )
+                        }
+                    }
+
+                    // In-App Ringing Banner floating at top
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .statusBarsPadding()
+                            .fillMaxWidth()
+                    ) {
+                        InAppAlarmBanner(
+                            onDismiss = { alarmViewModel.dismissAlarm(it) },
+                            onSnooze = { alarmViewModel.snoozeAlarm(it) }
                         )
                     }
                 }
-            }
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            // Main Screen Body
-            when (selectedTabIndex) {
-                0 -> AlarmScreen(viewModel = alarmViewModel)
-                1 -> StopwatchScreen(viewModel = stopwatchViewModel)
-                2 -> TimerScreen(viewModel = timerViewModel)
-            }
-
-            // Discreet Settings Icon in Top-Right
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = { showSettings = true },
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(LiquidGlassBackground)
-                        .border(1.dp, LiquidSpecularBorderSubtle, CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = LiquidTextSecondary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-
-            // In-App Ringing Banner floating at top
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .fillMaxWidth()
-            ) {
-                InAppAlarmBanner(
-                    onDismiss = { alarmViewModel.dismissAlarm(it) },
-                    onSnooze = { alarmViewModel.snoozeAlarm(it) }
-                )
             }
         }
     }

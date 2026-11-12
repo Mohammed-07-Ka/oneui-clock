@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,14 +37,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sec.oneui.clock.theme.LiquidActiveText
-import com.sec.oneui.clock.theme.LiquidGlassActive
-import com.sec.oneui.clock.theme.LiquidGlassBackground
-import com.sec.oneui.clock.theme.LiquidGlassHover
-import com.sec.oneui.clock.theme.LiquidSpecularBorder
-import com.sec.oneui.clock.theme.LiquidSpecularBorderSubtle
-import com.sec.oneui.clock.theme.LiquidTextPrimary
-import com.sec.oneui.clock.theme.LiquidTextSecondary
+import com.sec.oneui.clock.theme.ClockTheme
+import com.sec.oneui.clock.theme.iosClickable
+import com.sec.oneui.clock.theme.iosPressEffect
 
 @Composable
 fun SettingsScreen(
@@ -58,15 +55,18 @@ fun SettingsScreen(
     val animationEnabled by settingsManager.animationEnabled.collectAsState()
     val animationSpeed by settingsManager.animationSpeed.collectAsState()
 
-    val textColor = LiquidTextPrimary
-    val subTextColor = LiquidTextSecondary
-    val cardColor = LiquidGlassBackground
-    val cardBorder = LiquidSpecularBorder
+    val palette = ClockTheme.palette
+    val textColor = palette.textPrimary
+    val subTextColor = palette.textSecondary
+    val cardColor = palette.cardBackground
+    val cardBorder = palette.cardBorder
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Transparent)
+            .statusBarsPadding()
+            .navigationBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
     ) {
@@ -77,7 +77,8 @@ fun SettingsScreen(
                 modifier = Modifier
                     .clip(RoundedCornerShape(14.dp))
                     .background(cardColor)
-                    .border(1.dp, LiquidSpecularBorderSubtle, RoundedCornerShape(14.dp))
+                    .border(1.dp, palette.cardBorderSubtle, RoundedCornerShape(14.dp))
+                    .iosPressEffect(targetScale = 0.95f)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -112,7 +113,7 @@ fun SettingsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { settingsManager.setThemeMode(mode) }
+                        .iosClickable(targetScale = 0.97f) { settingsManager.setThemeMode(mode) }
                         .padding(horizontal = 20.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -120,15 +121,15 @@ fun SettingsScreen(
                         modifier = Modifier
                             .size(24.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) LiquidGlassActive else LiquidGlassHover)
-                            .border(1.dp, if (isSelected) cardBorder else LiquidSpecularBorderSubtle, RoundedCornerShape(12.dp))
+                            .background(if (isSelected) palette.primaryAccent else palette.cardBackground)
+                            .border(1.dp, if (isSelected) cardBorder else palette.cardBorderSubtle, RoundedCornerShape(12.dp))
                     ) {
                         if (isSelected) {
                             Box(
                                 modifier = Modifier
                                     .size(10.dp)
                                     .clip(RoundedCornerShape(5.dp))
-                                    .background(LiquidActiveText)
+                                    .background(palette.onPrimaryAccent)
                                     .align(Alignment.Center)
                             )
                         }
@@ -175,11 +176,12 @@ fun SettingsScreen(
                 Switch(
                     checked = animationEnabled,
                     onCheckedChange = { settingsManager.setAnimationEnabled(it) },
+                    modifier = Modifier.iosPressEffect(targetScale = 0.95f),
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = LiquidActiveText,
-                        checkedTrackColor = LiquidGlassActive,
+                        checkedThumbColor = palette.toggleActiveThumb,
+                        checkedTrackColor = palette.toggleActiveTrack,
                         uncheckedThumbColor = subTextColor,
-                        uncheckedTrackColor = LiquidGlassHover
+                        uncheckedTrackColor = palette.cardBackground
                     )
                 )
             }
@@ -209,15 +211,15 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(if (isSelected) LiquidGlassActive else LiquidGlassHover)
-                                .border(1.dp, if (isSelected) cardBorder else LiquidSpecularBorderSubtle, RoundedCornerShape(14.dp))
-                                .clickable { settingsManager.setAnimationSpeed(spVal) }
+                                .background(if (isSelected) palette.primaryAccent else palette.cardBackground)
+                                .border(1.dp, if (isSelected) cardBorder else palette.cardBorderSubtle, RoundedCornerShape(14.dp))
+                                .iosClickable(targetScale = 0.96f) { settingsManager.setAnimationSpeed(spVal) }
                                 .padding(vertical = 10.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = spLabel,
-                                color = if (isSelected) LiquidActiveText else subTextColor,
+                                color = if (isSelected) palette.onPrimaryAccent else subTextColor,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 13.sp,
                                 maxLines = 1,
@@ -257,11 +259,12 @@ fun SettingsScreen(
                 Switch(
                     checked = use24HourFormat,
                     onCheckedChange = { settingsManager.setUse24HourFormat(it) },
+                    modifier = Modifier.iosPressEffect(targetScale = 0.95f),
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = LiquidActiveText,
-                        checkedTrackColor = LiquidGlassActive,
+                        checkedThumbColor = palette.toggleActiveThumb,
+                        checkedTrackColor = palette.toggleActiveTrack,
                         uncheckedThumbColor = subTextColor,
-                        uncheckedTrackColor = LiquidGlassHover
+                        uncheckedTrackColor = palette.cardBackground
                     )
                 )
             }
@@ -293,15 +296,15 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(if (isSelected) LiquidGlassActive else LiquidGlassHover)
-                                .border(1.dp, if (isSelected) cardBorder else LiquidSpecularBorderSubtle, RoundedCornerShape(14.dp))
-                                .clickable { settingsManager.setGradualVolumeDuration(secVal) }
+                                .background(if (isSelected) palette.primaryAccent else palette.cardBackground)
+                                .border(1.dp, if (isSelected) cardBorder else palette.cardBorderSubtle, RoundedCornerShape(14.dp))
+                                .iosClickable(targetScale = 0.96f) { settingsManager.setGradualVolumeDuration(secVal) }
                                 .padding(vertical = 10.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = secLabel,
-                                color = if (isSelected) LiquidActiveText else subTextColor,
+                                color = if (isSelected) palette.onPrimaryAccent else subTextColor,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 13.sp,
                                 maxLines = 1,
@@ -339,15 +342,15 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(if (isSelected) LiquidGlassActive else LiquidGlassHover)
-                                .border(1.dp, if (isSelected) cardBorder else LiquidSpecularBorderSubtle, RoundedCornerShape(14.dp))
-                                .clickable { settingsManager.setAutoSilenceMinutes(minVal) }
+                                .background(if (isSelected) palette.primaryAccent else palette.cardBackground)
+                                .border(1.dp, if (isSelected) cardBorder else palette.cardBorderSubtle, RoundedCornerShape(14.dp))
+                                .iosClickable(targetScale = 0.96f) { settingsManager.setAutoSilenceMinutes(minVal) }
                                 .padding(vertical = 10.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = minLabel,
-                                color = if (isSelected) LiquidActiveText else subTextColor,
+                                color = if (isSelected) palette.onPrimaryAccent else subTextColor,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 13.sp,
                                 maxLines = 1,
@@ -380,15 +383,15 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(if (isSelected) LiquidGlassActive else LiquidGlassHover)
-                                .border(1.dp, if (isSelected) cardBorder else LiquidSpecularBorderSubtle, RoundedCornerShape(14.dp))
-                                .clickable { settingsManager.setVolumeButtonsAction(action) }
+                                .background(if (isSelected) palette.primaryAccent else palette.cardBackground)
+                                .border(1.dp, if (isSelected) cardBorder else palette.cardBorderSubtle, RoundedCornerShape(14.dp))
+                                .iosClickable(targetScale = 0.96f) { settingsManager.setVolumeButtonsAction(action) }
                                 .padding(vertical = 10.dp, horizontal = 4.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = action,
-                                color = if (isSelected) LiquidActiveText else subTextColor,
+                                color = if (isSelected) palette.onPrimaryAccent else subTextColor,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 12.sp,
                                 maxLines = 1,
@@ -416,11 +419,12 @@ fun SettingsScreen(
                 Switch(
                     checked = defaultVibrate,
                     onCheckedChange = { settingsManager.setDefaultVibrate(it) },
+                    modifier = Modifier.iosPressEffect(targetScale = 0.95f),
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = LiquidActiveText,
-                        checkedTrackColor = LiquidGlassActive,
+                        checkedThumbColor = palette.toggleActiveThumb,
+                        checkedTrackColor = palette.toggleActiveTrack,
                         uncheckedThumbColor = subTextColor,
-                        uncheckedTrackColor = LiquidGlassHover
+                        uncheckedTrackColor = palette.cardBackground
                     )
                 )
             }
