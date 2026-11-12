@@ -7,8 +7,12 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import com.sec.oneui.clock.MainActivity
+import com.sec.oneui.clock.alarm.data.AlarmDatabase
 import com.sec.oneui.clock.alarm.data.AlarmEntity
 import com.sec.oneui.clock.alarm.receiver.AlarmReceiver
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 object AlarmScheduler {
@@ -118,19 +122,24 @@ object AlarmScheduler {
             val upcomingMinutes = com.sec.oneui.clock.settings.SettingsManager.getInstance(context).upcomingAlarmMinutes.value
             if (upcomingMinutes > 0) {
                 val upcomingTime = triggerTime - (upcomingMinutes * 60 * 1000L)
-                if (upcomingTime > System.currentTimeMillis()) {
-                    val upcomingIntent = Intent(context, AlarmReceiver::class.java).apply {
-                        action = ACTION_UPCOMING_ALARM
-                        putExtra(EXTRA_ALARM_ID, alarm.id)
-                    }
-                    val upcomingPending = PendingIntent.getBroadcast(
-                        context,
-                        100000 + alarm.id,
-                        upcomingIntent,
-                        flags
-                    )
+                val now = System.currentTimeMillis()
+                val upcomingIntent = Intent(context, AlarmReceiver::class.java).apply {
+                    action = ACTION_UPCOMING_ALARM
+                    putExtra(EXTRA_ALARM_ID, alarm.id)
+                }
+                val upcomingPending = PendingIntent.getBroadcast(
+                    context,
+                    100000 + alarm.id,
+                    upcomingIntent,
+                    flags
+                )
+
+                if (upcomingTime > now) {
                     alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, upcomingTime, upcomingPending)
                     Log.d(TAG, "Scheduled upcoming alarm notification #${alarm.id} at $upcomingTime")
+                } else if (triggerTime > now) {
+                    context.sendBroadcast(upcomingIntent)
+                    Log.d(TAG, "Triggered immediate upcoming notification for #${alarm.id} (within window)")
                 }
             }
         } catch (e: SecurityException) {
@@ -170,6 +179,23 @@ object AlarmScheduler {
         notificationManager?.cancel(200000 + alarmId)
 
         Log.d(TAG, "Cancelled alarm #$alarmId")
+    }
+
+    /**
+     * Reschedules upcoming alarm notifications for all active alarms when setting changes.
+     */
+    fun rescheduleAll(context: Context) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val alarms = AlarmDatabase.getInstance(context).alarmDao().getEnabledAlarms()
+                for (alarm in alarms) {
+                    schedule(context, alarm)
+                }
+                Log.d(TAG, "Rescheduled all ${alarms.size} enabled alarms")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error rescheduling all alarms: ${e.message}")
+            }
+        }
     }
 
     /**

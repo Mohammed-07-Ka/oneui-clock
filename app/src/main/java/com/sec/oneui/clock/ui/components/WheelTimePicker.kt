@@ -187,9 +187,9 @@ fun <T> WheelPicker(
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
-                                enabled = isNumeric && isSelected
+                                enabled = isNumeric
                             ) {
-                                val currentStr = formatItem(item)
+                                val currentStr = if (currentIndex in items.indices) formatItem(items[currentIndex]) else ""
                                 textFieldValue = TextFieldValue(
                                     text = currentStr,
                                     selection = TextRange(0, currentStr.length)
@@ -212,7 +212,10 @@ fun <T> WheelPicker(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(itemHeight),
+                    .height(itemHeight)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color.White.copy(alpha = 0.16f))
+                    .border(1.5.dp, Color.White.copy(alpha = 0.45f), RoundedCornerShape(14.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 BasicTextField(
@@ -223,7 +226,14 @@ fun <T> WheelPicker(
                             text = digits,
                             selection = TextRange(digits.length)
                         )
-                        applyInputValue(digits)
+                        val num = digits.toIntOrNull()
+                        if (num != null && num in minValue..maxValue) {
+                            applyInputValue(digits)
+                            if (digits.length == 2) {
+                                isEditing = false
+                                keyboardController?.hide()
+                            }
+                        }
                     },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Number,
@@ -252,7 +262,7 @@ fun <T> WheelPicker(
                     cursorBrush = SolidColor(Color.White),
                     singleLine = true,
                     modifier = Modifier
-                        .width(76.dp)
+                        .fillMaxWidth()
                         .focusRequester(focusRequester)
                         .onFocusChanged { focusState ->
                             if (!focusState.isFocused && isEditing) {
@@ -272,6 +282,7 @@ fun <T> WheelPicker(
 
             LaunchedEffect(Unit) {
                 focusRequester.requestFocus()
+                keyboardController?.show()
             }
         }
     }

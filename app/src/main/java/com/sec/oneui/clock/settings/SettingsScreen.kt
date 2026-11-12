@@ -18,20 +18,25 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.VolumeDown
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -47,8 +52,10 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sec.oneui.clock.alarm.scheduler.AlarmScheduler
 import com.sec.oneui.clock.alarm.service.AlarmAudioPreviewer
 import com.sec.oneui.clock.theme.ClockTheme
 import com.sec.oneui.clock.theme.iosClickable
@@ -71,6 +78,12 @@ fun SettingsScreen(
     val upcomingAlarmMinutes by settingsManager.upcomingAlarmMinutes.collectAsState()
 
     var customGradualVolumeExpanded by remember { mutableStateOf(gradualVolumeDuration !in listOf(0, 3, 5, 10)) }
+    var showCustomUpcomingDialog by remember { mutableStateOf(false) }
+    var customMinutesText by remember {
+        mutableStateOf(
+            if (upcomingAlarmMinutes !in listOf(0, 15, 30, 60, 120, 360, 720)) upcomingAlarmMinutes.toString() else "45"
+        )
+    }
 
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -606,29 +619,38 @@ fun SettingsScreen(
                     .padding(horizontal = 20.dp, vertical = 14.dp)
             ) {
                 Text("Upcoming Alarm Notification", fontSize = 15.sp, color = textColor)
-                Text("Silent notification prior to alarm with Dismiss Early option", fontSize = 13.sp, color = subTextColor)
-                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = if (upcomingAlarmMinutes == 0) "Disabled"
+                    else if (upcomingAlarmMinutes >= 60 && upcomingAlarmMinutes % 60 == 0) "${upcomingAlarmMinutes / 60} hour(s) before alarm"
+                    else "$upcomingAlarmMinutes minutes before alarm",
+                    fontSize = 13.sp,
+                    color = subTextColor
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Presets Row 1: Off, 15m, 30m, 1h
+                val row1Options = listOf(
+                    0 to "Off",
+                    15 to "15m",
+                    30 to "30m",
+                    60 to "1h"
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val upcomingOptions = listOf(
-                        0 to "Off",
-                        15 to "15m before",
-                        30 to "30m before",
-                        60 to "1h before"
-                    )
-                    upcomingOptions.forEach { (minsVal, minsLabel) ->
+                    row1Options.forEach { (minsVal, minsLabel) ->
                         val isSelected = upcomingAlarmMinutes == minsVal
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(14.dp))
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(if (isSelected) palette.primaryAccent else palette.cardBackground)
-                                .border(1.dp, if (isSelected) cardBorder else palette.cardBorderSubtle, RoundedCornerShape(14.dp))
+                                .border(1.dp, if (isSelected) cardBorder else palette.cardBorderSubtle, RoundedCornerShape(12.dp))
                                 .iosClickable(targetScale = 0.96f) {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     settingsManager.setUpcomingAlarmMinutes(minsVal)
+                                    AlarmScheduler.rescheduleAll(context)
                                 }
                                 .padding(vertical = 10.dp, horizontal = 2.dp),
                             contentAlignment = Alignment.Center
@@ -636,14 +658,139 @@ fun SettingsScreen(
                             Text(
                                 text = minsLabel,
                                 color = if (isSelected) palette.onPrimaryAccent else subTextColor,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 13.sp,
                                 maxLines = 1,
                                 softWrap = false
                             )
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Presets Row 2: 2h, 6h, 12h, Custom
+                val row2Options = listOf(
+                    120 to "2h",
+                    360 to "6h",
+                    720 to "12h"
+                )
+                val isCustomSelected = upcomingAlarmMinutes !in listOf(0, 15, 30, 60, 120, 360, 720)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    row2Options.forEach { (minsVal, minsLabel) ->
+                        val isSelected = upcomingAlarmMinutes == minsVal
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isSelected) palette.primaryAccent else palette.cardBackground)
+                                .border(1.dp, if (isSelected) cardBorder else palette.cardBorderSubtle, RoundedCornerShape(12.dp))
+                                .iosClickable(targetScale = 0.96f) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    settingsManager.setUpcomingAlarmMinutes(minsVal)
+                                    AlarmScheduler.rescheduleAll(context)
+                                }
+                                .padding(vertical = 10.dp, horizontal = 2.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = minsLabel,
+                                color = if (isSelected) palette.onPrimaryAccent else subTextColor,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 13.sp,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
+                    }
+
+                    // Custom Button
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isCustomSelected) palette.primaryAccent else palette.cardBackground)
+                            .border(1.dp, if (isCustomSelected) cardBorder else palette.cardBorderSubtle, RoundedCornerShape(12.dp))
+                            .iosClickable(targetScale = 0.96f) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                customMinutesText = if (isCustomSelected) upcomingAlarmMinutes.toString() else "45"
+                                showCustomUpcomingDialog = true
+                            }
+                            .padding(vertical = 10.dp, horizontal = 2.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (isCustomSelected) "${upcomingAlarmMinutes}m" else "Custom",
+                            color = if (isCustomSelected) palette.onPrimaryAccent else subTextColor,
+                            fontWeight = if (isCustomSelected) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 13.sp,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+                }
+            }
+
+            if (showCustomUpcomingDialog) {
+                AlertDialog(
+                    onDismissRequest = { showCustomUpcomingDialog = false },
+                    containerColor = palette.cardBackground,
+                    title = {
+                        Text(
+                            "Custom Upcoming Alarm",
+                            color = textColor,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    text = {
+                        Column {
+                            Text(
+                                "Enter minutes before alarm for early warning (e.g. 45 for 45 mins, 90 for 1.5h):",
+                                color = subTextColor,
+                                fontSize = 14.sp
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            OutlinedTextField(
+                                value = customMinutesText,
+                                onValueChange = { input ->
+                                    val digits = input.filter { it.isDigit() }.take(4)
+                                    customMinutesText = digits
+                                },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                label = { Text("Minutes (1..1440)", color = subTextColor) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = textColor,
+                                    unfocusedTextColor = textColor,
+                                    focusedBorderColor = palette.primaryAccent,
+                                    unfocusedBorderColor = Color.White.copy(alpha = 0.2f)
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                val mins = customMinutesText.toIntOrNull()?.coerceIn(1, 1440) ?: 45
+                                settingsManager.setUpcomingAlarmMinutes(mins)
+                                AlarmScheduler.rescheduleAll(context)
+                                showCustomUpcomingDialog = false
+                            }
+                        ) {
+                            Text("Save", color = palette.primaryAccent, fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showCustomUpcomingDialog = false }) {
+                            Text("Cancel", color = subTextColor)
+                        }
+                    }
+                )
             }
 
             HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
