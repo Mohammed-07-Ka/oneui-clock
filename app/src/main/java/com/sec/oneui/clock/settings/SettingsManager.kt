@@ -81,6 +81,19 @@ class SettingsManager(context: Context) {
         _animationSpeed.value = speed
     }
 
+    val defaultRingtoneUri: String?
+        get() = prefs.getString("default_ringtone_uri", null)
+
+    val defaultRingtoneName: String
+        get() = prefs.getString("default_ringtone_name", "Default") ?: "Default"
+
+    fun setDefaultRingtone(uri: String?, name: String) {
+        prefs.edit()
+            .putString("default_ringtone_uri", uri)
+            .putString("default_ringtone_name", name)
+            .apply()
+    }
+
     private fun loadThemeMode(): ThemeMode {
         val key = prefs.getString("theme_mode", ThemeMode.AURORA_PURPLE.key)
         return ThemeMode.entries.firstOrNull { it.key == key } ?: ThemeMode.AURORA_PURPLE

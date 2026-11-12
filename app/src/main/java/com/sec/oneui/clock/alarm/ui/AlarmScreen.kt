@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.media.RingtoneManager
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -61,7 +62,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -89,7 +89,6 @@ import com.sec.oneui.clock.theme.LiquidTextPrimary
 import com.sec.oneui.clock.theme.LiquidTextSecondary
 import com.sec.oneui.clock.theme.OneUiRed
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -106,9 +105,7 @@ fun AlarmScreen(
 
     val alarms by viewModel.alarms.collectAsState()
     val nearestRemaining by viewModel.nearestAlarmHeader.collectAsState()
-
-    var showEditSheet by remember { mutableStateOf(false) }
-    var editingAlarm by remember { mutableStateOf<AlarmEntity?>(null) }
+    val editorState by viewModel.editorState.collectAsState()
 
     Box(
         modifier = modifier
@@ -170,10 +167,7 @@ fun AlarmScreen(
                             alarm = alarm,
                             use24HourFormat = use24HourFormat,
                             onToggle = { viewModel.toggleAlarm(alarm) },
-                            onClick = {
-                                editingAlarm = alarm
-                                showEditSheet = true
-                            },
+                            onClick = { viewModel.openEditorForExisting(alarm) },
                             onDelete = { viewModel.deleteAlarm(alarm) }
                         )
                     }
@@ -183,10 +177,7 @@ fun AlarmScreen(
 
         // iOS Liquid Glass Floating Action Button
         FloatingActionButton(
-            onClick = {
-                editingAlarm = null
-                showEditSheet = true
-            },
+            onClick = { viewModel.openEditorForNew(defaultVibrate) },
             containerColor = LiquidGlassActive,
             contentColor = LiquidActiveText,
             shape = CircleShape,
@@ -200,27 +191,21 @@ fun AlarmScreen(
             Icon(Icons.Default.Add, contentDescription = "Add Alarm", modifier = Modifier.size(32.dp))
         }
 
-        if (showEditSheet) {
+        // Bottom Sheet tied to ViewModel editorState (Preserves draft across picker/accidental dismiss)
+        if (editorState.isOpen) {
             AlarmEditSheet(
-                existingAlarm = editingAlarm,
+                editorState = editorState,
                 use24HourFormat = use24HourFormat,
-                defaultVibrate = defaultVibrate,
-                onDismiss = { showEditSheet = false },
-                onSave = { h, m, label, days, snooze, vib, rUri, rName, dateMs ->
-                    viewModel.saveAlarm(
-                        id = editingAlarm?.id ?: 0,
-                        hour = h,
-                        minute = m,
-                        label = label,
-                        daysSet = days,
-                        snoozeDuration = snooze,
-                        vibrate = vib,
-                        ringtoneUri = rUri,
-                        ringtoneName = rName,
-                        scheduledDateMillis = dateMs
-                    )
-                    showEditSheet = false
-                }
+                onDismiss = { viewModel.dismissEditorSheet() },
+                onSave = { viewModel.saveDraft() },
+                onCancel = { viewModel.cancelDraft() },
+                onTimeChanged = { h, m -> viewModel.updateEditorTime(h, m) },
+                onLabelChanged = { viewModel.updateEditorLabel(it) },
+                onDayToggled = { viewModel.toggleEditorDay(it) },
+                onSnoozeChanged = { viewModel.updateEditorSnooze(it) },
+                onVibrateChanged = { viewModel.updateEditorVibrate(it) },
+                onRingtonePicked = { uri, name -> viewModel.updateEditorRingtone(uri, name) },
+                onScheduledDateChanged = { viewModel.updateEditorScheduledDate(it) }
             )
         }
     }
@@ -281,7 +266,6 @@ fun AlarmCard(
                     fontSize = 14.sp,
                     color = LiquidTextSecondary
                 )
-                // Show scheduled date if set
                 alarm.formattedScheduledDate()?.let { dateStr ->
                     Text(
                         text = "📅 $dateStr",
@@ -290,7 +274,6 @@ fun AlarmCard(
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }
-                // Show custom ringtone name
                 if (alarm.ringtoneName != "Default") {
                     Text(
                         text = "🔔 ${alarm.ringtoneName}",
@@ -330,43 +313,21 @@ fun AlarmCard(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlarmEditSheet(
-    existingAlarm: AlarmEntity?,
+    editorState: AlarmEditorState,
     use24HourFormat: Boolean,
-    defaultVibrate: Boolean,
     onDismiss: () -> Unit,
-    onSave: (
-        hour: Int, minute: Int, label: String, days: Set<Int>,
-        snooze: Int, vibrate: Boolean,
-        ringtoneUri: String?, ringtoneName: String,
-        scheduledDateMillis: Long?
-    ) -> Unit
+    onSave: () -> Unit,
+    onCancel: () -> Unit,
+    onTimeChanged: (hour: Int, minute: Int) -> Unit,
+    onLabelChanged: (String) -> Unit,
+    onDayToggled: (Int) -> Unit,
+    onSnoozeChanged: (Int) -> Unit,
+    onVibrateChanged: (Boolean) -> Unit,
+    onRingtonePicked: (uri: String?, name: String) -> Unit,
+    onScheduledDateChanged: (Long?) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
-
-    // Initialize with current device time when creating a new alarm
-    val now = remember { Calendar.getInstance() }
-    val initialHour24 = existingAlarm?.hour ?: now.get(Calendar.HOUR_OF_DAY)
-    val initialMinute = existingAlarm?.minute ?: now.get(Calendar.MINUTE)
-
-    val initialHour12 = when (val h = initialHour24 % 12) {
-        0 -> 12
-        else -> h
-    }
-    val initialIsPm = initialHour24 >= 12
-
-    var hour24 by remember { mutableIntStateOf(initialHour24) }
-    var selectedHour12 by remember { mutableIntStateOf(initialHour12) }
-    var selectedMinute by remember { mutableIntStateOf(initialMinute) }
-    var isPm by remember { mutableStateOf(initialIsPm) }
-
-    var label by remember { mutableStateOf(existingAlarm?.label ?: "Alarm") }
-    var selectedDays by remember { mutableStateOf(existingAlarm?.getDaysSet() ?: emptySet()) }
-    var snoozeMinutes by remember { mutableIntStateOf(existingAlarm?.snoozeDurationMinutes ?: 5) }
-    var vibrate by remember { mutableStateOf(existingAlarm?.vibrate ?: defaultVibrate) }
-    var ringtoneUri by remember { mutableStateOf(existingAlarm?.ringtoneUri) }
-    var ringtoneName by remember { mutableStateOf(existingAlarm?.ringtoneName ?: "Default") }
-    var scheduledDateMillis by remember { mutableStateOf(existingAlarm?.scheduledDateMillis) }
     var showDatePicker by remember { mutableStateOf(false) }
 
     val ringtoneLauncher = rememberLauncherForActivityResult(
@@ -375,12 +336,11 @@ fun AlarmEditSheet(
         if (result.resultCode == Activity.RESULT_OK) {
             val uri = result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
             if (uri != null) {
-                ringtoneUri = uri.toString()
                 val ringtone = RingtoneManager.getRingtone(context, uri)
-                ringtoneName = ringtone?.getTitle(context) ?: "Custom"
+                val ringtoneTitle = ringtone?.getTitle(context) ?: "Custom"
+                onRingtonePicked(uri.toString(), ringtoneTitle)
             } else {
-                ringtoneUri = null
-                ringtoneName = "Silent"
+                onRingtonePicked(null, "Silent")
             }
         }
     }
@@ -393,14 +353,15 @@ fun AlarmEditSheet(
                 context.contentResolver.takePersistableUriPermission(
                     uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
-            } catch (_: Exception) { }
-            ringtoneUri = uri.toString()
+            } catch (e: Exception) {
+                Log.w("AlarmEditSheet", "takePersistableUriPermission failed: ${e.message}")
+            }
             val cursor = context.contentResolver.query(uri, null, null, null, null)
             val name = cursor?.use {
                 val idx = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
                 if (it.moveToFirst() && idx >= 0) it.getString(idx) else null
             } ?: "Custom audio"
-            ringtoneName = name
+            onRingtonePicked(uri.toString(), name)
         }
     }
 
@@ -418,7 +379,7 @@ fun AlarmEditSheet(
                 .padding(bottom = 36.dp)
         ) {
             Text(
-                text = if (existingAlarm == null) "Add Alarm" else "Edit Alarm",
+                text = if (editorState.editingAlarmId == null) "Add Alarm" else "Edit Alarm",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = LiquidTextPrimary
@@ -426,7 +387,7 @@ fun AlarmEditSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // iOS Liquid Glass Wheel Time Picker (Adapts to 24-hour / 12-hour format)
+            // iOS Liquid Glass Wheel Time Picker
             if (use24HourFormat) {
                 Row(
                     modifier = Modifier
@@ -441,8 +402,8 @@ fun AlarmEditSheet(
                     // Hours (00..23)
                     WheelPicker(
                         items = (0..23).toList(),
-                        initialIndex = hour24.coerceIn(0, 23),
-                        onItemSelected = { hour24 = it },
+                        initialIndex = editorState.hour.coerceIn(0, 23),
+                        onItemSelected = { onTimeChanged(it, editorState.minute) },
                         modifier = Modifier.weight(1f),
                         formatItem = { String.format("%02d", it) }
                     )
@@ -458,13 +419,19 @@ fun AlarmEditSheet(
                     // Minutes (00..59)
                     WheelPicker(
                         items = (0..59).toList(),
-                        initialIndex = selectedMinute.coerceIn(0, 59),
-                        onItemSelected = { selectedMinute = it },
+                        initialIndex = editorState.minute.coerceIn(0, 59),
+                        onItemSelected = { onTimeChanged(editorState.hour, it) },
                         modifier = Modifier.weight(1f),
                         formatItem = { String.format("%02d", it) }
                     )
                 }
             } else {
+                val hour12 = when (val h = editorState.hour % 12) {
+                    0 -> 12
+                    else -> h
+                }
+                val isPm = editorState.hour >= 12
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -478,8 +445,15 @@ fun AlarmEditSheet(
                     // Hours (1..12)
                     WheelPicker(
                         items = (1..12).toList(),
-                        initialIndex = (selectedHour12 - 1).coerceIn(0, 11),
-                        onItemSelected = { selectedHour12 = it },
+                        initialIndex = (hour12 - 1).coerceIn(0, 11),
+                        onItemSelected = { newH12 ->
+                            val newH24 = if (isPm) {
+                                if (newH12 == 12) 12 else newH12 + 12
+                            } else {
+                                if (newH12 == 12) 0 else newH12
+                            }
+                            onTimeChanged(newH24, editorState.minute)
+                        },
                         modifier = Modifier.weight(1f),
                         formatItem = { String.format("%02d", it) }
                     )
@@ -495,8 +469,8 @@ fun AlarmEditSheet(
                     // Minutes (00..59)
                     WheelPicker(
                         items = (0..59).toList(),
-                        initialIndex = selectedMinute.coerceIn(0, 59),
-                        onItemSelected = { selectedMinute = it },
+                        initialIndex = editorState.minute.coerceIn(0, 59),
+                        onItemSelected = { onTimeChanged(editorState.hour, it) },
                         modifier = Modifier.weight(1f),
                         formatItem = { String.format("%02d", it) }
                     )
@@ -507,7 +481,15 @@ fun AlarmEditSheet(
                     WheelPicker(
                         items = listOf("AM", "PM"),
                         initialIndex = if (isPm) 1 else 0,
-                        onItemSelected = { isPm = (it == "PM") },
+                        onItemSelected = { newAmPm ->
+                            val newIsPm = (newAmPm == "PM")
+                            val newH24 = if (newIsPm) {
+                                if (hour12 == 12) 12 else hour12 + 12
+                            } else {
+                                if (hour12 == 12) 0 else hour12
+                            }
+                            onTimeChanged(newH24, editorState.minute)
+                        },
                         modifier = Modifier.weight(1f),
                         formatItem = { it }
                     )
@@ -527,7 +509,7 @@ fun AlarmEditSheet(
                     1 to "S", 2 to "M", 3 to "T", 4 to "W", 5 to "T", 6 to "F", 7 to "S"
                 )
                 days.forEach { (dayNum, dayLetter) ->
-                    val isSelected = selectedDays.contains(dayNum)
+                    val isSelected = editorState.daysOfWeek.contains(dayNum)
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -539,13 +521,7 @@ fun AlarmEditSheet(
                                 if (isSelected) LiquidSpecularBorder else LiquidSpecularBorderSubtle,
                                 CircleShape
                             )
-                            .clickable {
-                                selectedDays = if (isSelected) {
-                                    selectedDays - dayNum
-                                } else {
-                                    selectedDays + dayNum
-                                }
-                            }
+                            .clickable { onDayToggled(dayNum) }
                     ) {
                         Text(
                             text = dayLetter,
@@ -579,20 +555,20 @@ fun AlarmEditSheet(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Schedule Date", fontSize = 15.sp, color = LiquidTextPrimary, fontWeight = FontWeight.SemiBold)
                     Text(
-                        text = if (scheduledDateMillis != null) {
-                            SimpleDateFormat("EEE, MMM d, yyyy", Locale.getDefault()).format(Date(scheduledDateMillis!!))
+                        text = if (editorState.scheduledDateMillis != null) {
+                            SimpleDateFormat("EEE, MMM d, yyyy", Locale.getDefault()).format(Date(editorState.scheduledDateMillis))
                         } else "Not set (next occurrence)",
                         fontSize = 13.sp,
                         color = LiquidTextSecondary
                     )
                 }
-                if (scheduledDateMillis != null) {
+                if (editorState.scheduledDateMillis != null) {
                     Text(
                         text = "✕",
                         color = OneUiRed,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
-                        modifier = Modifier.clickable { scheduledDateMillis = null }.padding(8.dp)
+                        modifier = Modifier.clickable { onScheduledDateChanged(null) }.padding(8.dp)
                     )
                 }
             }
@@ -612,8 +588,8 @@ fun AlarmEditSheet(
                             putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Select Alarm Ringtone")
                             putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
                             putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                            if (ringtoneUri != null) {
-                                putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(ringtoneUri))
+                            if (editorState.ringtoneUri != null) {
+                                putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(editorState.ringtoneUri))
                             }
                         }
                         ringtoneLauncher.launch(intent)
@@ -631,7 +607,7 @@ fun AlarmEditSheet(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Alarm Ringtone", fontSize = 15.sp, color = LiquidTextPrimary, fontWeight = FontWeight.SemiBold)
                     Text(
-                        text = ringtoneName,
+                        text = editorState.ringtoneName,
                         fontSize = 13.sp,
                         color = LiquidTextSecondary,
                         maxLines = 1,
@@ -664,8 +640,8 @@ fun AlarmEditSheet(
 
             // Alarm Label TextField
             OutlinedTextField(
-                value = label,
-                onValueChange = { label = it },
+                value = editorState.label,
+                onValueChange = onLabelChanged,
                 label = { Text("Alarm Name", color = LiquidTextSecondary) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -685,7 +661,7 @@ fun AlarmEditSheet(
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(3, 5, 10, 15).forEach { mins ->
-                    val isSelected = snoozeMinutes == mins
+                    val isSelected = editorState.snoozeDurationMinutes == mins
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
@@ -695,7 +671,7 @@ fun AlarmEditSheet(
                                 if (isSelected) LiquidSpecularBorder else LiquidSpecularBorderSubtle,
                                 RoundedCornerShape(12.dp)
                             )
-                            .clickable { snoozeMinutes = mins }
+                            .clickable { onSnoozeChanged(mins) }
                             .padding(horizontal = 14.dp, vertical = 8.dp)
                     ) {
                         Text(
@@ -714,7 +690,7 @@ fun AlarmEditSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Cancel Button: Dark Glass
+                // Cancel Button (Clears draft explicitly)
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -722,26 +698,15 @@ fun AlarmEditSheet(
                         .clip(RoundedCornerShape(18.dp))
                         .background(LiquidGlassBackground)
                         .border(1.dp, LiquidSpecularBorderSubtle, RoundedCornerShape(18.dp))
-                        .clickable { onDismiss() },
+                        .clickable { onCancel() },
                     contentAlignment = Alignment.Center
                 ) {
                     Text("Cancel", fontSize = 16.sp, color = Color.White.copy(alpha = 0.85f), fontWeight = FontWeight.Medium)
                 }
 
-                // Save Button: Luminous White Liquid Glass with Black text
+                // Save Button (Saves and clears draft explicitly)
                 Button(
-                    onClick = {
-                        val finalHour24 = if (use24HourFormat) {
-                            hour24
-                        } else {
-                            if (isPm) {
-                                if (selectedHour12 == 12) 12 else selectedHour12 + 12
-                            } else {
-                                if (selectedHour12 == 12) 0 else selectedHour12
-                            }
-                        }
-                        onSave(finalHour24, selectedMinute, label, selectedDays, snoozeMinutes, vibrate, ringtoneUri, ringtoneName, scheduledDateMillis)
-                    },
+                    onClick = onSave,
                     modifier = Modifier
                         .weight(1f)
                         .height(54.dp),
@@ -760,13 +725,13 @@ fun AlarmEditSheet(
     // Material 3 DatePickerDialog
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = scheduledDateMillis ?: System.currentTimeMillis()
+            initialSelectedDateMillis = editorState.scheduledDateMillis ?: System.currentTimeMillis()
         )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    scheduledDateMillis = datePickerState.selectedDateMillis
+                    onScheduledDateChanged(datePickerState.selectedDateMillis)
                     showDatePicker = false
                 }) {
                     Text("OK", color = Color.White, fontWeight = FontWeight.Bold)

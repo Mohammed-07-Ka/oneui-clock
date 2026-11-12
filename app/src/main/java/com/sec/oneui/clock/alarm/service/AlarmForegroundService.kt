@@ -177,12 +177,19 @@ class AlarmForegroundService : Service() {
 
         try {
             var playerStarted = false
-            if (!customRingtoneUri.isNullOrBlank()) {
+            val defaultSavedUri = prefs.getString("default_ringtone_uri", null)
+            val candidateUris = listOfNotNull(
+                customRingtoneUri?.takeIf { it.isNotBlank() },
+                defaultSavedUri?.takeIf { it.isNotBlank() }
+            )
+
+            for (uriStr in candidateUris) {
                 try {
-                    mediaPlayer = createAndStartPlayer(Uri.parse(customRingtoneUri))
+                    mediaPlayer = createAndStartPlayer(Uri.parse(uriStr))
                     playerStarted = true
+                    break
                 } catch (e: Exception) {
-                    Log.w(TAG, "Failed playing custom ringtone ($customRingtoneUri), falling back to default alarm: ${e.message}")
+                    Log.w(TAG, "Failed playing ringtone ($uriStr): ${e.message}")
                 }
             }
 
@@ -190,8 +197,12 @@ class AlarmForegroundService : Service() {
                 val defaultUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                     ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
                 if (defaultUri != null) {
-                    mediaPlayer = createAndStartPlayer(defaultUri)
-                    playerStarted = true
+                    try {
+                        mediaPlayer = createAndStartPlayer(defaultUri)
+                        playerStarted = true
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed playing default alarm: ${e.message}")
+                    }
                 }
             }
 
