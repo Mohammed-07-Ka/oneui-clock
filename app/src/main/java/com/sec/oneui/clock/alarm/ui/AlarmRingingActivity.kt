@@ -14,7 +14,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -56,15 +55,15 @@ import com.sec.oneui.clock.alarm.receiver.AlarmReceiver
 import com.sec.oneui.clock.alarm.scheduler.AlarmScheduler
 import com.sec.oneui.clock.settings.ThemeMode
 import com.sec.oneui.clock.theme.GeminiAnimatedBackground
-import com.sec.oneui.clock.theme.GeminiGlassBackgroundDark
-import com.sec.oneui.clock.theme.GeminiGlassBorderGradientDark
-import com.sec.oneui.clock.theme.GeminiLavender
-import com.sec.oneui.clock.theme.GeminiPurple
-import com.sec.oneui.clock.theme.GeminiPurpleLight
+import com.sec.oneui.clock.theme.LiquidActiveText
+import com.sec.oneui.clock.theme.LiquidGlassActive
+import com.sec.oneui.clock.theme.LiquidGlassBackground
+import com.sec.oneui.clock.theme.LiquidSpecularBorder
+import com.sec.oneui.clock.theme.LiquidSpecularBorderSubtle
+import com.sec.oneui.clock.theme.LiquidTextPrimary
+import com.sec.oneui.clock.theme.LiquidTextSecondary
 import com.sec.oneui.clock.theme.OneUIClockTheme
 import com.sec.oneui.clock.theme.OneUiRed
-import com.sec.oneui.clock.theme.OneUiTextPrimary
-import com.sec.oneui.clock.theme.OneUiTextSecondary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -95,7 +94,7 @@ class AlarmRingingActivity : ComponentActivity() {
                 GeminiAnimatedBackground(
                     themeMode = ThemeMode.DARK_GEMINI,
                     animationEnabled = true,
-                    animationSpeed = 1.2f
+                    animationSpeed = 1.0f
                 ) {
                     AlarmRingingContent(
                         alarm = alarm,
@@ -154,8 +153,8 @@ fun AlarmRingingContent(
 
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.92f,
-        targetValue = 1.14f,
+        initialValue = 0.94f,
+        targetValue = 1.08f,
         animationSpec = infiniteRepeatable(
             animation = tween(1000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
@@ -176,39 +175,39 @@ fun AlarmRingingContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Pulsing Gemini Glowing Icon
+            // Pulsing Alarm Icon
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(130.dp)
+                    .size(120.dp)
                     .scale(pulseScale)
                     .clip(CircleShape)
-                    .background(GeminiPurple.copy(alpha = 0.25f))
-                    .border(2.dp, GeminiGlassBorderGradientDark, CircleShape)
+                    .background(LiquidGlassBackground)
+                    .border(1.dp, LiquidSpecularBorder, CircleShape)
             ) {
                 Icon(
                     imageVector = Icons.Default.Alarm,
                     contentDescription = "Ringing",
-                    tint = Color.White,
-                    modifier = Modifier.size(68.dp)
+                    tint = LiquidTextPrimary,
+                    modifier = Modifier.size(60.dp)
                 )
             }
 
             Spacer(modifier = Modifier.height(36.dp))
 
-            // Time text with Glowing Glass effect
+            // Time text in iOS Liquid style
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = alarm?.formattedTime() ?: currentTime,
                     fontSize = 68.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = LiquidTextPrimary
                 )
                 Text(
                     text = " " + (alarm?.amPm() ?: currentAmPm),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Medium,
-                    color = GeminiLavender,
+                    color = LiquidTextSecondary,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
             }
@@ -219,21 +218,20 @@ fun AlarmRingingContent(
                 text = alarm?.label?.ifBlank { "Alarm" } ?: "Alarm",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = GeminiLavender
+                color = LiquidTextSecondary
             )
 
-            // Ringtone name indicator
             if (alarm?.ringtoneName != null && alarm.ringtoneName != "Default") {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "🔔 ${alarm.ringtoneName}",
                     fontSize = 15.sp,
-                    color = GeminiPurpleLight
+                    color = LiquidTextSecondary.copy(alpha = 0.8f)
                 )
             }
         }
 
-        // Action Buttons with Glassmorphic Styling
+        // Action Buttons: Snooze in Dark Glass, Dismiss in Red
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -246,10 +244,10 @@ fun AlarmRingingContent(
                     .weight(1f)
                     .height(60.dp),
                 shape = RoundedCornerShape(30.dp),
-                border = BorderStroke(1.dp, GeminiLavender.copy(alpha = 0.5f)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.22f)),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = GeminiGlassBackgroundDark,
-                    contentColor = Color.White
+                    containerColor = LiquidGlassBackground,
+                    contentColor = LiquidTextPrimary
                 )
             ) {
                 Text("Snooze (${alarm?.snoozeDurationMinutes ?: 5}m)", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)

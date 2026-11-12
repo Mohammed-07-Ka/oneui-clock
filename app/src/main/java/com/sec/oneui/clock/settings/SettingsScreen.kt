@@ -42,14 +42,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.os.LocaleListCompat
-import com.sec.oneui.clock.theme.GeminiGlassBackgroundDark
-import com.sec.oneui.clock.theme.GeminiGlassBackgroundHover
-import com.sec.oneui.clock.theme.GeminiGlassBackgroundLight
-import com.sec.oneui.clock.theme.GeminiGlassBorderGradientDark
-import com.sec.oneui.clock.theme.GeminiGlassBorderGradientLight
-import com.sec.oneui.clock.theme.GeminiLavender
-import com.sec.oneui.clock.theme.GeminiPurple
-import com.sec.oneui.clock.theme.GeminiPurpleLight
+import com.sec.oneui.clock.theme.LiquidActiveText
+import com.sec.oneui.clock.theme.LiquidGlassActive
+import com.sec.oneui.clock.theme.LiquidGlassBackground
+import com.sec.oneui.clock.theme.LiquidGlassHover
+import com.sec.oneui.clock.theme.LiquidSpecularBorder
+import com.sec.oneui.clock.theme.LiquidSpecularBorderSubtle
+import com.sec.oneui.clock.theme.LiquidTextPrimary
+import com.sec.oneui.clock.theme.LiquidTextSecondary
 
 @Composable
 fun SettingsScreen(
@@ -64,11 +64,10 @@ fun SettingsScreen(
     val animationSpeed by settingsManager.animationSpeed.collectAsState()
     val context = LocalContext.current
 
-    val isLight = themeMode == ThemeMode.LIGHT_PEARL
-    val textColor = if (isLight) Color(0xFF1E1035) else Color.White
-    val subTextColor = if (isLight) Color(0xFF6B5887) else GeminiLavender
-    val cardColor = if (isLight) GeminiGlassBackgroundLight else GeminiGlassBackgroundDark
-    val cardBorder = if (isLight) GeminiGlassBorderGradientLight else GeminiGlassBorderGradientDark
+    val textColor = LiquidTextPrimary
+    val subTextColor = LiquidTextSecondary
+    val cardColor = LiquidGlassBackground
+    val cardBorder = LiquidSpecularBorder
 
     Column(
         modifier = Modifier
@@ -84,7 +83,7 @@ fun SettingsScreen(
                 modifier = Modifier
                     .clip(RoundedCornerShape(14.dp))
                     .background(cardColor)
-                    .border(1.dp, cardBorder, RoundedCornerShape(14.dp))
+                    .border(1.dp, LiquidSpecularBorderSubtle, RoundedCornerShape(14.dp))
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -94,7 +93,7 @@ fun SettingsScreen(
             }
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "✦ Settings",
+                text = "Settings",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = textColor
@@ -127,15 +126,15 @@ fun SettingsScreen(
                         modifier = Modifier
                             .size(24.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) GeminiPurple else GeminiGlassBackgroundHover)
-                            .border(1.dp, if (isSelected) cardBorder else cardBorder, RoundedCornerShape(12.dp))
+                            .background(if (isSelected) LiquidGlassActive else LiquidGlassHover)
+                            .border(1.dp, if (isSelected) cardBorder else LiquidSpecularBorderSubtle, RoundedCornerShape(12.dp))
                     ) {
                         if (isSelected) {
                             Box(
                                 modifier = Modifier
                                     .size(10.dp)
                                     .clip(RoundedCornerShape(5.dp))
-                                    .background(Color.White)
+                                    .background(LiquidActiveText)
                                     .align(Alignment.Center)
                             )
                         }
@@ -157,7 +156,7 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         // ── 2. Animated Background Control (Battery Saver) ──
-        SectionTitle("Gemini Background Animation", textColor = subTextColor)
+        SectionTitle("Background Ambient Glow", textColor = subTextColor)
         Spacer(modifier = Modifier.height(8.dp))
 
         Column(
@@ -176,17 +175,17 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Mesh & Particle Animation", fontSize = 16.sp, color = textColor)
+                    Text("Ambient Mesh Motion", fontSize = 16.sp, color = textColor)
                     Text("Turn off to maximize battery life", fontSize = 13.sp, color = subTextColor)
                 }
                 Switch(
                     checked = animationEnabled,
                     onCheckedChange = { settingsManager.setAnimationEnabled(it) },
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = GeminiPurple,
+                        checkedThumbColor = LiquidActiveText,
+                        checkedTrackColor = LiquidGlassActive,
                         uncheckedThumbColor = subTextColor,
-                        uncheckedTrackColor = GeminiGlassBackgroundHover
+                        uncheckedTrackColor = LiquidGlassHover
                     )
                 )
             }
@@ -212,14 +211,14 @@ fun SettingsScreen(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(if (isSelected) GeminiPurple else GeminiGlassBackgroundHover)
-                                .border(1.dp, cardBorder, RoundedCornerShape(14.dp))
+                                .background(if (isSelected) LiquidGlassActive else LiquidGlassHover)
+                                .border(1.dp, if (isSelected) cardBorder else LiquidSpecularBorderSubtle, RoundedCornerShape(14.dp))
                                 .clickable { settingsManager.setAnimationSpeed(spVal) }
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                         ) {
                             Text(
                                 text = spLabel,
-                                color = if (isSelected) Color.White else subTextColor,
+                                color = if (isSelected) LiquidActiveText else subTextColor,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 13.sp
                             )
@@ -258,15 +257,15 @@ fun SettingsScreen(
                         modifier = Modifier
                             .size(24.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) GeminiPurple else GeminiGlassBackgroundHover)
-                            .border(1.dp, cardBorder, RoundedCornerShape(12.dp))
+                            .background(if (isSelected) LiquidGlassActive else LiquidGlassHover)
+                            .border(1.dp, if (isSelected) cardBorder else LiquidSpecularBorderSubtle, RoundedCornerShape(12.dp))
                     ) {
                         if (isSelected) {
                             Box(
                                 modifier = Modifier
                                     .size(10.dp)
                                     .clip(RoundedCornerShape(5.dp))
-                                    .background(Color.White)
+                                    .background(LiquidActiveText)
                                     .align(Alignment.Center)
                             )
                         }
@@ -314,10 +313,10 @@ fun SettingsScreen(
                     checked = defaultVibrate,
                     onCheckedChange = { settingsManager.setDefaultVibrate(it) },
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = GeminiPurple,
+                        checkedThumbColor = LiquidActiveText,
+                        checkedTrackColor = LiquidGlassActive,
                         uncheckedThumbColor = subTextColor,
-                        uncheckedTrackColor = GeminiGlassBackgroundHover
+                        uncheckedTrackColor = LiquidGlassHover
                     )
                 )
             }
@@ -340,10 +339,10 @@ fun SettingsScreen(
                     checked = gradualVolume,
                     onCheckedChange = { settingsManager.setGradualVolume(it) },
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = GeminiPurple,
+                        checkedThumbColor = LiquidActiveText,
+                        checkedTrackColor = LiquidGlassActive,
                         uncheckedThumbColor = subTextColor,
-                        uncheckedTrackColor = GeminiGlassBackgroundHover
+                        uncheckedTrackColor = LiquidGlassHover
                     )
                 )
             }

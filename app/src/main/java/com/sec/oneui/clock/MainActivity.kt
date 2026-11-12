@@ -15,20 +15,22 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
@@ -36,8 +38,6 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -63,12 +63,12 @@ import com.sec.oneui.clock.settings.ThemeMode
 import com.sec.oneui.clock.stopwatch.ui.StopwatchScreen
 import com.sec.oneui.clock.stopwatch.ui.StopwatchViewModel
 import com.sec.oneui.clock.theme.GeminiAnimatedBackground
-import com.sec.oneui.clock.theme.GeminiGlassBackgroundDark
-import com.sec.oneui.clock.theme.GeminiGlassBackgroundLight
-import com.sec.oneui.clock.theme.GeminiGlassBorderGradientDark
-import com.sec.oneui.clock.theme.GeminiGlassBorderGradientLight
-import com.sec.oneui.clock.theme.GeminiLavender
-import com.sec.oneui.clock.theme.GeminiPurple
+import com.sec.oneui.clock.theme.LiquidGlassBackground
+import com.sec.oneui.clock.theme.LiquidSpecularBorder
+import com.sec.oneui.clock.theme.LiquidSpecularBorderSubtle
+import com.sec.oneui.clock.theme.LiquidTextMuted
+import com.sec.oneui.clock.theme.LiquidTextPrimary
+import com.sec.oneui.clock.theme.LiquidTextSecondary
 import com.sec.oneui.clock.theme.OneUIClockTheme
 import com.sec.oneui.clock.timer.ui.TimerScreen
 import com.sec.oneui.clock.timer.ui.TimerViewModel
@@ -111,8 +111,7 @@ class MainActivity : ComponentActivity() {
                         alarmViewModel = alarmViewModel,
                         stopwatchViewModel = stopwatchViewModel,
                         timerViewModel = timerViewModel,
-                        settingsManager = settingsManager,
-                        themeMode = themeMode
+                        settingsManager = settingsManager
                     )
                 }
             }
@@ -154,23 +153,15 @@ sealed class ClockTab(val index: Int, val title: String, val icon: ImageVector) 
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainClockApp(
     alarmViewModel: AlarmViewModel,
     stopwatchViewModel: StopwatchViewModel,
     timerViewModel: TimerViewModel,
-    settingsManager: SettingsManager,
-    themeMode: ThemeMode
+    settingsManager: SettingsManager
 ) {
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
-
-    val isLight = themeMode == ThemeMode.LIGHT_PEARL
-    val glassBg = if (isLight) GeminiGlassBackgroundLight else GeminiGlassBackgroundDark
-    val glassBorder = if (isLight) GeminiGlassBorderGradientLight else GeminiGlassBorderGradientDark
-    val navSelectedColor = if (isLight) GeminiPurple else Color.White
-    val navUnselectedColor = if (isLight) Color(0xFF6B5887) else GeminiLavender.copy(alpha = 0.65f)
 
     if (showSettings) {
         SettingsScreen(
@@ -186,40 +177,8 @@ fun MainClockApp(
             .statusBarsPadding()
             .navigationBarsPadding(),
         containerColor = Color.Transparent,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "✦ Gemini Clock",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isLight) Color(0xFF1E1035) else Color.White
-                    )
-                },
-                actions = {
-                    IconButton(
-                        onClick = { showSettings = true },
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(glassBg)
-                            .border(1.dp, glassBorder, RoundedCornerShape(16.dp))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            tint = if (isLight) GeminiPurple else Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
-            )
-        },
         bottomBar = {
-            // Glassmorphic Floating Bottom Bar
+            // iOS Liquid Glass Floating Bottom Bar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -229,8 +188,8 @@ fun MainClockApp(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(32.dp))
-                        .background(glassBg)
-                        .border(1.dp, glassBorder, RoundedCornerShape(32.dp)),
+                        .background(LiquidGlassBackground)
+                        .border(1.dp, LiquidSpecularBorder, RoundedCornerShape(32.dp)),
                     containerColor = Color.Transparent,
                     tonalElevation = 0.dp
                 ) {
@@ -254,11 +213,11 @@ fun MainClockApp(
                                 )
                             },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = navSelectedColor,
-                                selectedTextColor = navSelectedColor,
-                                unselectedIconColor = navUnselectedColor,
-                                unselectedTextColor = navUnselectedColor,
-                                indicatorColor = GeminiPurple.copy(alpha = 0.22f)
+                                selectedIconColor = LiquidTextPrimary,
+                                selectedTextColor = LiquidTextPrimary,
+                                unselectedIconColor = LiquidTextMuted,
+                                unselectedTextColor = LiquidTextMuted,
+                                indicatorColor = Color.White.copy(alpha = 0.12f)
                             )
                         )
                     }
@@ -276,6 +235,31 @@ fun MainClockApp(
                 0 -> AlarmScreen(viewModel = alarmViewModel)
                 1 -> StopwatchScreen(viewModel = stopwatchViewModel)
                 2 -> TimerScreen(viewModel = timerViewModel)
+            }
+
+            // Discreet Settings Icon in Top-Right
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = { showSettings = true },
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(LiquidGlassBackground)
+                        .border(1.dp, LiquidSpecularBorderSubtle, CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        tint = LiquidTextSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
 
             // In-App Ringing Banner floating at top

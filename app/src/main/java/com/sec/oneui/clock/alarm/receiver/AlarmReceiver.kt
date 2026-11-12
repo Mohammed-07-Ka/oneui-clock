@@ -3,8 +3,8 @@ package com.sec.oneui.clock.alarm.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.util.Log
+import androidx.core.content.ContextCompat
 import com.sec.oneui.clock.alarm.data.AlarmDatabase
 import com.sec.oneui.clock.alarm.scheduler.AlarmScheduler
 import com.sec.oneui.clock.alarm.service.AlarmForegroundService
@@ -29,16 +29,12 @@ class AlarmReceiver : BroadcastReceiver() {
                 val alarmId = intent.getIntExtra(AlarmScheduler.EXTRA_ALARM_ID, -1)
                 if (alarmId == -1) return
 
-                // 1. Start foreground alarm service for continuous ringtone and vibration
+                // 1. Start foreground alarm service for continuous ringtone and vibration using ContextCompat
                 val serviceIntent = Intent(context, AlarmForegroundService::class.java).apply {
                     this.action = AlarmForegroundService.ACTION_START_ALARM
                     putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
                 }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(serviceIntent)
-                } else {
-                    context.startService(serviceIntent)
-                }
+                ContextCompat.startForegroundService(context, serviceIntent)
 
                 // 2. Open full-screen Alarm Ringing Activity
                 val ringingIntent = Intent(context, AlarmRingingActivity::class.java).apply {

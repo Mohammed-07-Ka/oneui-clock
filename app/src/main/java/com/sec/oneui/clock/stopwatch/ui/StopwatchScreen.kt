@@ -30,16 +30,16 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sec.oneui.clock.theme.GeminiCyanSparkle
-import com.sec.oneui.clock.theme.GeminiGlassBackgroundDark
-import com.sec.oneui.clock.theme.GeminiGlassBackgroundHover
-import com.sec.oneui.clock.theme.GeminiGlassBorderGradientDark
-import com.sec.oneui.clock.theme.GeminiLavender
-import com.sec.oneui.clock.theme.GeminiPurple
+import com.sec.oneui.clock.theme.LiquidActiveText
+import com.sec.oneui.clock.theme.LiquidGlassActive
+import com.sec.oneui.clock.theme.LiquidGlassBackground
+import com.sec.oneui.clock.theme.LiquidSpecularBorder
+import com.sec.oneui.clock.theme.LiquidSpecularBorderSubtle
+import com.sec.oneui.clock.theme.LiquidTextMuted
+import com.sec.oneui.clock.theme.LiquidTextPrimary
+import com.sec.oneui.clock.theme.LiquidTextSecondary
 import com.sec.oneui.clock.theme.OneUiGreen
 import com.sec.oneui.clock.theme.OneUiRed
-import com.sec.oneui.clock.theme.OneUiTextPrimary
-import com.sec.oneui.clock.theme.OneUiTextSecondary
 
 @Composable
 fun StopwatchScreen(
@@ -66,7 +66,7 @@ fun StopwatchScreen(
             text = "Stopwatch",
             fontSize = 34.sp,
             fontWeight = FontWeight.Bold,
-            color = OneUiTextPrimary
+            color = LiquidTextPrimary
         )
 
         // Time Display Area with Glassmorphism
@@ -79,8 +79,8 @@ fun StopwatchScreen(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(32.dp))
-                    .background(GeminiGlassBackgroundDark)
-                    .border(1.dp, GeminiGlassBorderGradientDark, RoundedCornerShape(32.dp))
+                    .background(LiquidGlassBackground)
+                    .border(1.dp, LiquidSpecularBorder, RoundedCornerShape(32.dp))
                     .padding(horizontal = 28.dp, vertical = 20.dp)
             ) {
                 Text(
@@ -88,13 +88,13 @@ fun StopwatchScreen(
                     fontSize = 52.sp,
                     fontWeight = FontWeight.SemiBold,
                     fontFamily = FontFamily.Monospace,
-                    color = Color.White,
+                    color = LiquidTextPrimary,
                     letterSpacing = (-1).sp
                 )
             }
         }
 
-        // Action Buttons Row with Gemini colors
+        // Action Buttons Row with iOS Liquid Glass Styling
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -109,9 +109,12 @@ fun StopwatchScreen(
                             .fillMaxWidth()
                             .height(58.dp),
                         shape = RoundedCornerShape(29.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = GeminiPurple)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = LiquidGlassActive,
+                            contentColor = LiquidActiveText
+                        )
                     ) {
-                        Text("Start", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("Start", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
                 }
                 StopwatchState.RUNNING -> {
@@ -121,9 +124,13 @@ fun StopwatchScreen(
                             .weight(1f)
                             .height(58.dp),
                         shape = RoundedCornerShape(29.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = GeminiGlassBackgroundHover)
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = LiquidGlassBackground,
+                            contentColor = LiquidTextPrimary
+                        )
                     ) {
-                        Text("Lap", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                        Text("Lap", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                     }
 
                     Button(
@@ -132,9 +139,12 @@ fun StopwatchScreen(
                             .weight(1f)
                             .height(58.dp),
                         shape = RoundedCornerShape(29.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = OneUiRed)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = OneUiRed,
+                            contentColor = Color.White
+                        )
                     ) {
-                        Text("Stop", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("Stop", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
                 }
                 StopwatchState.PAUSED -> {
@@ -144,9 +154,13 @@ fun StopwatchScreen(
                             .weight(1f)
                             .height(58.dp),
                         shape = RoundedCornerShape(29.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = GeminiGlassBackgroundHover)
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = LiquidGlassBackground,
+                            contentColor = LiquidTextPrimary
+                        )
                     ) {
-                        Text("Reset", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = GeminiLavender)
+                        Text("Reset", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                     }
 
                     Button(
@@ -155,9 +169,12 @@ fun StopwatchScreen(
                             .weight(1f)
                             .height(58.dp),
                         shape = RoundedCornerShape(29.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = GeminiPurple)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = LiquidGlassActive,
+                            contentColor = LiquidActiveText
+                        )
                     ) {
-                        Text("Resume", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("Resume", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -170,8 +187,8 @@ fun StopwatchScreen(
                     .fillMaxWidth()
                     .weight(1f)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(GeminiGlassBackgroundDark)
-                    .border(1.dp, GeminiGlassBorderGradientDark, RoundedCornerShape(24.dp))
+                    .background(LiquidGlassBackground)
+                    .border(1.dp, LiquidSpecularBorder, RoundedCornerShape(24.dp))
                     .padding(16.dp)
             ) {
                 Column {
@@ -181,11 +198,11 @@ fun StopwatchScreen(
                             .padding(horizontal = 8.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Lap", color = GeminiLavender, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                        Text("Lap times", color = GeminiLavender, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                        Text("Overall time", color = GeminiLavender, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Lap", color = LiquidTextSecondary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Lap times", color = LiquidTextSecondary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Overall time", color = LiquidTextSecondary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                     }
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
 
                     LazyColumn(
                         modifier = Modifier.fillMaxWidth(),
@@ -195,7 +212,7 @@ fun StopwatchScreen(
                             val lapColor = when (lap.lapIndex) {
                                 fastestLapIndex -> OneUiGreen
                                 slowestLapIndex -> OneUiRed
-                                else -> Color.White
+                                else -> LiquidTextPrimary
                             }
 
                             Row(
@@ -207,7 +224,7 @@ fun StopwatchScreen(
                             ) {
                                 Text(
                                     text = String.format("%02d", lap.lapIndex),
-                                    color = GeminiLavender,
+                                    color = LiquidTextSecondary,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -220,13 +237,13 @@ fun StopwatchScreen(
                                 )
                                 Text(
                                     text = lap.formatTotalTime(),
-                                    color = GeminiLavender.copy(alpha = 0.8f),
+                                    color = LiquidTextSecondary.copy(alpha = 0.8f),
                                     fontSize = 16.sp,
                                     fontFamily = FontFamily.Monospace,
                                     fontWeight = FontWeight.Normal
                                 )
                             }
-                            HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.06f))
                         }
                     }
                 }

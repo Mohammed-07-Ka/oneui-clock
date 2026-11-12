@@ -48,22 +48,12 @@
         android:strokeLineCap="round"
         android:pathData="M54,54 L68,38" />
 
-    <!-- Center Pivot Pin in Radiant Gemini Purple -->
+    <!-- Center Pivot Pin -->
     <path
-        android:fillColor="#8B5CF6"
+        android:fillColor="#1E1035"
         android:pathData="M54,54m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M54,54m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
-
-    <!-- Iconic Glowing 4-Point Gemini Spark Star (✦) -->
-    <!-- Star centered at (67, 67), radius 8 -->
-    <path
-        android:fillColor="#8B5CF6"
-        android:pathData="M67,59 Q67,67 75,67 Q67,67 67,75 Q67,67 59,67 Q67,67 67,59 Z" />
-    <!-- Inner glowing white core for the Gemini Star -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M67,63 Q67,67 71,67 Q67,67 67,71 Q67,67 63,67 Q67,67 67,63 Z" />
 
 </vector>

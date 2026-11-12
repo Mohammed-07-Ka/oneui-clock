@@ -35,8 +35,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sec.oneui.clock.alarm.service.AlarmForegroundService
-import com.sec.oneui.clock.theme.GeminiGlassBorderGradientDark
-import com.sec.oneui.clock.theme.GeminiLavender
+import com.sec.oneui.clock.theme.LiquidGlassBackground
+import com.sec.oneui.clock.theme.LiquidSpecularBorder
+import com.sec.oneui.clock.theme.LiquidTextPrimary
+import com.sec.oneui.clock.theme.LiquidTextSecondary
 import com.sec.oneui.clock.theme.OneUiRed
 
 @Composable
@@ -57,9 +59,9 @@ fun InAppAlarmBanner(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
                     .clip(RoundedCornerShape(26.dp))
-                    .border(1.dp, GeminiGlassBorderGradientDark, RoundedCornerShape(26.dp)),
+                    .border(1.dp, LiquidSpecularBorder, RoundedCornerShape(26.dp)),
                 shape = RoundedCornerShape(26.dp),
-                color = Color(0xF0181133),
+                color = Color(0xF5100B1A),
                 shadowElevation = 12.dp
             ) {
                 Column(
@@ -73,20 +75,20 @@ fun InAppAlarmBanner(
                         Icon(
                             imageVector = Icons.Default.Alarm,
                             contentDescription = "Alarm Ringing",
-                            tint = Color.White,
+                            tint = LiquidTextPrimary,
                             modifier = Modifier.size(28.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "✦ " + (alarm.label.ifBlank { "Alarm Ringing" }),
-                                color = Color.White,
+                                text = alarm.label.ifBlank { "Alarm Ringing" },
+                                color = LiquidTextPrimary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 17.sp
                             )
                             Text(
                                 text = "${alarm.formattedTime()} ${alarm.amPm()}",
-                                color = GeminiLavender,
+                                color = LiquidTextSecondary,
                                 fontSize = 14.sp
                             )
                         }
@@ -102,8 +104,10 @@ fun InAppAlarmBanner(
                             onClick = { onSnooze(alarm.id) },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(16.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = GeminiLavender
+                                containerColor = LiquidGlassBackground,
+                                contentColor = LiquidTextPrimary
                             )
                         ) {
                             Text("Snooze (${alarm.snoozeDurationMinutes}m)", fontWeight = FontWeight.SemiBold)

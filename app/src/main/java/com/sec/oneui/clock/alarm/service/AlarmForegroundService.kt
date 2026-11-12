@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
@@ -86,14 +87,24 @@ class AlarmForegroundService : Service() {
                 label = "Alarm"
             )
 
-            // 1. Build and show foreground notification with Dismiss and Snooze actions
+            // 1. Build notification
             val notification = buildAlarmNotification(alarm)
-            startForeground(NOTIFICATION_ID, notification)
 
-            // 2. Play audio tone (custom ringtone if set)
+            // 2. Start foreground with FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK on Android Q+ (API 29+)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+
+            // 3. Play audio tone (custom ringtone with fallback to system default)
             playRingtone(alarm?.ringtoneUri)
 
-            // 3. Vibrate if enabled (check global preference too)
+            // 4. Vibrate if enabled (check global preference too)
             val prefs = applicationContext.getSharedPreferences("clock_settings", Context.MODE_PRIVATE)
             val globalVibrate = prefs.getBoolean("default_vibrate", true)
             if (alarm?.vibrate != false && globalVibrate) {
@@ -126,19 +137,12 @@ class AlarmForegroundService : Service() {
     }
 
     private fun playRingtone(customRingtoneUri: String?) {
-        try {
-            val alertUri: Uri = if (!customRingtoneUri.isNullOrBlank()) {
-                Uri.parse(customRingtoneUri)
-            } else {
-                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-            }
+        val prefs = applicationContext.getSharedPreferences("clock_settings", Context.MODE_PRIVATE)
+        val gradualVolume = prefs.getBoolean("gradual_volume", false)
 
-            val prefs = applicationContext.getSharedPreferences("clock_settings", Context.MODE_PRIVATE)
-            val gradualVolume = prefs.getBoolean("gradual_volume", false)
-
-            mediaPlayer = MediaPlayer().apply {
-                setDataSource(applicationContext, alertUri)
+        fun createAndStartPlayer(uri: Uri): MediaPlayer {
+            return MediaPlayer().apply {
+                setDataSource(applicationContext, uri)
                 setAudioAttributes(
                     AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_ALARM)
@@ -146,17 +150,35 @@ class AlarmForegroundService : Service() {
                         .build()
                 )
                 isLooping = true
-
                 if (gradualVolume) {
                     setVolume(0.05f, 0.05f)
                 }
-
                 prepare()
                 start()
             }
+        }
 
-            // Gradual volume increase over 30 seconds
-            if (gradualVolume) {
+        try {
+            var playerStarted = false
+            if (!customRingtoneUri.isNullOrBlank()) {
+                try {
+                    mediaPlayer = createAndStartPlayer(Uri.parse(customRingtoneUri))
+                    playerStarted = true
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed playing custom ringtone ($customRingtoneUri), falling back to default alarm: ${e.message}")
+                }
+            }
+
+            if (!playerStarted) {
+                val defaultUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                if (defaultUri != null) {
+                    mediaPlayer = createAndStartPlayer(defaultUri)
+                    playerStarted = true
+                }
+            }
+
+            if (gradualVolume && playerStarted) {
                 gradualVolumeJob = CoroutineScope(Dispatchers.Main).launch {
                     val steps = 30
                     for (i in 1..steps) {
