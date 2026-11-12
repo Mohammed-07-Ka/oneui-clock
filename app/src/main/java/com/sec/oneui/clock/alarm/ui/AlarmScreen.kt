@@ -58,6 +58,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -865,9 +866,37 @@ fun AlarmEditSheet(
                 TextButton(onClick = { showDatePicker = false }) {
                     Text("Cancel", color = LiquidTextSecondary)
                 }
-            }
+            },
+            colors = DatePickerDefaults.colors(
+                containerColor = Color(0xFF121218)
+            ),
+            shape = RoundedCornerShape(28.dp)
         ) {
-            DatePicker(state = datePickerState)
+            Surface(
+                color = Color(0xFF121218),
+                shape = RoundedCornerShape(28.dp)
+            ) {
+                DatePicker(
+                    state = datePickerState,
+                    colors = DatePickerDefaults.colors(
+                        containerColor = Color(0xFF121218),
+                        titleContentColor = Color.White,
+                        headlineContentColor = Color.White,
+                        weekdayContentColor = Color.White.copy(alpha = 0.7f),
+                        subheadContentColor = Color.White.copy(alpha = 0.8f),
+                        yearContentColor = Color.White,
+                        currentYearContentColor = Color.White,
+                        selectedYearContentColor = Color.White,
+                        selectedYearContainerColor = Color(0xFF7C3AED),
+                        dayContentColor = Color.White,
+                        disabledDayContentColor = Color.White.copy(alpha = 0.38f),
+                        selectedDayContentColor = Color.White,
+                        selectedDayContainerColor = Color(0xFF7C3AED),
+                        todayDateBorderColor = Color(0xFF7C3AED),
+                        todayContentColor = Color.White
+                    )
+                )
+            }
         }
     }
 }

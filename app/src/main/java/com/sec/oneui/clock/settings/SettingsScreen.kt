@@ -24,12 +24,17 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,6 +62,8 @@ fun SettingsScreen(
     val animationEnabled by settingsManager.animationEnabled.collectAsState()
     val animationSpeed by settingsManager.animationSpeed.collectAsState()
     val upcomingAlarmMinutes by settingsManager.upcomingAlarmMinutes.collectAsState()
+
+    var customGradualVolumeExpanded by remember { mutableStateOf(gradualVolumeDuration !in listOf(0, 3, 5, 10)) }
 
     val haptic = LocalHapticFeedback.current
 
@@ -293,23 +300,26 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     val fadeOptions = listOf(
                         0 to "Off",
-                        15 to "15s",
-                        30 to "30s",
-                        60 to "60s"
+                        3 to "3s",
+                        5 to "5s",
+                        10 to "10s"
                     )
                     fadeOptions.forEach { (secVal, secLabel) ->
-                        val isSelected = gradualVolumeDuration == secVal
+                        val isSelected = !customGradualVolumeExpanded && gradualVolumeDuration == secVal
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(if (isSelected) palette.primaryAccent else palette.cardBackground)
                                 .border(1.dp, if (isSelected) cardBorder else palette.cardBorderSubtle, RoundedCornerShape(14.dp))
-                                .iosClickable(targetScale = 0.96f) { settingsManager.setGradualVolumeDuration(secVal) }
+                                .iosClickable(targetScale = 0.96f) {
+                                    customGradualVolumeExpanded = false
+                                    settingsManager.setGradualVolumeDuration(secVal)
+                                }
                                 .padding(vertical = 10.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -323,6 +333,104 @@ fun SettingsScreen(
                             )
                         }
                     }
+
+                    // Custom Option
+                    val isCustomSelected = customGradualVolumeExpanded || gradualVolumeDuration !in listOf(0, 3, 5, 10)
+                    Box(
+                        modifier = Modifier
+                            .weight(1.3f)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (isCustomSelected) palette.primaryAccent else palette.cardBackground)
+                            .border(1.dp, if (isCustomSelected) cardBorder else palette.cardBorderSubtle, RoundedCornerShape(14.dp))
+                            .iosClickable(targetScale = 0.96f) {
+                                customGradualVolumeExpanded = true
+                                if (gradualVolumeDuration in listOf(0, 3, 5, 10)) {
+                                    settingsManager.setGradualVolumeDuration(7)
+                                }
+                            }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Custom",
+                            color = if (isCustomSelected) palette.onPrimaryAccent else subTextColor,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+                }
+
+                // Custom Slider & Stepper Controls (1s to 30s)
+                if (customGradualVolumeExpanded || gradualVolumeDuration !in listOf(0, 3, 5, 10)) {
+                    val currentVal = gradualVolumeDuration.coerceIn(1, 30)
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Custom Duration (1s – 30s)",
+                            fontSize = 13.sp,
+                            color = subTextColor
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(palette.cardBackground)
+                                    .border(1.dp, palette.cardBorderSubtle, RoundedCornerShape(8.dp))
+                                    .iosClickable(targetScale = 0.94f) {
+                                        val nextVal = (currentVal - 1).coerceIn(1, 30)
+                                        settingsManager.setGradualVolumeDuration(nextVal)
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("-", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = textColor)
+                            }
+                            Text(
+                                text = "${currentVal}s",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = palette.primaryAccent
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(palette.cardBackground)
+                                    .border(1.dp, palette.cardBorderSubtle, RoundedCornerShape(8.dp))
+                                    .iosClickable(targetScale = 0.94f) {
+                                        val nextVal = (currentVal + 1).coerceIn(1, 30)
+                                        settingsManager.setGradualVolumeDuration(nextVal)
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("+", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = textColor)
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Slider(
+                        value = currentVal.toFloat(),
+                        onValueChange = { newSec ->
+                            settingsManager.setGradualVolumeDuration(newSec.toInt().coerceIn(1, 30))
+                        },
+                        valueRange = 1f..30f,
+                        steps = 28,
+                        colors = SliderDefaults.colors(
+                            thumbColor = palette.primaryAccent,
+                            activeTrackColor = palette.primaryAccent,
+                            inactiveTrackColor = Color.White.copy(alpha = 0.15f)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
 

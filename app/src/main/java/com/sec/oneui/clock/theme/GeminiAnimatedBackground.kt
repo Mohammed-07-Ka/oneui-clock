@@ -65,7 +65,7 @@ fun GeminiAnimatedBackground(
     }
 
     val targetGroundColor = when (themeMode) {
-        ThemeMode.AURORA_PURPLE -> Color(0xFF090714)
+        ThemeMode.AURORA_PURPLE -> Color(0xFF030207)
         ThemeMode.MIDNIGHT_BLUE -> Color(0xFF000000)
         ThemeMode.AMOLED_PITCH -> Color(0xFF000000)
     }
@@ -93,15 +93,17 @@ fun GeminiAnimatedBackground(
 
             when (themeMode) {
                 ThemeMode.AURORA_PURPLE -> {
-                    val meshRadius = width * 0.95f
+                    // Aurora Purple: 85% Deep Pitch Black (#030207) with subdued, darker deep violet glows (#4C1D95 & #3B0764)
+                    val meshRadius = width * 0.75f
 
-                    // Orb 1: Mid Purple (#7C3AED @ 0.42f) undulating top-left to center
+                    // Orb 1: Deep Violet (#4C1D95 @ 0.18f) undulating top-left to center
                     val orb1X = width * (0.30f + 0.15f * sin(animatedPhase))
                     val orb1Y = height * (0.24f + 0.12f * cos(animatedPhase * 0.8f))
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                Color(0xFF7C3AED).copy(alpha = 0.42f),
+                                Color(0xFF4C1D95).copy(alpha = 0.18f),
+                                Color(0xFF3B0764).copy(alpha = 0.08f),
                                 Color.Transparent
                             ),
                             center = Offset(orb1X, orb1Y),
@@ -111,13 +113,14 @@ fun GeminiAnimatedBackground(
                         center = Offset(orb1X, orb1Y)
                     )
 
-                    // Orb 2: Deep Indigo Navy (#2563EB @ 0.32f) undulating bottom-right
+                    // Orb 2: Deep Dark Wine Purple (#3B0764 @ 0.16f) undulating bottom-right
                     val orb2X = width * (0.74f + 0.14f * cos(animatedPhase * 1.1f))
                     val orb2Y = height * (0.68f + 0.12f * sin(animatedPhase * 0.9f))
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                Color(0xFF2563EB).copy(alpha = 0.32f),
+                                Color(0xFF3B0764).copy(alpha = 0.16f),
+                                Color(0xFF1E0B36).copy(alpha = 0.08f),
                                 Color.Transparent
                             ),
                             center = Offset(orb2X, orb2Y),
@@ -127,20 +130,20 @@ fun GeminiAnimatedBackground(
                         center = Offset(orb2X, orb2Y)
                     )
 
-                    // Orb 3: Soft Silver-White Glow (#E2E8F0 @ 0.16f) undulating mid-screen
+                    // Orb 3: Subtle ambient glow (#4C1D95 @ 0.12f) undulating mid-screen
                     val orb3X = width * (0.50f + 0.18f * sin(animatedPhase * 0.7f + 1.2f))
                     val orb3Y = height * (0.46f + 0.10f * cos(animatedPhase * 1.2f))
-                    val silverRadius = width * 0.85f
+                    val ambientRadius = width * 0.65f
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                Color(0xFFE2E8F0).copy(alpha = 0.16f),
+                                Color(0xFF4C1D95).copy(alpha = 0.12f),
                                 Color.Transparent
                             ),
                             center = Offset(orb3X, orb3Y),
-                            radius = silverRadius
+                            radius = ambientRadius
                         ),
-                        radius = silverRadius,
+                        radius = ambientRadius,
                         center = Offset(orb3X, orb3Y)
                     )
                 }

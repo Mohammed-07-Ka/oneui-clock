@@ -90,10 +90,10 @@ object ClockTheme {
 private val AuroraColorScheme = darkColorScheme(
     primary = Color(0xFF7C3AED),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFF2563EB),
-    secondary = Color(0xFFE2E8F0),
+    primaryContainer = Color(0xFF4C1D95),
+    secondary = Color(0xFFCBD5E1),
     tertiary = Color(0xFFFFFFFF),
-    background = Color(0xFF090714),
+    background = Color(0xFF030207),
     surface = LiquidGlassBackground,
     surfaceVariant = LiquidGlassHover,
     onBackground = Color.White,

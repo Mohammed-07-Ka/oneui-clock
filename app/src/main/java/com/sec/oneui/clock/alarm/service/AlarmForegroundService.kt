@@ -208,14 +208,24 @@ class AlarmForegroundService : Service() {
 
             if (gradualVolume && playerStarted) {
                 gradualVolumeJob = CoroutineScope(Dispatchers.Main).launch {
-                    val steps = gradualSeconds.coerceIn(5, 120)
-                    for (i in 1..steps) {
-                        delay(1000L)
-                        val vol = (i.toFloat() / steps).coerceIn(0.05f, 1f)
+                    val totalDurationMs = (gradualSeconds.coerceIn(1, 120)) * 1000L
+                    val stepIntervalMs = if (totalDurationMs <= 5000L) 100L else 250L
+                    val totalSteps = (totalDurationMs / stepIntervalMs).toInt().coerceAtLeast(1)
+                    val initialVol = 0.05f
+
+                    for (step in 1..totalSteps) {
+                        delay(stepIntervalMs)
+                        val fraction = step.toFloat() / totalSteps
+                        val vol = (initialVol + fraction * (1.0f - initialVol)).coerceIn(0.05f, 1.0f)
                         try {
                             mediaPlayer?.setVolume(vol, vol)
-                        } catch (_: Exception) { break }
+                        } catch (_: Exception) {
+                            break
+                        }
                     }
+                    try {
+                        mediaPlayer?.setVolume(1.0f, 1.0f)
+                    } catch (_: Exception) {}
                 }
             }
         } catch (e: Exception) {

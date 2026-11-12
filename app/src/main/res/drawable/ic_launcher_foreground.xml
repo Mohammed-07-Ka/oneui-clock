@@ -1,59 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Clock Face Dial (Crisp Pure White Circle with soft elevation) -->
+    <!-- Clock Face Shadow / Subtle Depth Rim -->
     <path
-        android:fillColor="#22000000"
-        android:pathData="M54,56m-31,0a31,31 0,1 1,62 0a31,31 0,1 1,-62 0" />
+        android:fillColor="#15000000"
+        android:pathData="M54,55m-32,0a32,32 0,1 1,64 0a32,32 0,1 1,-64 0" />
+
+    <!-- Pure White Circular Dial -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,54m-31,0a31,31 0,1 1,62 0a31,31 0,1 1,-62 0" />
+        android:pathData="M54,54m-32,0a32,32 0,1 1,64 0a32,32 0,1 1,-64 0" />
 
-    <!-- Subtle Hour Markers (12, 3, 6, 9) in Soft Lavender/Slate -->
+    <!-- Purple Hour Hand (pointing ~10 o'clock) -->
     <path
-        android:strokeColor="#CBD5E1"
-        android:strokeWidth="2"
+        android:strokeColor="#A855F7"
+        android:strokeWidth="5.6"
         android:strokeLineCap="round"
-        android:pathData="M54,27 L54,31" />
-    <path
-        android:strokeColor="#CBD5E1"
-        android:strokeWidth="2"
-        android:strokeLineCap="round"
-        android:pathData="M54,77 L54,81" />
-    <path
-        android:strokeColor="#CBD5E1"
-        android:strokeWidth="2"
-        android:strokeLineCap="round"
-        android:pathData="M81,54 L77,54" />
-    <path
-        android:strokeColor="#CBD5E1"
-        android:strokeWidth="2"
-        android:strokeLineCap="round"
-        android:pathData="M31,54 L27,54" />
+        android:strokeLineJoin="round"
+        android:pathData="M54,54 L33,42" />
 
-    <!-- Hour Hand (pointing towards 10 o'clock) -->
+    <!-- Dark Minute Hand (pointing ~2 o'clock) -->
     <path
-        android:strokeColor="#1E1035"
-        android:strokeWidth="3.6"
+        android:strokeColor="#242426"
+        android:strokeWidth="5.6"
         android:strokeLineCap="round"
-        android:pathData="M54,54 L42,42" />
+        android:strokeLineJoin="round"
+        android:pathData="M54,54 L78,30" />
 
-    <!-- Minute Hand (pointing towards 2 o'clock) -->
+    <!-- Center Pivot Donut Ring (Dark outer body) -->
     <path
-        android:strokeColor="#1E1035"
-        android:strokeWidth="2.8"
-        android:strokeLineCap="round"
-        android:pathData="M54,54 L68,38" />
+        android:fillColor="#242426"
+        android:pathData="M54,54m-6.2,0a6.2,6.2 0,1 1,12.4 0a6.2,6.2 0,1 1,-12.4 0" />
 
-    <!-- Center Pivot Pin -->
-    <path
-        android:fillColor="#1E1035"
-        android:pathData="M54,54m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+    <!-- Center Pivot Hole (Pure White inner circle) -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,54m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
+        android:pathData="M54,54m-2.4,0a2.4,2.4 0,1 1,4.8 0a2.4,2.4 0,1 1,-4.8 0" />
 
 </vector>

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Gemini Clock</string>
+    <string name="app_name">Clock</string>
     <string name="tab_alarm">Alarm</string>
     <string name="tab_stopwatch">Stopwatch</string>
     <string name="tab_timer">Timer</string>
