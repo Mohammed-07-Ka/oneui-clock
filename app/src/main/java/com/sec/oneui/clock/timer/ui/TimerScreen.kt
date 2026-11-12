@@ -9,7 +9,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,6 +53,7 @@ import com.sec.oneui.clock.theme.LiquidTextSecondary
 import com.sec.oneui.clock.theme.OneUiRed
 import com.sec.oneui.clock.theme.iosClickable
 import com.sec.oneui.clock.theme.iosPressEffect
+import com.sec.oneui.clock.ui.components.WheelPicker
 
 @Composable
 fun TimerScreen(
@@ -99,18 +99,98 @@ fun TimerScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Row(
                             modifier = Modifier
+                                .fillMaxWidth()
                                 .clip(RoundedCornerShape(32.dp))
                                 .background(palette.cardBackground)
                                 .border(1.dp, palette.cardBorder, RoundedCornerShape(32.dp))
-                                .padding(horizontal = 26.dp, vertical = 22.dp),
+                                .padding(vertical = 14.dp, horizontal = 16.dp),
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            TimerDigitColumn("h", inputHours, onInc = { viewModel.inputHours.value = (inputHours + 1) % 100 }, onDec = { viewModel.inputHours.value = if (inputHours == 0) 99 else inputHours - 1 })
-                            Text(":", fontSize = 38.sp, color = palette.textSecondary, modifier = Modifier.padding(horizontal = 12.dp))
-                            TimerDigitColumn("m", inputMinutes, onInc = { viewModel.inputMinutes.value = (inputMinutes + 1) % 60 }, onDec = { viewModel.inputMinutes.value = if (inputMinutes == 0) 59 else inputMinutes - 1 })
-                            Text(":", fontSize = 38.sp, color = palette.textSecondary, modifier = Modifier.padding(horizontal = 12.dp))
-                            TimerDigitColumn("s", inputSeconds, onInc = { viewModel.inputSeconds.value = (inputSeconds + 1) % 60 }, onDec = { viewModel.inputSeconds.value = if (inputSeconds == 0) 59 else inputSeconds - 1 })
+                            // Hours (00..23)
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                WheelPicker(
+                                    items = (0..23).toList(),
+                                    initialIndex = inputHours.coerceIn(0, 23),
+                                    onItemSelected = { viewModel.inputHours.value = it },
+                                    isNumeric = true,
+                                    minValue = 0,
+                                    maxValue = 23,
+                                    formatItem = { String.format("%02d", it) }
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "hours",
+                                    fontSize = 12.sp,
+                                    color = palette.textSecondary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+
+                            Text(
+                                text = ":",
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White.copy(alpha = 0.5f),
+                                modifier = Modifier.padding(bottom = 18.dp)
+                            )
+
+                            // Minutes (00..59)
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                WheelPicker(
+                                    items = (0..59).toList(),
+                                    initialIndex = inputMinutes.coerceIn(0, 59),
+                                    onItemSelected = { viewModel.inputMinutes.value = it },
+                                    isNumeric = true,
+                                    minValue = 0,
+                                    maxValue = 59,
+                                    formatItem = { String.format("%02d", it) }
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "min",
+                                    fontSize = 12.sp,
+                                    color = palette.textSecondary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+
+                            Text(
+                                text = ":",
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White.copy(alpha = 0.5f),
+                                modifier = Modifier.padding(bottom = 18.dp)
+                            )
+
+                            // Seconds (00..59)
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                WheelPicker(
+                                    items = (0..59).toList(),
+                                    initialIndex = inputSeconds.coerceIn(0, 59),
+                                    onItemSelected = { viewModel.inputSeconds.value = it },
+                                    isNumeric = true,
+                                    minValue = 0,
+                                    maxValue = 59,
+                                    formatItem = { String.format("%02d", it) }
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "sec",
+                                    fontSize = 12.sp,
+                                    color = palette.textSecondary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(30.dp))
@@ -322,21 +402,5 @@ fun TimerScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-fun TimerDigitColumn(
-    unit: String,
-    value: Int,
-    onInc: () -> Unit,
-    onDec: () -> Unit
-) {
-    val palette = ClockTheme.palette
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("▲", color = palette.textSecondary, modifier = Modifier.clickable { onInc() }.padding(6.dp))
-        Text(String.format("%02d", value), fontSize = 42.sp, fontWeight = FontWeight.Bold, color = palette.textPrimary)
-        Text(unit, fontSize = 12.sp, color = palette.textSecondary, fontWeight = FontWeight.Medium)
-        Text("▼", color = palette.textSecondary, modifier = Modifier.clickable { onDec() }.padding(6.dp))
     }
 }

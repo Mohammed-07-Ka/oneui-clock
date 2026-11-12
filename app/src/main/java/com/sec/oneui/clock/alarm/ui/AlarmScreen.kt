@@ -6,6 +6,7 @@
 package com.sec.oneui.clock.alarm.ui
 
 import android.app.Activity
+import com.sec.oneui.clock.ui.components.WheelPicker
 import android.content.Intent
 import android.media.RingtoneManager
 import android.net.Uri
@@ -24,7 +25,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,8 +41,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -279,55 +277,65 @@ fun AlarmCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    if (use24HourFormat) {
-                        Text(
-                            text = String.format("%02d:%02d", alarm.hour, alarm.minute),
-                            fontSize = 34.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (alarm.isEnabled) palette.textPrimary else palette.textMuted
-                        )
-                    } else {
-                        Text(
-                            text = alarm.formattedTime(),
-                            fontSize = 34.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (alarm.isEnabled) palette.textPrimary else palette.textMuted
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = alarm.amPm(),
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (alarm.isEnabled) palette.textSecondary else palette.textMuted,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
+                // Top Row: Time on left, Alarm Label on upper right
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(end = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        if (use24HourFormat) {
+                            Text(
+                                text = String.format("%02d:%02d", alarm.hour, alarm.minute),
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (alarm.isEnabled) palette.textPrimary else palette.textMuted
+                            )
+                        } else {
+                            Text(
+                                text = alarm.formattedTime(),
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (alarm.isEnabled) palette.textPrimary else palette.textMuted
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = alarm.amPm(),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (alarm.isEnabled) palette.textSecondary else palette.textMuted,
+                                modifier = Modifier.padding(bottom = 3.dp)
+                            )
+                        }
                     }
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "${alarm.label.ifBlank { "Alarm" }} · ${alarm.daysDescription()}",
-                    fontSize = 14.sp,
-                    color = palette.textSecondary
-                )
-                alarm.formattedScheduledDate()?.let { dateStr ->
+
                     Text(
-                        text = "📅 $dateStr",
-                        fontSize = 13.sp,
-                        color = palette.textPrimary,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                }
-                if (alarm.ringtoneName != "Default") {
-                    Text(
-                        text = "🔔 ${alarm.ringtoneName}",
-                        fontSize = 13.sp,
-                        color = palette.textSecondary,
+                        text = alarm.label.ifBlank { "Alarm" },
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (alarm.isEnabled) palette.textPrimary else palette.textMuted,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 2.dp)
+                        modifier = Modifier.padding(start = 12.dp)
                     )
                 }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Second line: Repeat & Date status without any emojis
+                val repeatAndDate = buildString {
+                    append(alarm.daysDescription())
+                    alarm.formattedScheduledDate()?.let { dateStr ->
+                        append(" • $dateStr")
+                    }
+                }
+                Text(
+                    text = repeatAndDate,
+                    fontSize = 13.sp,
+                    color = palette.textSecondary
+                )
             }
 
             IconButton(onClick = onDelete, modifier = Modifier.iosPressEffect(targetScale = 0.96f)) {
@@ -483,7 +491,10 @@ fun AlarmEditSheet(
                         initialIndex = editorState.hour.coerceIn(0, 23),
                         onItemSelected = { onTimeChanged(it, editorState.minute) },
                         modifier = Modifier.weight(1f),
-                        formatItem = { String.format("%02d", it) }
+                        formatItem = { String.format("%02d", it) },
+                        isNumeric = true,
+                        minValue = 0,
+                        maxValue = 23
                     )
 
                     Text(
@@ -500,7 +511,10 @@ fun AlarmEditSheet(
                         initialIndex = editorState.minute.coerceIn(0, 59),
                         onItemSelected = { onTimeChanged(editorState.hour, it) },
                         modifier = Modifier.weight(1f),
-                        formatItem = { String.format("%02d", it) }
+                        formatItem = { String.format("%02d", it) },
+                        isNumeric = true,
+                        minValue = 0,
+                        maxValue = 59
                     )
                 }
             } else {
@@ -533,7 +547,10 @@ fun AlarmEditSheet(
                             onTimeChanged(newH24, editorState.minute)
                         },
                         modifier = Modifier.weight(1f),
-                        formatItem = { String.format("%02d", it) }
+                        formatItem = { String.format("%02d", it) },
+                        isNumeric = true,
+                        minValue = 1,
+                        maxValue = 12
                     )
 
                     Text(
@@ -550,7 +567,10 @@ fun AlarmEditSheet(
                         initialIndex = editorState.minute.coerceIn(0, 59),
                         onItemSelected = { onTimeChanged(editorState.hour, it) },
                         modifier = Modifier.weight(1f),
-                        formatItem = { String.format("%02d", it) }
+                        formatItem = { String.format("%02d", it) },
+                        isNumeric = true,
+                        minValue = 0,
+                        maxValue = 59
                     )
 
                     Spacer(modifier = Modifier.width(12.dp))
@@ -824,85 +844,6 @@ fun AlarmEditSheet(
             }
         ) {
             DatePicker(state = datePickerState)
-        }
-    }
-}
-
-/**
- * Vertical Touch Scroll Wheel Picker for Hours, Minutes, and AM/PM.
- * Uses Compose snapping with center item highlight and fading adjacent items.
- */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun <T> WheelPicker(
-    items: List<T>,
-    initialIndex: Int,
-    onItemSelected: (T) -> Unit,
-    modifier: Modifier = Modifier,
-    visibleItemsCount: Int = 3,
-    itemHeight: Dp = 48.dp,
-    formatItem: (T) -> String = { it.toString() }
-) {
-    val density = LocalDensity.current
-    val itemHeightPx = with(density) { itemHeight.toPx() }
-    val safeInitialIndex = initialIndex.coerceIn(0, (items.size - 1).coerceAtLeast(0))
-    val listState = rememberLazyListState(initialFirstVisibleItemIndex = safeInitialIndex)
-    val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
-
-    val currentIndex by remember {
-        derivedStateOf {
-            val offset = listState.firstVisibleItemScrollOffset
-            val firstIndex = listState.firstVisibleItemIndex
-            val index = if (offset > itemHeightPx / 2f) firstIndex + 1 else firstIndex
-            index.coerceIn(0, (items.size - 1).coerceAtLeast(0))
-        }
-    }
-
-    LaunchedEffect(currentIndex) {
-        if (currentIndex in items.indices) {
-            onItemSelected(items[currentIndex])
-        }
-    }
-
-    Box(
-        modifier = modifier
-            .height(itemHeight * visibleItemsCount)
-            .padding(horizontal = 4.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        // Selection highlight bar in iOS glass style
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(itemHeight)
-                .clip(RoundedCornerShape(14.dp))
-                .background(Color.White.copy(alpha = 0.08f))
-                .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(14.dp))
-        )
-
-        LazyColumn(
-            state = listState,
-            flingBehavior = flingBehavior,
-            contentPadding = PaddingValues(vertical = itemHeight * (visibleItemsCount / 2)),
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            itemsIndexed(items) { index, item ->
-                val isSelected = index == currentIndex
-                Box(
-                    modifier = Modifier
-                        .height(itemHeight)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = formatItem(item),
-                        fontSize = if (isSelected) 36.sp else 22.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) Color.White else Color.White.copy(alpha = 0.35f)
-                    )
-                }
-            }
         }
     }
 }
