@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -36,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,7 +48,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sec.oneui.clock.alarm.data.AlarmDatabase
@@ -79,45 +83,80 @@ class AlarmRingingActivity : ComponentActivity() {
         val alarmId = intent.getIntExtra(AlarmScheduler.EXTRA_ALARM_ID, -1)
 
         setContent {
-            OneUIClockTheme(themeMode = ThemeMode.DARK_GEMINI) {
-                var alarm by remember { mutableStateOf<AlarmEntity?>(null) }
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                OneUIClockTheme(themeMode = ThemeMode.AURORA_PURPLE) {
+                    var alarm by remember { mutableStateOf<AlarmEntity?>(null) }
 
-                LaunchedEffect(alarmId) {
-                    if (alarmId != -1) {
-                        val loaded = withContext(Dispatchers.IO) {
-                            AlarmDatabase.getInstance(applicationContext).alarmDao().getAlarmById(alarmId)
+                    LaunchedEffect(alarmId) {
+                        if (alarmId != -1) {
+                            val loaded = withContext(Dispatchers.IO) {
+                                AlarmDatabase.getInstance(applicationContext).alarmDao().getAlarmById(alarmId)
+                            }
+                            alarm = loaded
                         }
-                        alarm = loaded
                     }
-                }
 
-                GeminiAnimatedBackground(
-                    themeMode = ThemeMode.DARK_GEMINI,
-                    animationEnabled = true,
-                    animationSpeed = 1.0f
-                ) {
-                    AlarmRingingContent(
-                        alarm = alarm,
-                        onDismiss = {
-                            val dismissIntent = Intent(this@AlarmRingingActivity, AlarmReceiver::class.java).apply {
-                                action = AlarmReceiver.ACTION_DISMISS
-                                putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
+                    GeminiAnimatedBackground(
+                        themeMode = ThemeMode.AURORA_PURPLE,
+                        animationEnabled = true,
+                        animationSpeed = 1.0f
+                    ) {
+                        AlarmRingingContent(
+                            alarm = alarm,
+                            onDismiss = {
+                                val dismissIntent = Intent(this@AlarmRingingActivity, AlarmReceiver::class.java).apply {
+                                    action = AlarmReceiver.ACTION_DISMISS
+                                    putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
+                                }
+                                sendBroadcast(dismissIntent)
+                                finish()
+                            },
+                            onSnooze = {
+                                val snoozeIntent = Intent(this@AlarmRingingActivity, AlarmReceiver::class.java).apply {
+                                    action = AlarmReceiver.ACTION_SNOOZE
+                                    putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
+                                }
+                                sendBroadcast(snoozeIntent)
+                                finish()
                             }
-                            sendBroadcast(dismissIntent)
-                            finish()
-                        },
-                        onSnooze = {
-                            val snoozeIntent = Intent(this@AlarmRingingActivity, AlarmReceiver::class.java).apply {
-                                action = AlarmReceiver.ACTION_SNOOZE
-                                putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
-                            }
-                            sendBroadcast(snoozeIntent)
-                            finish()
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            val prefs = getSharedPreferences("clock_settings", Context.MODE_PRIVATE)
+            val action = prefs.getString("volume_buttons_action", "Snooze") ?: "Snooze"
+            val alarmId = intent.getIntExtra(AlarmScheduler.EXTRA_ALARM_ID, -1)
+
+            when (action) {
+                "Snooze" -> {
+                    val snoozeIntent = Intent(this, AlarmReceiver::class.java).apply {
+                        this.action = AlarmReceiver.ACTION_SNOOZE
+                        putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
+                    }
+                    sendBroadcast(snoozeIntent)
+                    finish()
+                    return true
+                }
+                "Dismiss" -> {
+                    val dismissIntent = Intent(this, AlarmReceiver::class.java).apply {
+                        this.action = AlarmReceiver.ACTION_DISMISS
+                        putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
+                    }
+                    sendBroadcast(dismissIntent)
+                    finish()
+                    return true
+                }
+                "Do Nothing" -> {
+                    return true
+                }
+            }
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
     private fun turnScreenOnAndKeyguard() {

@@ -50,6 +50,7 @@ class AlarmForegroundService : Service() {
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
     private var gradualVolumeJob: Job? = null
+    private var autoSilenceJob: Job? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -110,11 +111,24 @@ class AlarmForegroundService : Service() {
             if (alarm?.vibrate != false && globalVibrate) {
                 startVibration()
             }
+
+            // 5. Auto-silence timer
+            val autoSilenceMinutes = prefs.getInt("auto_silence_minutes", 10)
+            if (autoSilenceMinutes > 0) {
+                autoSilenceJob?.cancel()
+                autoSilenceJob = CoroutineScope(Dispatchers.Main).launch {
+                    delay(autoSilenceMinutes * 60 * 1000L)
+                    Log.d(TAG, "Auto-silence reached after $autoSilenceMinutes mins. Stopping alarm.")
+                    stopAlarm()
+                }
+            }
         }
     }
 
     private fun stopAlarm() {
         _currentRingingAlarm.value = null
+        autoSilenceJob?.cancel()
+        autoSilenceJob = null
         gradualVolumeJob?.cancel()
         gradualVolumeJob = null
         try {
@@ -138,7 +152,8 @@ class AlarmForegroundService : Service() {
 
     private fun playRingtone(customRingtoneUri: String?) {
         val prefs = applicationContext.getSharedPreferences("clock_settings", Context.MODE_PRIVATE)
-        val gradualVolume = prefs.getBoolean("gradual_volume", false)
+        val gradualSeconds = prefs.getInt("gradual_volume_seconds", 0)
+        val gradualVolume = gradualSeconds > 0
 
         fun createAndStartPlayer(uri: Uri): MediaPlayer {
             return MediaPlayer().apply {
@@ -152,6 +167,8 @@ class AlarmForegroundService : Service() {
                 isLooping = true
                 if (gradualVolume) {
                     setVolume(0.05f, 0.05f)
+                } else {
+                    setVolume(1.0f, 1.0f)
                 }
                 prepare()
                 start()
@@ -180,10 +197,10 @@ class AlarmForegroundService : Service() {
 
             if (gradualVolume && playerStarted) {
                 gradualVolumeJob = CoroutineScope(Dispatchers.Main).launch {
-                    val steps = 30
+                    val steps = gradualSeconds.coerceIn(5, 120)
                     for (i in 1..steps) {
                         delay(1000L)
-                        val vol = (i.toFloat() / steps).coerceIn(0f, 1f)
+                        val vol = (i.toFloat() / steps).coerceIn(0.05f, 1f)
                         try {
                             mediaPlayer?.setVolume(vol, vol)
                         } catch (_: Exception) { break }

@@ -39,6 +39,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -50,7 +51,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -101,18 +104,20 @@ class MainActivity : ComponentActivity() {
             val animationEnabled by settingsManager.animationEnabled.collectAsState()
             val animationSpeed by settingsManager.animationSpeed.collectAsState()
 
-            OneUIClockTheme(themeMode = themeMode) {
-                GeminiAnimatedBackground(
-                    themeMode = themeMode,
-                    animationEnabled = animationEnabled,
-                    animationSpeed = animationSpeed
-                ) {
-                    MainClockApp(
-                        alarmViewModel = alarmViewModel,
-                        stopwatchViewModel = stopwatchViewModel,
-                        timerViewModel = timerViewModel,
-                        settingsManager = settingsManager
-                    )
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                OneUIClockTheme(themeMode = themeMode) {
+                    GeminiAnimatedBackground(
+                        themeMode = themeMode,
+                        animationEnabled = animationEnabled,
+                        animationSpeed = animationSpeed
+                    ) {
+                        MainClockApp(
+                            alarmViewModel = alarmViewModel,
+                            stopwatchViewModel = stopwatchViewModel,
+                            timerViewModel = timerViewModel,
+                            settingsManager = settingsManager
+                        )
+                    }
                 }
             }
         }

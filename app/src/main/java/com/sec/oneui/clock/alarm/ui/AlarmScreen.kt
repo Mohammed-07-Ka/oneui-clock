@@ -77,6 +77,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sec.oneui.clock.alarm.data.AlarmEntity
+import com.sec.oneui.clock.settings.SettingsManager
 import com.sec.oneui.clock.theme.LiquidActiveText
 import com.sec.oneui.clock.theme.LiquidGlassActive
 import com.sec.oneui.clock.theme.LiquidGlassBackground
@@ -98,6 +99,11 @@ fun AlarmScreen(
     viewModel: AlarmViewModel,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val settingsManager = remember { SettingsManager.getInstance(context) }
+    val use24HourFormat by settingsManager.use24HourFormat.collectAsState()
+    val defaultVibrate by settingsManager.defaultVibrate.collectAsState()
+
     val alarms by viewModel.alarms.collectAsState()
     val nearestRemaining by viewModel.nearestAlarmHeader.collectAsState()
 
@@ -162,6 +168,7 @@ fun AlarmScreen(
                     items(alarms, key = { it.id }) { alarm ->
                         AlarmCard(
                             alarm = alarm,
+                            use24HourFormat = use24HourFormat,
                             onToggle = { viewModel.toggleAlarm(alarm) },
                             onClick = {
                                 editingAlarm = alarm
@@ -196,6 +203,8 @@ fun AlarmScreen(
         if (showEditSheet) {
             AlarmEditSheet(
                 existingAlarm = editingAlarm,
+                use24HourFormat = use24HourFormat,
+                defaultVibrate = defaultVibrate,
                 onDismiss = { showEditSheet = false },
                 onSave = { h, m, label, days, snooze, vib, rUri, rName, dateMs ->
                     viewModel.saveAlarm(
@@ -220,6 +229,7 @@ fun AlarmScreen(
 @Composable
 fun AlarmCard(
     alarm: AlarmEntity,
+    use24HourFormat: Boolean,
     onToggle: () -> Unit,
     onClick: () -> Unit,
     onDelete: () -> Unit
@@ -241,20 +251,29 @@ fun AlarmCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        text = alarm.formattedTime(),
-                        fontSize = 34.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (alarm.isEnabled) LiquidTextPrimary else LiquidTextMuted
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = alarm.amPm(),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (alarm.isEnabled) LiquidTextSecondary else LiquidTextMuted,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
+                    if (use24HourFormat) {
+                        Text(
+                            text = String.format("%02d:%02d", alarm.hour, alarm.minute),
+                            fontSize = 34.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (alarm.isEnabled) LiquidTextPrimary else LiquidTextMuted
+                        )
+                    } else {
+                        Text(
+                            text = alarm.formattedTime(),
+                            fontSize = 34.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (alarm.isEnabled) LiquidTextPrimary else LiquidTextMuted
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = alarm.amPm(),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (alarm.isEnabled) LiquidTextSecondary else LiquidTextMuted,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -312,6 +331,8 @@ fun AlarmCard(
 @Composable
 fun AlarmEditSheet(
     existingAlarm: AlarmEntity?,
+    use24HourFormat: Boolean,
+    defaultVibrate: Boolean,
     onDismiss: () -> Unit,
     onSave: (
         hour: Int, minute: Int, label: String, days: Set<Int>,
@@ -334,6 +355,7 @@ fun AlarmEditSheet(
     }
     val initialIsPm = initialHour24 >= 12
 
+    var hour24 by remember { mutableIntStateOf(initialHour24) }
     var selectedHour12 by remember { mutableIntStateOf(initialHour12) }
     var selectedMinute by remember { mutableIntStateOf(initialMinute) }
     var isPm by remember { mutableStateOf(initialIsPm) }
@@ -341,7 +363,7 @@ fun AlarmEditSheet(
     var label by remember { mutableStateOf(existingAlarm?.label ?: "Alarm") }
     var selectedDays by remember { mutableStateOf(existingAlarm?.getDaysSet() ?: emptySet()) }
     var snoozeMinutes by remember { mutableIntStateOf(existingAlarm?.snoozeDurationMinutes ?: 5) }
-    var vibrate by remember { mutableStateOf(existingAlarm?.vibrate ?: true) }
+    var vibrate by remember { mutableStateOf(existingAlarm?.vibrate ?: defaultVibrate) }
     var ringtoneUri by remember { mutableStateOf(existingAlarm?.ringtoneUri) }
     var ringtoneName by remember { mutableStateOf(existingAlarm?.ringtoneName ?: "Default") }
     var scheduledDateMillis by remember { mutableStateOf(existingAlarm?.scheduledDateMillis) }
@@ -404,53 +426,92 @@ fun AlarmEditSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // iOS Liquid Glass Wheel Time Picker
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(26.dp))
-                    .background(LiquidGlassBackground)
-                    .border(1.dp, LiquidSpecularBorder, RoundedCornerShape(26.dp))
-                    .padding(vertical = 14.dp, horizontal = 16.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Hours (1..12)
-                WheelPicker(
-                    items = (1..12).toList(),
-                    initialIndex = (selectedHour12 - 1).coerceIn(0, 11),
-                    onItemSelected = { selectedHour12 = it },
-                    modifier = Modifier.weight(1f),
-                    formatItem = { String.format("%02d", it) }
-                )
+            // iOS Liquid Glass Wheel Time Picker (Adapts to 24-hour / 12-hour format)
+            if (use24HourFormat) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(26.dp))
+                        .background(LiquidGlassBackground)
+                        .border(1.dp, LiquidSpecularBorder, RoundedCornerShape(26.dp))
+                        .padding(vertical = 14.dp, horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Hours (00..23)
+                    WheelPicker(
+                        items = (0..23).toList(),
+                        initialIndex = hour24.coerceIn(0, 23),
+                        onItemSelected = { hour24 = it },
+                        modifier = Modifier.weight(1f),
+                        formatItem = { String.format("%02d", it) }
+                    )
 
-                Text(
-                    text = ":",
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White.copy(alpha = 0.5f),
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
+                    Text(
+                        text = ":",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
 
-                // Minutes (00..59)
-                WheelPicker(
-                    items = (0..59).toList(),
-                    initialIndex = selectedMinute.coerceIn(0, 59),
-                    onItemSelected = { selectedMinute = it },
-                    modifier = Modifier.weight(1f),
-                    formatItem = { String.format("%02d", it) }
-                )
+                    // Minutes (00..59)
+                    WheelPicker(
+                        items = (0..59).toList(),
+                        initialIndex = selectedMinute.coerceIn(0, 59),
+                        onItemSelected = { selectedMinute = it },
+                        modifier = Modifier.weight(1f),
+                        formatItem = { String.format("%02d", it) }
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(26.dp))
+                        .background(LiquidGlassBackground)
+                        .border(1.dp, LiquidSpecularBorder, RoundedCornerShape(26.dp))
+                        .padding(vertical = 14.dp, horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Hours (1..12)
+                    WheelPicker(
+                        items = (1..12).toList(),
+                        initialIndex = (selectedHour12 - 1).coerceIn(0, 11),
+                        onItemSelected = { selectedHour12 = it },
+                        modifier = Modifier.weight(1f),
+                        formatItem = { String.format("%02d", it) }
+                    )
 
-                Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = ":",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
 
-                // AM / PM
-                WheelPicker(
-                    items = listOf("AM", "PM"),
-                    initialIndex = if (isPm) 1 else 0,
-                    onItemSelected = { isPm = (it == "PM") },
-                    modifier = Modifier.weight(1f),
-                    formatItem = { it }
-                )
+                    // Minutes (00..59)
+                    WheelPicker(
+                        items = (0..59).toList(),
+                        initialIndex = selectedMinute.coerceIn(0, 59),
+                        onItemSelected = { selectedMinute = it },
+                        modifier = Modifier.weight(1f),
+                        formatItem = { String.format("%02d", it) }
+                    )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // AM / PM
+                    WheelPicker(
+                        items = listOf("AM", "PM"),
+                        initialIndex = if (isPm) 1 else 0,
+                        onItemSelected = { isPm = (it == "PM") },
+                        modifier = Modifier.weight(1f),
+                        formatItem = { it }
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -670,12 +731,16 @@ fun AlarmEditSheet(
                 // Save Button: Luminous White Liquid Glass with Black text
                 Button(
                     onClick = {
-                        val hour24 = if (isPm) {
-                            if (selectedHour12 == 12) 12 else selectedHour12 + 12
+                        val finalHour24 = if (use24HourFormat) {
+                            hour24
                         } else {
-                            if (selectedHour12 == 12) 0 else selectedHour12
+                            if (isPm) {
+                                if (selectedHour12 == 12) 12 else selectedHour12 + 12
+                            } else {
+                                if (selectedHour12 == 12) 0 else selectedHour12
+                            }
                         }
-                        onSave(hour24, selectedMinute, label, selectedDays, snoozeMinutes, vibrate, ringtoneUri, ringtoneName, scheduledDateMillis)
+                        onSave(finalHour24, selectedMinute, label, selectedDays, snoozeMinutes, vibrate, ringtoneUri, ringtoneName, scheduledDateMillis)
                     },
                     modifier = Modifier
                         .weight(1f)

@@ -2,68 +2,67 @@ package com.sec.oneui.clock.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.sec.oneui.clock.settings.ThemeMode
 
-private val DarkGeminiColorScheme = darkColorScheme(
-    primary = GeminiPurple,
+private val AuroraColorScheme = darkColorScheme(
+    primary = Color(0xFF7C3AED),
     onPrimary = Color.White,
-    primaryContainer = GeminiDarkViolet,
-    secondary = GeminiLavender,
-    tertiary = GeminiCyanSparkle,
-    background = GeminiDeepCosmos,
-    surface = GeminiGlassBackgroundDark,
-    surfaceVariant = GeminiGlassBackgroundHover,
+    primaryContainer = Color(0xFF2563EB),
+    secondary = Color(0xFFE2E8F0),
+    tertiary = Color(0xFFFFFFFF),
+    background = Color(0xFF090714),
+    surface = LiquidGlassBackground,
+    surfaceVariant = LiquidGlassHover,
     onBackground = Color.White,
     onSurface = Color.White,
-    onSurfaceVariant = GeminiLavender,
-    outline = GeminiLavender.copy(alpha = 0.35f),
+    onSurfaceVariant = LiquidTextSecondary,
+    outline = Color.White.copy(alpha = 0.25f),
     error = OneUiRed
 )
 
-private val LightPearlColorScheme = lightColorScheme(
-    primary = GeminiPurple,
+private val SilverVioletColorScheme = darkColorScheme(
+    primary = Color(0xFFA855F7),
     onPrimary = Color.White,
-    primaryContainer = GeminiLavender,
-    secondary = GeminiDarkViolet,
-    tertiary = GeminiCyanSparkle,
-    background = GeminiLightPearl,
-    surface = GeminiGlassBackgroundLight,
-    surfaceVariant = GeminiLightPearlSurface,
-    onBackground = Color(0xFF1E1035),
-    onSurface = Color(0xFF1E1035),
-    onSurfaceVariant = Color(0xFF6B5887),
-    outline = GeminiPurple.copy(alpha = 0.30f),
+    primaryContainer = Color(0xFF1E1035),
+    secondary = Color(0xFFCBD5E1),
+    tertiary = Color(0xFFFFFFFF),
+    background = Color(0xFF0D0B18),
+    surface = LiquidGlassBackground,
+    surfaceVariant = LiquidGlassHover,
+    onBackground = Color.White,
+    onSurface = Color.White,
+    onSurfaceVariant = LiquidTextSecondary,
+    outline = Color.White.copy(alpha = 0.30f),
     error = OneUiRed
 )
 
-private val AmoledColorScheme = darkColorScheme(
-    primary = GeminiPurple,
-    onPrimary = Color.White,
-    primaryContainer = GeminiDarkViolet,
-    secondary = GeminiLavender,
-    tertiary = GeminiCyanSparkle,
+private val AmoledPitchColorScheme = darkColorScheme(
+    primary = Color.White,
+    onPrimary = Color.Black,
+    primaryContainer = Color(0xFF111111),
+    secondary = LiquidTextSecondary,
+    tertiary = Color.White,
     background = Color.Black,
-    surface = Color(0xFF0B0816),
-    surfaceVariant = Color(0xFF16112A),
+    surface = LiquidGlassBackground,
+    surfaceVariant = LiquidGlassHover,
     onBackground = Color.White,
     onSurface = Color.White,
-    onSurfaceVariant = GeminiLavender,
-    outline = GeminiLavender.copy(alpha = 0.30f),
+    onSurfaceVariant = LiquidTextSecondary,
+    outline = Color.White.copy(alpha = 0.18f),
     error = OneUiRed
 )
 
 @Composable
 fun OneUIClockTheme(
-    themeMode: ThemeMode = ThemeMode.DARK_GEMINI,
+    themeMode: ThemeMode = ThemeMode.AURORA_PURPLE,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when (themeMode) {
-        ThemeMode.DARK_GEMINI -> DarkGeminiColorScheme
-        ThemeMode.LIGHT_PEARL -> LightPearlColorScheme
-        ThemeMode.AMOLED -> AmoledColorScheme
+        ThemeMode.AURORA_PURPLE -> AuroraColorScheme
+        ThemeMode.SILVER_VIOLET -> SilverVioletColorScheme
+        ThemeMode.AMOLED_PITCH -> AmoledPitchColorScheme
     }
     MaterialTheme(
         colorScheme = colorScheme,
@@ -74,4 +73,4 @@ fun OneUIClockTheme(
 @Composable
 fun OneUiClockTheme(
     content: @Composable () -> Unit
-) = OneUIClockTheme(themeMode = ThemeMode.DARK_GEMINI, content = content)
+) = OneUIClockTheme(themeMode = ThemeMode.AURORA_PURPLE, content = content)

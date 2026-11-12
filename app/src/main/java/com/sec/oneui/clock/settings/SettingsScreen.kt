@@ -1,10 +1,5 @@
 package com.sec.oneui.clock.settings
 
-import android.app.LocaleManager
-import android.content.Context
-import android.os.Build
-import android.os.LocaleList
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,11 +32,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.os.LocaleListCompat
 import com.sec.oneui.clock.theme.LiquidActiveText
 import com.sec.oneui.clock.theme.LiquidGlassActive
 import com.sec.oneui.clock.theme.LiquidGlassBackground
@@ -57,12 +50,13 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val themeMode by settingsManager.themeMode.collectAsState()
-    val language by settingsManager.language.collectAsState()
+    val use24HourFormat by settingsManager.use24HourFormat.collectAsState()
+    val gradualVolumeDuration by settingsManager.gradualVolumeDuration.collectAsState()
+    val autoSilenceMinutes by settingsManager.autoSilenceMinutes.collectAsState()
+    val volumeButtonsAction by settingsManager.volumeButtonsAction.collectAsState()
     val defaultVibrate by settingsManager.defaultVibrate.collectAsState()
-    val gradualVolume by settingsManager.gradualVolume.collectAsState()
     val animationEnabled by settingsManager.animationEnabled.collectAsState()
     val animationSpeed by settingsManager.animationSpeed.collectAsState()
-    val context = LocalContext.current
 
     val textColor = LiquidTextPrimary
     val subTextColor = LiquidTextSecondary
@@ -155,8 +149,8 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ── 2. Animated Background Control (Battery Saver) ──
-        SectionTitle("Background Ambient Glow", textColor = subTextColor)
+        // ── 2. Animated Background Control ──
+        SectionTitle("Background Motion", textColor = subTextColor)
         Spacer(modifier = Modifier.height(8.dp))
 
         Column(
@@ -176,7 +170,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Ambient Mesh Motion", fontSize = 16.sp, color = textColor)
-                    Text("Turn off to maximize battery life", fontSize = 13.sp, color = subTextColor)
+                    Text("Subtle animated color waves", fontSize = 13.sp, color = subTextColor)
                 }
                 Switch(
                     checked = animationEnabled,
@@ -192,7 +186,7 @@ fun SettingsScreen(
 
             HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
 
-            // Speed Selector Chips
+            // Speed Selector Chips (Equal Width with weight(1f), no text-wrapping)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -200,7 +194,10 @@ fun SettingsScreen(
             ) {
                 Text("Animation Speed", fontSize = 15.sp, color = textColor)
                 Spacer(modifier = Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     val speeds = listOf(
                         0.5f to "Slow (Eco)",
                         1.0f to "Normal",
@@ -210,17 +207,21 @@ fun SettingsScreen(
                         val isSelected = animationSpeed == spVal
                         Box(
                             modifier = Modifier
+                                .weight(1f)
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(if (isSelected) LiquidGlassActive else LiquidGlassHover)
                                 .border(1.dp, if (isSelected) cardBorder else LiquidSpecularBorderSubtle, RoundedCornerShape(14.dp))
                                 .clickable { settingsManager.setAnimationSpeed(spVal) }
-                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = spLabel,
                                 color = if (isSelected) LiquidActiveText else subTextColor,
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp
+                                fontSize = 13.sp,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }
@@ -230,8 +231,8 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ── 3. Language Section ──
-        SectionTitle("Language / اللغة", textColor = subTextColor)
+        // ── 3. Clock & Alarm Behavior ──
+        SectionTitle("Clock & Alarm Behavior", textColor = subTextColor)
         Spacer(modifier = Modifier.height(8.dp))
 
         Column(
@@ -241,63 +242,7 @@ fun SettingsScreen(
                 .background(cardColor)
                 .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
         ) {
-            listOf("en" to "English", "ar" to "العربية").forEach { (code, name) ->
-                val isSelected = language == code
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            settingsManager.setLanguage(code)
-                            applyLanguage(context, code)
-                        }
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) LiquidGlassActive else LiquidGlassHover)
-                            .border(1.dp, if (isSelected) cardBorder else LiquidSpecularBorderSubtle, RoundedCornerShape(12.dp))
-                    ) {
-                        if (isSelected) {
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(RoundedCornerShape(5.dp))
-                                    .background(LiquidActiveText)
-                                    .align(Alignment.Center)
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(14.dp))
-                    Text(
-                        text = name,
-                        fontSize = 16.sp,
-                        color = textColor,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                    )
-                }
-                if (code == "en") {
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // ── 4. Alarm Defaults Section ──
-        SectionTitle("Alarm Defaults", textColor = subTextColor)
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(24.dp))
-                .background(cardColor)
-                .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
-        ) {
-            // Vibration toggle
+            // 24-Hour Format Switch
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -306,12 +251,12 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Default Vibration", fontSize = 16.sp, color = textColor)
-                    Text("Vibrate when alarm rings", fontSize = 13.sp, color = subTextColor)
+                    Text("Use 24-Hour Format", fontSize = 16.sp, color = textColor)
+                    Text("Show 24-hour clock and time picker", fontSize = 13.sp, color = subTextColor)
                 }
                 Switch(
-                    checked = defaultVibrate,
-                    onCheckedChange = { settingsManager.setDefaultVibrate(it) },
+                    checked = use24HourFormat,
+                    onCheckedChange = { settingsManager.setUse24HourFormat(it) },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = LiquidActiveText,
                         checkedTrackColor = LiquidGlassActive,
@@ -323,7 +268,140 @@ fun SettingsScreen(
 
             HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
 
-            // Gradual Volume toggle
+            // Gradual Volume (Fade-in)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
+            ) {
+                Text("Gradual Volume (Fade-in)", fontSize = 15.sp, color = textColor)
+                Text("Volume rises gently over time", fontSize = 13.sp, color = subTextColor)
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val fadeOptions = listOf(
+                        0 to "Off",
+                        15 to "15s",
+                        30 to "30s",
+                        60 to "60s"
+                    )
+                    fadeOptions.forEach { (secVal, secLabel) ->
+                        val isSelected = gradualVolumeDuration == secVal
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(if (isSelected) LiquidGlassActive else LiquidGlassHover)
+                                .border(1.dp, if (isSelected) cardBorder else LiquidSpecularBorderSubtle, RoundedCornerShape(14.dp))
+                                .clickable { settingsManager.setGradualVolumeDuration(secVal) }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = secLabel,
+                                color = if (isSelected) LiquidActiveText else subTextColor,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
+
+            // Auto-Silence After
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
+            ) {
+                Text("Auto-Silence After", fontSize = 15.sp, color = textColor)
+                Text("Stop ringing automatically", fontSize = 13.sp, color = subTextColor)
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val silenceOptions = listOf(
+                        5 to "5m",
+                        10 to "10m",
+                        15 to "15m",
+                        0 to "Never"
+                    )
+                    silenceOptions.forEach { (minVal, minLabel) ->
+                        val isSelected = autoSilenceMinutes == minVal
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(if (isSelected) LiquidGlassActive else LiquidGlassHover)
+                                .border(1.dp, if (isSelected) cardBorder else LiquidSpecularBorderSubtle, RoundedCornerShape(14.dp))
+                                .clickable { settingsManager.setAutoSilenceMinutes(minVal) }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = minLabel,
+                                color = if (isSelected) LiquidActiveText else subTextColor,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
+
+            // Volume Buttons Action
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
+            ) {
+                Text("Volume Buttons Action", fontSize = 15.sp, color = textColor)
+                Text("Hardware key behavior on alarm screen", fontSize = 13.sp, color = subTextColor)
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val volumeActions = listOf("Snooze", "Dismiss", "Do Nothing")
+                    volumeActions.forEach { action ->
+                        val isSelected = volumeButtonsAction == action
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(if (isSelected) LiquidGlassActive else LiquidGlassHover)
+                                .border(1.dp, if (isSelected) cardBorder else LiquidSpecularBorderSubtle, RoundedCornerShape(14.dp))
+                                .clickable { settingsManager.setVolumeButtonsAction(action) }
+                                .padding(vertical = 10.dp, horizontal = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = action,
+                                color = if (isSelected) LiquidActiveText else subTextColor,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
+
+            // Vibrate by Default Switch
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -332,12 +410,12 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Gradual Volume Increase", fontSize = 16.sp, color = textColor)
-                    Text("Volume rises over 30 seconds", fontSize = 13.sp, color = subTextColor)
+                    Text("Vibrate by Default", fontSize = 16.sp, color = textColor)
+                    Text("Enable vibration for newly created alarms", fontSize = 13.sp, color = subTextColor)
                 }
                 Switch(
-                    checked = gradualVolume,
-                    onCheckedChange = { settingsManager.setGradualVolume(it) },
+                    checked = defaultVibrate,
+                    onCheckedChange = { settingsManager.setDefaultVibrate(it) },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = LiquidActiveText,
                         checkedTrackColor = LiquidGlassActive,
@@ -362,14 +440,4 @@ private fun SectionTitle(title: String, textColor: Color) {
         letterSpacing = 1.sp,
         modifier = Modifier.padding(start = 4.dp)
     )
-}
-
-private fun applyLanguage(context: Context, langCode: String) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        val localeManager = context.getSystemService(LocaleManager::class.java)
-        localeManager.applicationLocales = LocaleList.forLanguageTags(langCode)
-    } else {
-        val appLocale = LocaleListCompat.forLanguageTags(langCode)
-        AppCompatDelegate.setApplicationLocales(appLocale)
-    }
 }

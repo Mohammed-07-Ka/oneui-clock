@@ -7,9 +7,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 enum class ThemeMode(val key: String, val displayName: String) {
-    DARK_GEMINI("dark_gemini", "Dark Gemini"),
-    LIGHT_PEARL("light_pearl", "Light Pearl Purple"),
-    AMOLED("amoled", "AMOLED Black")
+    AURORA_PURPLE("aurora_purple", "Aurora Purple"),
+    SILVER_VIOLET("silver_violet", "Silver Violet"),
+    AMOLED_PITCH("amoled_pitch", "AMOLED Pitch")
 }
 
 class SettingsManager(context: Context) {
@@ -20,14 +20,20 @@ class SettingsManager(context: Context) {
     private val _themeMode = MutableStateFlow(loadThemeMode())
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
 
-    private val _language = MutableStateFlow(loadLanguage())
-    val language: StateFlow<String> = _language.asStateFlow()
+    private val _use24HourFormat = MutableStateFlow(prefs.getBoolean("use_24_hour_format", false))
+    val use24HourFormat: StateFlow<Boolean> = _use24HourFormat.asStateFlow()
+
+    private val _gradualVolumeDuration = MutableStateFlow(prefs.getInt("gradual_volume_seconds", 0))
+    val gradualVolumeDuration: StateFlow<Int> = _gradualVolumeDuration.asStateFlow()
+
+    private val _autoSilenceMinutes = MutableStateFlow(prefs.getInt("auto_silence_minutes", 10))
+    val autoSilenceMinutes: StateFlow<Int> = _autoSilenceMinutes.asStateFlow()
+
+    private val _volumeButtonsAction = MutableStateFlow(prefs.getString("volume_buttons_action", "Snooze") ?: "Snooze")
+    val volumeButtonsAction: StateFlow<String> = _volumeButtonsAction.asStateFlow()
 
     private val _defaultVibrate = MutableStateFlow(prefs.getBoolean("default_vibrate", true))
     val defaultVibrate: StateFlow<Boolean> = _defaultVibrate.asStateFlow()
-
-    private val _gradualVolume = MutableStateFlow(prefs.getBoolean("gradual_volume", false))
-    val gradualVolume: StateFlow<Boolean> = _gradualVolume.asStateFlow()
 
     private val _animationEnabled = MutableStateFlow(prefs.getBoolean("bg_animation_enabled", true))
     val animationEnabled: StateFlow<Boolean> = _animationEnabled.asStateFlow()
@@ -40,19 +46,29 @@ class SettingsManager(context: Context) {
         _themeMode.value = mode
     }
 
-    fun setLanguage(lang: String) {
-        prefs.edit().putString("app_language", lang).apply()
-        _language.value = lang
+    fun setUse24HourFormat(enabled: Boolean) {
+        prefs.edit().putBoolean("use_24_hour_format", enabled).apply()
+        _use24HourFormat.value = enabled
+    }
+
+    fun setGradualVolumeDuration(seconds: Int) {
+        prefs.edit().putInt("gradual_volume_seconds", seconds).apply()
+        _gradualVolumeDuration.value = seconds
+    }
+
+    fun setAutoSilenceMinutes(minutes: Int) {
+        prefs.edit().putInt("auto_silence_minutes", minutes).apply()
+        _autoSilenceMinutes.value = minutes
+    }
+
+    fun setVolumeButtonsAction(action: String) {
+        prefs.edit().putString("volume_buttons_action", action).apply()
+        _volumeButtonsAction.value = action
     }
 
     fun setDefaultVibrate(enabled: Boolean) {
         prefs.edit().putBoolean("default_vibrate", enabled).apply()
         _defaultVibrate.value = enabled
-    }
-
-    fun setGradualVolume(enabled: Boolean) {
-        prefs.edit().putBoolean("gradual_volume", enabled).apply()
-        _gradualVolume.value = enabled
     }
 
     fun setAnimationEnabled(enabled: Boolean) {
@@ -66,12 +82,8 @@ class SettingsManager(context: Context) {
     }
 
     private fun loadThemeMode(): ThemeMode {
-        val key = prefs.getString("theme_mode", ThemeMode.DARK_GEMINI.key)
-        return ThemeMode.entries.firstOrNull { it.key == key } ?: ThemeMode.DARK_GEMINI
-    }
-
-    private fun loadLanguage(): String {
-        return prefs.getString("app_language", "en") ?: "en"
+        val key = prefs.getString("theme_mode", ThemeMode.AURORA_PURPLE.key)
+        return ThemeMode.entries.firstOrNull { it.key == key } ?: ThemeMode.AURORA_PURPLE
     }
 
     companion object {
