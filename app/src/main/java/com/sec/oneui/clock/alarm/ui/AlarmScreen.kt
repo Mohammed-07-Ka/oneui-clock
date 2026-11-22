@@ -231,19 +231,20 @@ fun AlarmScreen(
             }
 
             if (alarms.isEmpty()) {
-                Box(
+                AnimatedVisibility(
+                    visible = alarms.isEmpty(),
+                    enter = fadeIn(animationSpec = ClockMotion.smooth()) + scaleIn(
+                        initialScale = 0.96f,
+                        animationSpec = ClockMotion.smooth()
+                    ),
+                    exit = fadeOut(animationSpec = ClockMotion.smooth()),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
+                        .weight(1f)
                 ) {
-                    AnimatedVisibility(
-                        visible = alarms.isEmpty(),
-                        enter = fadeIn(animationSpec = ClockMotion.smooth()) + scaleIn(
-                            initialScale = 0.96f,
-                            animationSpec = ClockMotion.smooth()
-                        ),
-                        exit = fadeOut(animationSpec = ClockMotion.smooth())
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
