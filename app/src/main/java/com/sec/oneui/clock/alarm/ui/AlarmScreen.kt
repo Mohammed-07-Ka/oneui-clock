@@ -15,6 +15,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.Animatable
@@ -970,15 +971,30 @@ fun AlarmEditSheet(
                 )
                 days.forEach { (dayNum, dayLetter) ->
                     val isSelected = editorState.daysOfWeek.contains(dayNum)
+                    val backgroundColor by animateColorAsState(
+                        targetValue = if (isSelected) palette.primaryAccent else palette.cardBackground,
+                        animationSpec = ClockMotion.snappy<Color>(),
+                        label = "weekdayBg_$dayNum"
+                    )
+                    val borderColor by animateColorAsState(
+                        targetValue = if (isSelected) palette.cardBorder else palette.cardBorderSubtle,
+                        animationSpec = ClockMotion.snappy<Color>(),
+                        label = "weekdayBorder_$dayNum"
+                    )
+                    val textColor by animateColorAsState(
+                        targetValue = if (isSelected) palette.onPrimaryAccent else palette.textSecondary,
+                        animationSpec = ClockMotion.snappy<Color>(),
+                        label = "weekdayText_$dayNum"
+                    )
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .size(42.dp)
                             .clip(CircleShape)
-                            .background(if (isSelected) palette.primaryAccent else palette.cardBackground)
+                            .background(backgroundColor)
                             .border(
                                 1.dp,
-                                if (isSelected) palette.cardBorder else palette.cardBorderSubtle,
+                                borderColor,
                                 CircleShape
                             )
                             .iosClickable(targetScale = 0.96f) { onDayToggled(dayNum) }
@@ -986,7 +1002,7 @@ fun AlarmEditSheet(
                         Text(
                             text = dayLetter,
                             fontWeight = FontWeight.Bold,
-                            color = if (isSelected) palette.onPrimaryAccent else palette.textSecondary
+                            color = textColor
                         )
                     }
                 }
@@ -1045,7 +1061,9 @@ fun AlarmEditSheet(
                         color = OneUiRed,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
-                        modifier = Modifier.clickable { onScheduledDateChanged(null) }.padding(8.dp)
+                        modifier = Modifier
+                            .iosClickable(targetScale = 0.96f) { onScheduledDateChanged(null) }
+                            .padding(8.dp)
                     )
                 }
             }
@@ -1118,7 +1136,7 @@ fun AlarmEditSheet(
                     .fillMaxWidth()
                     .padding(start = 36.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .clickable { fileLauncher.launch(arrayOf("audio/*")) }
+                    .iosClickable(targetScale = 0.96f) { fileLauncher.launch(arrayOf("audio/*")) }
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -1267,13 +1285,28 @@ fun AlarmEditSheet(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(3, 5, 10, 15).forEach { mins ->
                     val isSelected = editorState.snoozeDurationMinutes == mins
+                    val backgroundColor by animateColorAsState(
+                        targetValue = if (isSelected) palette.primaryAccent else palette.cardBackground,
+                        animationSpec = ClockMotion.snappy<Color>(),
+                        label = "snoozeBg_$mins"
+                    )
+                    val borderColor by animateColorAsState(
+                        targetValue = if (isSelected) palette.cardBorder else palette.cardBorderSubtle,
+                        animationSpec = ClockMotion.snappy<Color>(),
+                        label = "snoozeBorder_$mins"
+                    )
+                    val textColor by animateColorAsState(
+                        targetValue = if (isSelected) palette.onPrimaryAccent else palette.textSecondary,
+                        animationSpec = ClockMotion.snappy<Color>(),
+                        label = "snoozeText_$mins"
+                    )
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) palette.primaryAccent else palette.cardBackground)
+                            .background(backgroundColor)
                             .border(
                                 1.dp,
-                                if (isSelected) palette.cardBorder else palette.cardBorderSubtle,
+                                borderColor,
                                 RoundedCornerShape(12.dp)
                             )
                             .iosClickable(targetScale = 0.96f) { onSnoozeChanged(mins) }
@@ -1281,7 +1314,7 @@ fun AlarmEditSheet(
                     ) {
                         Text(
                             text = "${mins}m",
-                            color = if (isSelected) palette.onPrimaryAccent else palette.textSecondary,
+                            color = textColor,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
