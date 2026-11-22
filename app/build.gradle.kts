@@ -43,7 +43,7 @@ android {
         debug {
             signingConfig = signingConfigs.getByName("debug")
             applicationIdSuffix = ".debug"
-            isDebuggable = true
+            isDebuggable = false
             isMinifyEnabled = false
             isProfileable = false
         }

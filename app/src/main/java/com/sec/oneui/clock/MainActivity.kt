@@ -519,7 +519,7 @@ fun MainClockApp(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
                         userScrollEnabled = true,
-                        beyondViewportPageCount = 2,
+                        beyondViewportPageCount = 1,
                         flingBehavior = instantFling
                     ) { pageIndex ->
                         when (pageIndex) {
