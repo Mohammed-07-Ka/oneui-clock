@@ -976,11 +976,6 @@ fun AlarmEditSheet(
                         animationSpec = ClockMotion.snappy<Color>(),
                         label = "weekdayBg_$dayNum"
                     )
-                    val borderColor by animateColorAsState(
-                        targetValue = if (isSelected) palette.cardBorder else palette.cardBorderSubtle,
-                        animationSpec = ClockMotion.snappy<Color>(),
-                        label = "weekdayBorder_$dayNum"
-                    )
                     val textColor by animateColorAsState(
                         targetValue = if (isSelected) palette.onPrimaryAccent else palette.textSecondary,
                         animationSpec = ClockMotion.snappy<Color>(),
@@ -994,7 +989,7 @@ fun AlarmEditSheet(
                             .background(backgroundColor)
                             .border(
                                 1.dp,
-                                borderColor,
+                                if (isSelected) palette.cardBorder else palette.cardBorderSubtle,
                                 CircleShape
                             )
                             .iosClickable(targetScale = 0.96f) { onDayToggled(dayNum) }
@@ -1290,11 +1285,6 @@ fun AlarmEditSheet(
                         animationSpec = ClockMotion.snappy<Color>(),
                         label = "snoozeBg_$mins"
                     )
-                    val borderColor by animateColorAsState(
-                        targetValue = if (isSelected) palette.cardBorder else palette.cardBorderSubtle,
-                        animationSpec = ClockMotion.snappy<Color>(),
-                        label = "snoozeBorder_$mins"
-                    )
                     val textColor by animateColorAsState(
                         targetValue = if (isSelected) palette.onPrimaryAccent else palette.textSecondary,
                         animationSpec = ClockMotion.snappy<Color>(),
@@ -1306,7 +1296,7 @@ fun AlarmEditSheet(
                             .background(backgroundColor)
                             .border(
                                 1.dp,
-                                borderColor,
+                                if (isSelected) palette.cardBorder else palette.cardBorderSubtle,
                                 RoundedCornerShape(12.dp)
                             )
                             .iosClickable(targetScale = 0.96f) { onSnoozeChanged(mins) }
