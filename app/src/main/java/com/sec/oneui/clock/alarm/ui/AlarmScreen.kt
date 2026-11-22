@@ -552,6 +552,7 @@ fun AlarmEditSheet(
         Surface(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .imePadding()
                 .navigationBarsPadding()
                 .padding(top = 24.dp)
