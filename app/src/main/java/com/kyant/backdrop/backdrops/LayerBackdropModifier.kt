@@ -58,7 +58,7 @@ private class LayerBackdropNode(
 
     override fun ContentDrawScope.draw() {
         drawContent()
-        recordLayer(this, backdrop.graphicsLayer) { backdrop.onDraw(this@draw) }
+        recordLayer(this@LayerBackdropNode, backdrop.graphicsLayer) { backdrop.onDraw(this@draw) }
     }
 
     override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
