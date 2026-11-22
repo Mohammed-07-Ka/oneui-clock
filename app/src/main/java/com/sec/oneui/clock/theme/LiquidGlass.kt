@@ -155,12 +155,12 @@ fun Modifier.liquidGlass(
     val baseModifier = if (activeHaze != null) {
         Modifier
             .then(shadowModifier)
+            .clip(shape)
             .hazeChild(
                 state = activeHaze,
-                shape = shape,
                 style = HazeMaterials.ultraThin()
             )
-            .background(glassSubstrate, shape)
+            .background(glassSubstrate)
     } else {
         Modifier
             .then(shadowModifier)
@@ -302,9 +302,9 @@ fun Modifier.liquidGlassActivePill(
     val baseModifier = if (activeHaze != null) {
         Modifier
             .then(shadowModifier)
+            .clip(shape)
             .hazeChild(
                 state = activeHaze,
-                shape = shape,
                 style = HazeMaterials.thin()
             )
             .background(
@@ -314,8 +314,7 @@ fun Modifier.liquidGlassActivePill(
                         Color.White.copy(alpha = 0.12f),
                         tint.copy(alpha = 0.35f)
                     )
-                ),
-                shape
+                )
             )
     } else {
         Modifier
@@ -400,12 +399,12 @@ fun Modifier.liquidGlassCard(
                 ambientColor = Color.Black.copy(alpha = 0.25f),
                 spotColor = Color.Black.copy(alpha = 0.45f)
             )
+            .clip(shape)
             .hazeChild(
                 state = activeHaze,
-                shape = shape,
                 style = HazeMaterials.ultraThin()
             )
-            .background(substrateColor, shape)
+            .background(substrateColor)
     } else {
         Modifier
             .shadow(

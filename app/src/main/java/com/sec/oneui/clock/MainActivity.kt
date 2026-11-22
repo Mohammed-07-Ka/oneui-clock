@@ -324,7 +324,7 @@ fun MainClockApp(
                     flingBehavior = instantFling
                 ) { pageIndex ->
                     when (pageIndex) {
-                        0 -> AlarmScreen(viewModel = alarmViewModel, hazeState = hazeState)
+                        0 -> AlarmScreen(viewModel = alarmViewModel)
                         1 -> StopwatchScreen(viewModel = stopwatchViewModel)
                         2 -> TimerScreen(viewModel = timerViewModel)
                     }
