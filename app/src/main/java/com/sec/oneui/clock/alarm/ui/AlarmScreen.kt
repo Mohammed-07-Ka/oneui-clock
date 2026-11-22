@@ -17,6 +17,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -29,6 +31,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -85,6 +88,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -96,6 +100,11 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -111,6 +120,7 @@ import com.sec.oneui.clock.alarm.service.AlarmForegroundService
 import kotlinx.coroutines.launch
 import com.sec.oneui.clock.settings.SettingsManager
 import com.sec.oneui.clock.settings.ThemeMode
+import com.sec.oneui.clock.theme.ClockMotion
 import com.sec.oneui.clock.theme.ClockTheme
 import com.sec.oneui.clock.theme.LiquidActiveText
 import com.sec.oneui.clock.theme.LiquidGlassActive
@@ -453,6 +463,9 @@ fun AlarmCard(
 fun AlarmEditSheet(
     editorState: AlarmEditorState,
     use24HourFormat: Boolean,
+    sheetProgress: Animatable<Float, AnimationVector1D>,
+    isSheetOpen: Boolean,
+    onDragDismiss: (initialVelocity: Float) -> Unit,
     onDismiss: () -> Unit,
     onSave: () -> Unit,
     onCancel: () -> Unit,
@@ -516,6 +529,62 @@ fun AlarmEditSheet(
     val isContainerGlassActive = LocalLiquidGlassEnabled.current && containerBackdrop != null
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
+    val density = LocalDensity.current
+    val screenHeightPx = with(density) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
+    var sheetHeightPx by remember { mutableFloatStateOf(screenHeightPx) }
+    val velocityTracker = remember { VelocityTracker() }
+
+    val dragModifier = Modifier.pointerInput(isSheetOpen, sheetHeightPx) {
+        if (!isSheetOpen) return@pointerInput
+
+        detectVerticalDragGestures(
+            onDragStart = {
+                velocityTracker.resetTracking()
+            },
+            onDragEnd = {
+                val velocityY = velocityTracker.calculateVelocity().y
+                val currentProgress = sheetProgress.value
+                val dragDistancePx = (1f - currentProgress) * sheetHeightPx
+                val thresholdPx = (sheetHeightPx * 0.30f).coerceAtLeast(140f * density.density)
+                val flingVelocityThresholdPx = 1000f * density.density
+                val progressVelocity = if (sheetHeightPx > 0f) -velocityY / sheetHeightPx else 0f
+
+                if (dragDistancePx >= thresholdPx || velocityY >= flingVelocityThresholdPx) {
+                    onDragDismiss(progressVelocity)
+                } else {
+                    coroutineScope.launch {
+                        sheetProgress.animateTo(
+                            targetValue = 1f,
+                            animationSpec = ClockMotion.Snappy,
+                            initialVelocity = progressVelocity
+                        )
+                    }
+                }
+            },
+            onDragCancel = {
+                coroutineScope.launch {
+                    sheetProgress.animateTo(
+                        targetValue = 1f,
+                        animationSpec = ClockMotion.Snappy
+                    )
+                }
+            },
+            onVerticalDrag = { change, dragAmount ->
+                change.consume()
+                velocityTracker.addPosition(change.uptimeMillis, change.position)
+
+                val currentTranslationY = (1f - sheetProgress.value) * sheetHeightPx
+                val newTranslationY = (currentTranslationY + dragAmount).coerceAtLeast(0f)
+                val newProgress = if (sheetHeightPx > 0f) {
+                    (1f - newTranslationY / sheetHeightPx).coerceIn(0f, 1f)
+                } else 1f
+
+                coroutineScope.launch {
+                    sheetProgress.snapTo(newProgress)
+                }
+            }
+        )
+    }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -523,16 +592,20 @@ fun AlarmEditSheet(
         }
     }
 
-    BackHandler { onCancel() }
+    BackHandler(enabled = isSheetOpen && !showDatePicker) { onCancel() }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.65f))
+            .background(Color.Black.copy(alpha = (sheetProgress.value * 0.65f).coerceIn(0f, 0.65f)))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-                onClick = onCancel
+                onClick = {
+                    if (isSheetOpen) {
+                        onCancel()
+                    }
+                }
             ),
         contentAlignment = Alignment.BottomCenter
     ) {
@@ -544,6 +617,15 @@ fun AlarmEditSheet(
                 .imePadding()
                 .navigationBarsPadding()
                 .padding(top = 24.dp)
+                .graphicsLayer {
+                    val progress = sheetProgress.value.coerceIn(0f, 1f)
+                    translationY = (1f - progress) * sheetHeightPx
+                }
+                .onSizeChanged { size ->
+                    if (size.height > 0) {
+                        sheetHeightPx = size.height.toFloat()
+                    }
+                }
                 .then(
                     if (isContainerGlassActive && containerBackdrop != null) {
                         Modifier
@@ -583,21 +665,31 @@ fun AlarmEditSheet(
                     .padding(horizontal = 24.dp)
                     .padding(top = 12.dp, bottom = 24.dp)
             ) {
-                // iOS Drag Handle
+                // iOS Drag Handle with generous touch target
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
-                        .width(44.dp)
-                        .height(4.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.25f))
-                )
+                        .fillMaxWidth()
+                        .height(24.dp)
+                        .then(dragModifier),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(44.dp)
+                            .height(4.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.25f))
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 // iOS Sheet Header Bar: Cancel on left, Title in center, Save on right
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(dragModifier),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -618,7 +710,9 @@ fun AlarmEditSheet(
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null
-                                ) { onCancel() }
+                                ) {
+                                    if (isSheetOpen) onCancel()
+                                }
                                 .iosPressEffect(targetScale = 0.95f)
                                 .padding(horizontal = 16.dp),
                             contentAlignment = Alignment.Center
@@ -637,7 +731,9 @@ fun AlarmEditSheet(
                             fontWeight = FontWeight.Normal,
                             color = Color(0xFF60A5FA),
                             modifier = Modifier
-                                .iosClickable(targetScale = 0.95f) { onCancel() }
+                                .iosClickable(targetScale = 0.95f) {
+                                    if (isSheetOpen) onCancel()
+                                }
                                 .padding(vertical = 4.dp, horizontal = 4.dp)
                         )
                     }
@@ -665,7 +761,9 @@ fun AlarmEditSheet(
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null
-                                ) { onSave() }
+                                ) {
+                                    if (isSheetOpen) onSave()
+                                }
                                 .iosPressEffect(targetScale = 0.95f)
                                 .padding(horizontal = 16.dp),
                             contentAlignment = Alignment.Center
@@ -684,7 +782,9 @@ fun AlarmEditSheet(
                             fontWeight = FontWeight.Bold,
                             color = if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.primaryAccent,
                             modifier = Modifier
-                                .iosClickable(targetScale = 0.95f) { onSave() }
+                                .iosClickable(targetScale = 0.95f) {
+                                    if (isSheetOpen) onSave()
+                                }
                                 .padding(vertical = 4.dp, horizontal = 4.dp)
                         )
                     }
@@ -1180,6 +1280,21 @@ fun AlarmEditSheet(
 
             Spacer(modifier = Modifier.height(30.dp))
         }
+    }
+
+    if (!isSheetOpen) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            event.changes.forEach { it.consume() }
+                        }
+                    }
+                }
+        )
     }
 }
 

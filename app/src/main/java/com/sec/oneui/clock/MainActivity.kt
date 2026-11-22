@@ -27,6 +27,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -85,6 +86,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -115,6 +117,7 @@ import com.sec.oneui.clock.settings.ThemeMode
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
+import com.sec.oneui.clock.theme.ClockMotion
 import com.sec.oneui.clock.theme.ClockTheme
 import com.sec.oneui.clock.theme.GeminiAnimatedBackground
 import com.sec.oneui.clock.theme.GeminiBackgroundCanvas
@@ -736,11 +739,40 @@ fun MainClockApp(
                     }
                 }
 
-                // 6. Edit Alarm Sheet (Hoisted above Pager and Tab Bar)
+                // 6. Edit Alarm Sheet (Hoisted above Pager and Tab Bar with unified iOS motion)
+                var lastOpenEditorState by remember { mutableStateOf(editorState) }
                 if (editorState.isOpen) {
+                    lastOpenEditorState = editorState
+                }
+
+                val sheetProgress = remember { Animatable(0f) }
+                var exitVelocity by remember { mutableFloatStateOf(0f) }
+
+                LaunchedEffect(editorState.isOpen) {
+                    if (editorState.isOpen) {
+                        exitVelocity = 0f
+                        sheetProgress.animateTo(1f, animationSpec = ClockMotion.Smooth)
+                    } else {
+                        if (sheetProgress.value > 0.0001f) {
+                            val v = exitVelocity
+                            exitVelocity = 0f
+                            sheetProgress.animateTo(0f, animationSpec = ClockMotion.Smooth, initialVelocity = v)
+                        }
+                    }
+                }
+
+                val isSheetVisible = editorState.isOpen || sheetProgress.value > 0.0001f
+                if (isSheetVisible) {
+                    val displayState = if (editorState.isOpen) editorState else lastOpenEditorState
                     AlarmEditSheet(
-                        editorState = editorState,
+                        editorState = displayState,
                         use24HourFormat = use24HourFormat,
+                        sheetProgress = sheetProgress,
+                        isSheetOpen = editorState.isOpen,
+                        onDragDismiss = { velocity ->
+                            exitVelocity = velocity
+                            alarmViewModel.cancelDraft()
+                        },
                         onDismiss = { alarmViewModel.dismissEditorSheet() },
                         onSave = { alarmViewModel.saveDraft() },
                         onCancel = { alarmViewModel.cancelDraft() },
