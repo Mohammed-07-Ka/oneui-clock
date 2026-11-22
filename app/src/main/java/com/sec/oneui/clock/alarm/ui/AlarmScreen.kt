@@ -123,6 +123,8 @@ import com.sec.oneui.clock.theme.OneUiRed
 import com.sec.oneui.clock.theme.iosClickable
 import com.sec.oneui.clock.theme.iosPressEffect
 import com.sec.oneui.clock.theme.liquidGlass
+import com.sec.oneui.clock.theme.liquidGlassCard
+import dev.chrisbanes.haze.HazeState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -131,7 +133,8 @@ import java.util.Locale
 @Composable
 fun AlarmScreen(
     viewModel: AlarmViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hazeState: HazeState? = null
 ) {
     val context = LocalContext.current
     val settingsManager = remember { SettingsManager.getInstance(context) }
@@ -244,6 +247,7 @@ fun AlarmScreen(
                         AlarmCard(
                             alarm = alarm,
                             use24HourFormat = use24HourFormat,
+                            hazeState = hazeState,
                             onToggle = { viewModel.toggleAlarm(alarm) },
                             onClick = { viewModel.openEditorForExisting(alarm) },
                             onDelete = { viewModel.deleteAlarm(alarm) },
@@ -270,6 +274,7 @@ fun AlarmScreen(
                 modifier = Modifier
                     .size(60.dp)
                     .liquidGlass(
+                        hazeState = hazeState,
                         shape = CircleShape,
                         cornerRadius = 30.dp,
                         tintColor = palette.primaryAccent.copy(alpha = 0.85f),
@@ -321,7 +326,8 @@ fun AlarmCard(
     onToggle: () -> Unit,
     onClick: () -> Unit,
     onDelete: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hazeState: HazeState? = null
 ) {
     val palette = ClockTheme.palette
     val haptic = LocalHapticFeedback.current
@@ -329,7 +335,8 @@ fun AlarmCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .liquidGlass(
+            .liquidGlassCard(
+                hazeState = hazeState,
                 shape = RoundedCornerShape(26.dp),
                 cornerRadius = 26.dp
             )

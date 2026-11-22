@@ -29,6 +29,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sec.oneui.clock.settings.ThemeMode
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.haze
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -57,6 +59,7 @@ fun GeminiAnimatedBackground(
     themeMode: ThemeMode = ThemeMode.AURORA_PURPLE,
     animationEnabled: Boolean = true,
     animationSpeed: Float = 1.0f,
+    hazeState: HazeState? = LocalHazeState.current,
     content: @Composable BoxScope.() -> Unit = {}
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -107,8 +110,8 @@ fun GeminiAnimatedBackground(
     }
 
     val targetGroundColor = when (themeMode) {
-        ThemeMode.AURORA_PURPLE -> Color(0xFF090714)
-        ThemeMode.MIDNIGHT_BLUE -> Color(0xFF050814)
+        ThemeMode.AURORA_PURPLE -> Color(0xFF0D0920)
+        ThemeMode.MIDNIGHT_BLUE -> Color(0xFF060C1E)
         ThemeMode.AMOLED_PITCH -> Color(0xFF000000)
     }
 
@@ -119,33 +122,44 @@ fun GeminiAnimatedBackground(
         label = "groundColorTransition"
     )
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .drawBehind {
-                val width = size.width
-                val height = size.height
-                if (width <= 0f || height <= 0f) return@drawBehind
+    Box(modifier = modifier.fillMaxSize()) {
+        val hazeSourceModifier = if (hazeState != null) {
+            Modifier.haze(hazeState)
+        } else {
+            Modifier
+        }
 
-                // 1. Fill ground floor
-                drawRect(color = groundColorState.value)
+        // Sibling background canvas registered as Haze blur source
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .drawBehind {
+                    val width = size.width
+                    val height = size.height
+                    if (width <= 0f || height <= 0f) return@drawBehind
 
-                // Pure black for AMOLED Pitch
-                if (themeMode == ThemeMode.AMOLED_PITCH) {
-                    return@drawBehind
+                    // 1. Fill ground floor
+                    drawRect(color = groundColorState.value)
+
+                    // Pure black for AMOLED Pitch
+                    if (themeMode == ThemeMode.AMOLED_PITCH) {
+                        return@drawBehind
+                    }
+
+                    // 2. If animation is disabled, render static gradient brush with 0% CPU consumption
+                    if (!animationEnabled) {
+                        drawStaticMesh(themeMode, width, height)
+                        return@drawBehind
+                    }
+
+                    // 3. Read animated phase exclusively in DrawScope -> ZERO Recompositions
+                    val animatedPhase = phaseState?.value ?: 0.85f
+                    drawAnimatedMesh(themeMode, width, height, animatedPhase)
                 }
+                .then(hazeSourceModifier)
+        )
 
-                // 2. If animation is disabled, render static gradient brush with 0% CPU consumption
-                if (!animationEnabled) {
-                    drawStaticMesh(themeMode, width, height)
-                    return@drawBehind
-                }
-
-                // 3. Read animated phase exclusively in DrawScope -> ZERO Recompositions
-                val animatedPhase = phaseState?.value ?: 0.85f
-                drawAnimatedMesh(themeMode, width, height, animatedPhase)
-            }
-    ) {
+        // Sibling foreground content (Pager, floating liquid glass bars, cards)
         content()
     }
 }
@@ -161,8 +175,8 @@ private fun DrawScope.drawStaticMesh(themeMode: ThemeMode, width: Float, height:
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF9333EA).copy(alpha = 0.35f),
-                        Color(0xFF6B21A8).copy(alpha = 0.16f),
+                        Color(0xFF9333EA).copy(alpha = 0.65f),
+                        Color(0xFF6B21A8).copy(alpha = 0.30f),
                         Color.Transparent
                     ),
                     center = Offset(orb1X, orb1Y),
@@ -179,8 +193,8 @@ private fun DrawScope.drawStaticMesh(themeMode: ThemeMode, width: Float, height:
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF7C3AED).copy(alpha = 0.36f),
-                        Color(0xFF4C1D95).copy(alpha = 0.18f),
+                        Color(0xFF7C3AED).copy(alpha = 0.65f),
+                        Color(0xFF4C1D95).copy(alpha = 0.30f),
                         Color.Transparent
                     ),
                     center = Offset(orb2X, orb2Y),
@@ -197,7 +211,8 @@ private fun DrawScope.drawStaticMesh(themeMode: ThemeMode, width: Float, height:
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFFC026D3).copy(alpha = 0.24f),
+                        Color(0xFFC026D3).copy(alpha = 0.50f),
+                        Color(0xFF38BDF8).copy(alpha = 0.25f),
                         Color.Transparent
                     ),
                     center = Offset(orb3X, orb3Y),
@@ -215,8 +230,8 @@ private fun DrawScope.drawStaticMesh(themeMode: ThemeMode, width: Float, height:
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF2563EB).copy(alpha = 0.38f),
-                        Color(0xFF1E40AF).copy(alpha = 0.18f),
+                        Color(0xFF2563EB).copy(alpha = 0.65f),
+                        Color(0xFF1E40AF).copy(alpha = 0.30f),
                         Color.Transparent
                     ),
                     center = Offset(orb1X, orb1Y),
@@ -232,8 +247,8 @@ private fun DrawScope.drawStaticMesh(themeMode: ThemeMode, width: Float, height:
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF0284C7).copy(alpha = 0.35f),
-                        Color(0xFF0369A1).copy(alpha = 0.16f),
+                        Color(0xFF0284C7).copy(alpha = 0.65f),
+                        Color(0xFF0369A1).copy(alpha = 0.30f),
                         Color.Transparent
                     ),
                     center = Offset(orb2X, orb2Y),
@@ -264,8 +279,8 @@ private fun DrawScope.drawAnimatedMesh(
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF9333EA).copy(alpha = 0.36f),
-                        Color(0xFF6B21A8).copy(alpha = 0.16f),
+                        Color(0xFF9333EA).copy(alpha = 0.65f),
+                        Color(0xFF6B21A8).copy(alpha = 0.30f),
                         Color.Transparent
                     ),
                     center = Offset(orb1X, orb1Y),
@@ -282,8 +297,8 @@ private fun DrawScope.drawAnimatedMesh(
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF7C3AED).copy(alpha = 0.38f),
-                        Color(0xFF4C1D95).copy(alpha = 0.18f),
+                        Color(0xFF7C3AED).copy(alpha = 0.65f),
+                        Color(0xFF4C1D95).copy(alpha = 0.30f),
                         Color.Transparent
                     ),
                     center = Offset(orb2X, orb2Y),
@@ -300,8 +315,8 @@ private fun DrawScope.drawAnimatedMesh(
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFFC026D3).copy(alpha = 0.25f),
-                        Color(0xFF38BDF8).copy(alpha = 0.12f),
+                        Color(0xFFC026D3).copy(alpha = 0.50f),
+                        Color(0xFF38BDF8).copy(alpha = 0.25f),
                         Color.Transparent
                     ),
                     center = Offset(orb3X, orb3Y),
@@ -321,8 +336,8 @@ private fun DrawScope.drawAnimatedMesh(
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF2563EB).copy(alpha = 0.40f),
-                        Color(0xFF1E40AF).copy(alpha = 0.18f),
+                        Color(0xFF2563EB).copy(alpha = 0.65f),
+                        Color(0xFF1E40AF).copy(alpha = 0.30f),
                         Color.Transparent
                     ),
                     center = Offset(orb1X, orb1Y),
@@ -339,8 +354,8 @@ private fun DrawScope.drawAnimatedMesh(
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF0284C7).copy(alpha = 0.38f),
-                        Color(0xFF0369A1).copy(alpha = 0.18f),
+                        Color(0xFF0284C7).copy(alpha = 0.65f),
+                        Color(0xFF0369A1).copy(alpha = 0.30f),
                         Color.Transparent
                     ),
                     center = Offset(orb2X, orb2Y),

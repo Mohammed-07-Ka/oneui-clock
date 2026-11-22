@@ -99,12 +99,14 @@ import com.sec.oneui.clock.stopwatch.ui.StopwatchScreen
 import com.sec.oneui.clock.stopwatch.ui.StopwatchViewModel
 import com.sec.oneui.clock.theme.ClockTheme
 import com.sec.oneui.clock.theme.GeminiAnimatedBackground
+import com.sec.oneui.clock.theme.LocalHazeState
 import com.sec.oneui.clock.theme.OneUIClockTheme
 import com.sec.oneui.clock.theme.iosPressEffect
 import com.sec.oneui.clock.theme.liquidGlass
 import com.sec.oneui.clock.theme.liquidGlassActivePill
 import com.sec.oneui.clock.timer.ui.TimerScreen
 import com.sec.oneui.clock.timer.ui.TimerViewModel
+import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -167,13 +169,18 @@ class MainActivity : ComponentActivity() {
             val themeMode by settingsManager.themeMode.collectAsState()
             val animationEnabled by settingsManager.animationEnabled.collectAsState()
             val animationSpeed by settingsManager.animationSpeed.collectAsState()
+            val hazeState = remember { HazeState() }
 
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            CompositionLocalProvider(
+                LocalLayoutDirection provides LayoutDirection.Ltr,
+                LocalHazeState provides hazeState
+            ) {
                 OneUIClockTheme(themeMode = themeMode) {
                     GeminiAnimatedBackground(
                         themeMode = themeMode,
                         animationEnabled = animationEnabled,
-                        animationSpeed = animationSpeed
+                        animationSpeed = animationSpeed,
+                        hazeState = hazeState
                     ) {
                         MainClockApp(
                             alarmViewModel = alarmViewModel,
@@ -241,6 +248,7 @@ fun MainClockApp(
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { ClockTab.items.size })
     val coroutineScope = rememberCoroutineScope()
     val palette = ClockTheme.palette
+    val hazeState = LocalHazeState.current ?: remember { HazeState() }
 
     // Handle navigation tab changes (e.g. from notification clicks)
     val targetTab by navTabFlow.collectAsState()
@@ -316,7 +324,7 @@ fun MainClockApp(
                     flingBehavior = instantFling
                 ) { pageIndex ->
                     when (pageIndex) {
-                        0 -> AlarmScreen(viewModel = alarmViewModel)
+                        0 -> AlarmScreen(viewModel = alarmViewModel, hazeState = hazeState)
                         1 -> StopwatchScreen(viewModel = stopwatchViewModel)
                         2 -> TimerScreen(viewModel = timerViewModel)
                     }
@@ -337,6 +345,7 @@ fun MainClockApp(
                         modifier = Modifier
                             .size(42.dp)
                             .liquidGlass(
+                                hazeState = hazeState,
                                 shape = CircleShape,
                                 cornerRadius = 21.dp,
                                 elevation = 8.dp
@@ -373,6 +382,7 @@ fun MainClockApp(
                             .fillMaxWidth()
                             .height(64.dp)
                             .liquidGlass(
+                                hazeState = hazeState,
                                 shape = RoundedCornerShape(32.dp),
                                 cornerRadius = 32.dp,
                                 elevation = 16.dp
@@ -395,6 +405,7 @@ fun MainClockApp(
                                 .width(tabWidth)
                                 .fillMaxHeight()
                                 .liquidGlassActivePill(
+                                    hazeState = hazeState,
                                     shape = RoundedCornerShape(26.dp),
                                     cornerRadius = 26.dp,
                                     glowColor = if (palette.isBlueTheme) Color(0xFF38BDF8) else Color(0xFFA855F7)

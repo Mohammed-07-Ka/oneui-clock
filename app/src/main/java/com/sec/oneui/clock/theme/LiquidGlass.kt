@@ -5,7 +5,9 @@ import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
@@ -24,6 +26,15 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.haze
+import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.materials.HazeMaterials
+
+/**
+ * CompositionLocal providing ambient HazeState across the application.
+ */
+val LocalHazeState = staticCompositionLocalOf<HazeState?> { null }
 
 /**
  * Optical Liquid Glass engine based on SimpMusic / Kyant0 AndroidLiquidGlass.
@@ -32,7 +43,6 @@ import androidx.compose.ui.unit.dp
  * Seamlessly falls back to multi-stop specular physics gradients on earlier Android versions.
  */
 object LiquidGlassShaders {
-    // Exact AGSL Shader from SimpMusic for directional specular rim illumination
     const val SPECULAR_HIGHLIGHT_AGSL = """
         uniform float2 size;
         uniform float4 cornerRadii;
@@ -83,14 +93,22 @@ object LiquidGlassShaders {
 }
 
 /**
- * Applies the authentic Liquid Glass visual effect matching SimpMusic:
+ * Modifier extension to mark a composable as the Haze blur source.
+ * Apply this to the BACKGROUND element (e.g., GeminiAnimatedBackground Box).
+ */
+fun Modifier.hazeSource(hazeState: HazeState): Modifier = this.haze(hazeState)
+
+/**
+ * Applies authentic Liquid Glass matching SimpMusic:
+ * - Real backdrop blur with Haze library
  * - Elevated floating drop shadow
- * - Translucent milky frosted glass substrate
+ * - Translucent milky frosted glass substrate & dark veil ("đục đen")
  * - Internal top-edge curved lens refraction glow
  * - AGSL SDF Specular Highlight on API 33+ (surface normal & light reflection angle)
  * - Multi-stop specular fallback on API < 33
  */
 fun Modifier.liquidGlass(
+    hazeState: HazeState? = null,
     shape: Shape = RoundedCornerShape(26.dp),
     cornerRadius: Dp = 26.dp,
     tintColor: Color? = null,
@@ -103,12 +121,12 @@ fun Modifier.liquidGlass(
     val cornerRadiusPx = with(density) { cornerRadius.toPx() }
     val borderWidthPx = with(density) { borderWidth.toPx() }
 
-    // Authentic translucent frosted glass substrate:
-    // Translucent dark glass with luminous violet/indigo tint
+    val activeHaze = hazeState ?: LocalHazeState.current
+
     val glassSubstrate = tintColor ?: if (palette.isBlueTheme) {
-        Color(0x550F172A)
+        Color(0x350F172A)
     } else {
-        Color(0x521A152E)
+        Color(0x321A152E)
     }
 
     val highlightColor = if (palette.isBlueTheme) Color(0xFFBAE6FD) else Color.White
@@ -134,10 +152,24 @@ fun Modifier.liquidGlass(
         )
     } else Modifier
 
+    val baseModifier = if (activeHaze != null) {
+        Modifier
+            .then(shadowModifier)
+            .hazeChild(
+                state = activeHaze,
+                shape = shape,
+                style = HazeMaterials.ultraThin()
+            )
+            .background(glassSubstrate, shape)
+    } else {
+        Modifier
+            .then(shadowModifier)
+            .clip(shape)
+            .background(glassSubstrate)
+    }
+
     this
-        .then(shadowModifier)
-        .clip(shape)
-        .background(glassSubstrate)
+        .then(baseModifier)
         .drawWithCache {
             val width = size.width
             val height = size.height
@@ -156,7 +188,7 @@ fun Modifier.liquidGlass(
             // 2. Top-edge curved internal lens refraction glow
             val lensRefractionBrush = Brush.verticalGradient(
                 colors = listOf(
-                    highlightColor.copy(alpha = 0.32f),
+                    highlightColor.copy(alpha = 0.35f),
                     highlightColor.copy(alpha = 0.08f),
                     Color.Transparent
                 ),
@@ -209,20 +241,13 @@ fun Modifier.liquidGlass(
                 }
 
                 onDrawWithContent {
-                    // Draw milky surface sheen over background
                     drawRect(surfaceSheenBrush)
-
-                    // Draw inner lens curvature reflection
                     drawRoundRect(
                         brush = lensRefractionBrush,
                         cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
                         size = Size(width, minOf(height * 0.50f, cornerRadiusPx * 2f))
                     )
-
-                    // Draw child content
                     drawContent()
-
-                    // Draw AGSL Specular Highlight along outer border
                     drawPath(
                         path = roundRectPath,
                         brush = shaderBrush,
@@ -232,15 +257,12 @@ fun Modifier.liquidGlass(
             } else {
                 onDrawWithContent {
                     drawRect(surfaceSheenBrush)
-
                     drawRoundRect(
                         brush = lensRefractionBrush,
                         cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
                         size = Size(width, minOf(height * 0.50f, cornerRadiusPx * 2f))
                     )
-
                     drawContent()
-
                     drawRoundRect(
                         brush = fallbackSpecularBrush,
                         size = size,
@@ -257,6 +279,7 @@ fun Modifier.liquidGlass(
  * Features glowing translucent glass substrate, high-contrast specular borders, and soft illumination.
  */
 fun Modifier.liquidGlassActivePill(
+    hazeState: HazeState? = null,
     shape: Shape = RoundedCornerShape(26.dp),
     cornerRadius: Dp = 26.dp,
     glowColor: Color? = null
@@ -266,39 +289,66 @@ fun Modifier.liquidGlassActivePill(
     val cornerRadiusPx = with(density) { cornerRadius.toPx() }
     val tint = glowColor ?: if (palette.isBlueTheme) Color(0xFF38BDF8) else Color(0xFFA855F7)
 
-    this
-        .shadow(
-            elevation = 6.dp,
-            shape = shape,
-            clip = false,
-            ambientColor = tint.copy(alpha = 0.35f),
-            spotColor = tint.copy(alpha = 0.55f)
-        )
-        .clip(shape)
-        .background(
-            Brush.verticalGradient(
-                listOf(
-                    Color.White.copy(alpha = 0.28f),
-                    Color.White.copy(alpha = 0.14f),
-                    tint.copy(alpha = 0.25f)
+    val activeHaze = hazeState ?: LocalHazeState.current
+
+    val shadowModifier = Modifier.shadow(
+        elevation = 8.dp,
+        shape = shape,
+        clip = false,
+        ambientColor = tint.copy(alpha = 0.40f),
+        spotColor = tint.copy(alpha = 0.60f)
+    )
+
+    val baseModifier = if (activeHaze != null) {
+        Modifier
+            .then(shadowModifier)
+            .hazeChild(
+                state = activeHaze,
+                shape = shape,
+                style = HazeMaterials.thin()
+            )
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.30f),
+                        Color.White.copy(alpha = 0.12f),
+                        tint.copy(alpha = 0.35f)
+                    )
+                ),
+                shape
+            )
+    } else {
+        Modifier
+            .then(shadowModifier)
+            .clip(shape)
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.30f),
+                        Color.White.copy(alpha = 0.12f),
+                        tint.copy(alpha = 0.35f)
+                    )
                 )
             )
-        )
+    }
+
+    this
+        .then(baseModifier)
         .drawWithCache {
             val width = size.width
             val height = size.height
 
             val rimBrush = Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.85f),
-                    Color.White.copy(alpha = 0.30f),
-                    tint.copy(alpha = 0.40f)
+                    Color.White.copy(alpha = 0.90f),
+                    Color.White.copy(alpha = 0.35f),
+                    tint.copy(alpha = 0.50f)
                 )
             )
 
             val innerGlowBrush = Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.40f),
+                    Color.White.copy(alpha = 0.45f),
                     Color.Transparent
                 ),
                 startY = 0f,
@@ -320,7 +370,86 @@ fun Modifier.liquidGlassActivePill(
                     brush = rimBrush,
                     size = size,
                     cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
-                    style = Stroke(width = 1.dp.toPx())
+                    style = Stroke(width = 1.2.dp.toPx())
+                )
+            }
+        }
+}
+
+/**
+ * Glass card for alarm cards with Haze real blur and subtle specular highlights.
+ */
+fun Modifier.liquidGlassCard(
+    hazeState: HazeState? = null,
+    shape: Shape = RoundedCornerShape(22.dp),
+    cornerRadius: Dp = 22.dp
+): Modifier = composed {
+    val palette = ClockTheme.palette
+    val density = LocalDensity.current
+    val cornerRadiusPx = with(density) { cornerRadius.toPx() }
+    val activeHaze = hazeState ?: LocalHazeState.current
+
+    val substrateColor = if (palette.isBlueTheme) Color(0x240E2240) else Color(0x221A1030)
+
+    val baseModifier = if (activeHaze != null) {
+        Modifier
+            .shadow(
+                elevation = 6.dp,
+                shape = shape,
+                clip = false,
+                ambientColor = Color.Black.copy(alpha = 0.25f),
+                spotColor = Color.Black.copy(alpha = 0.45f)
+            )
+            .hazeChild(
+                state = activeHaze,
+                shape = shape,
+                style = HazeMaterials.ultraThin()
+            )
+            .background(substrateColor, shape)
+    } else {
+        Modifier
+            .shadow(
+                elevation = 6.dp,
+                shape = shape,
+                clip = false,
+                ambientColor = Color.Black.copy(alpha = 0.25f),
+                spotColor = Color.Black.copy(alpha = 0.45f)
+            )
+            .clip(shape)
+            .background(substrateColor)
+    }
+
+    this
+        .then(baseModifier)
+        .drawWithCache {
+            val width = size.width
+            val height = size.height
+            val sheenBrush = Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.14f),
+                    Color.Transparent
+                ),
+                startY = 0f,
+                endY = height * 0.60f
+            )
+            val rimBrush = Brush.linearGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.45f),
+                    Color.White.copy(alpha = 0.10f),
+                    Color.Transparent,
+                    Color.White.copy(alpha = 0.15f)
+                ),
+                start = Offset(0f, 0f),
+                end = Offset(width, height)
+            )
+            onDrawWithContent {
+                drawRect(sheenBrush)
+                drawContent()
+                drawRoundRect(
+                    brush = rimBrush,
+                    size = size,
+                    cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
+                    style = Stroke(width = 0.9.dp.toPx())
                 )
             }
         }
