@@ -124,6 +124,7 @@ import com.sec.oneui.clock.theme.LiquidTextSecondary
 import com.sec.oneui.clock.theme.LocalBackdrop
 import com.sec.oneui.clock.theme.LocalLiquidGlassEnabled
 import com.sec.oneui.clock.theme.OneUiRed
+import com.sec.oneui.clock.theme.PlatformBackdrop
 import com.sec.oneui.clock.theme.drawInteractiveGlass
 import com.sec.oneui.clock.theme.iosClickable
 import com.sec.oneui.clock.theme.iosPressEffect
@@ -302,25 +303,6 @@ fun AlarmScreen(
                 )
             }
         }
-
-        // Edit Alarm Sheet rendered instantly in Frame 0 without delayed transitions
-        if (editorState.isOpen) {
-            AlarmEditSheet(
-                editorState = editorState,
-                use24HourFormat = use24HourFormat,
-                onDismiss = { viewModel.dismissEditorSheet() },
-                onSave = { viewModel.saveDraft() },
-                onCancel = { viewModel.cancelDraft() },
-                onTimeChanged = { h, m -> viewModel.updateEditorTime(h, m) },
-                onLabelChanged = { viewModel.updateEditorLabel(it) },
-                onDayToggled = { viewModel.toggleEditorDay(it) },
-                onSnoozeChanged = { viewModel.updateEditorSnooze(it) },
-                onVibrateChanged = { viewModel.updateEditorVibrate(it) },
-                onRingtonePicked = { uri, name -> viewModel.updateEditorRingtone(uri, name) },
-                onScheduledDateChanged = { viewModel.updateEditorScheduledDate(it) },
-                onVolumeChanged = { viewModel.updateEditorVolume(it) }
-            )
-        }
     }
 }
 
@@ -481,7 +463,8 @@ fun AlarmEditSheet(
     onVibrateChanged: (Boolean) -> Unit,
     onRingtonePicked: (uri: String?, name: String) -> Unit,
     onScheduledDateChanged: (Long?) -> Unit,
-    onVolumeChanged: (Float) -> Unit
+    onVolumeChanged: (Float) -> Unit,
+    sheetBackdrop: PlatformBackdrop? = null
 ) {
     val context = LocalContext.current
     var showDatePicker by remember { mutableStateOf(false) }
@@ -529,6 +512,8 @@ fun AlarmEditSheet(
     val palette = ClockTheme.palette
     val isGlassActive = LocalLiquidGlassEnabled.current && LocalBackdrop.current != null
     val backdrop = LocalBackdrop.current
+    val containerBackdrop = sheetBackdrop ?: backdrop
+    val isContainerGlassActive = LocalLiquidGlassEnabled.current && containerBackdrop != null
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
 
@@ -560,11 +545,11 @@ fun AlarmEditSheet(
                 .navigationBarsPadding()
                 .padding(top = 24.dp)
                 .then(
-                    if (isGlassActive && backdrop != null) {
+                    if (isContainerGlassActive && containerBackdrop != null) {
                         Modifier
                             .drawInteractiveGlass(
                                 isDark = true,
-                                backdrop = backdrop,
+                                backdrop = containerBackdrop,
                                 layer = null,
                                 luminance = { 0.4f },
                                 shape = sheetShape,
@@ -580,7 +565,7 @@ fun AlarmEditSheet(
                     indication = null
                 ) {},
             shape = sheetShape,
-            color = if (isGlassActive && backdrop != null) {
+            color = if (isContainerGlassActive && containerBackdrop != null) {
                 Color.Transparent
             } else {
                 when (palette.themeMode) {

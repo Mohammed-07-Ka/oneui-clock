@@ -104,6 +104,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import kotlin.math.absoluteValue
+import com.sec.oneui.clock.alarm.ui.AlarmEditSheet
 import com.sec.oneui.clock.alarm.ui.AlarmScreen
 import com.sec.oneui.clock.alarm.ui.AlarmViewModel
 import com.sec.oneui.clock.settings.SettingsManager
@@ -373,6 +374,7 @@ fun MainClockApp(
 ) {
     var showSettings by rememberSaveable { mutableStateOf(false) }
     val editorState by alarmViewModel.editorState.collectAsState()
+    val use24HourFormat by settingsManager.use24HourFormat.collectAsState()
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { ClockTab.items.size })
     val coroutineScope = rememberCoroutineScope()
     val palette = ClockTheme.palette
@@ -732,6 +734,26 @@ fun MainClockApp(
                             }
                         }
                     }
+                }
+
+                // 6. Edit Alarm Sheet (Hoisted above Pager and Tab Bar)
+                if (editorState.isOpen) {
+                    AlarmEditSheet(
+                        editorState = editorState,
+                        use24HourFormat = use24HourFormat,
+                        onDismiss = { alarmViewModel.dismissEditorSheet() },
+                        onSave = { alarmViewModel.saveDraft() },
+                        onCancel = { alarmViewModel.cancelDraft() },
+                        onTimeChanged = { h, m -> alarmViewModel.updateEditorTime(h, m) },
+                        onLabelChanged = { alarmViewModel.updateEditorLabel(it) },
+                        onDayToggled = { alarmViewModel.toggleEditorDay(it) },
+                        onSnoozeChanged = { alarmViewModel.updateEditorSnooze(it) },
+                        onVibrateChanged = { alarmViewModel.updateEditorVibrate(it) },
+                        onRingtonePicked = { uri, name -> alarmViewModel.updateEditorRingtone(uri, name) },
+                        onScheduledDateChanged = { alarmViewModel.updateEditorScheduledDate(it) },
+                        onVolumeChanged = { alarmViewModel.updateEditorVolume(it) },
+                        sheetBackdrop = overlayBackdrop
+                    )
                 }
             }
         }
