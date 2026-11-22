@@ -12,6 +12,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.Choreographer
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
@@ -80,6 +81,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -247,20 +249,28 @@ class MainActivity : ComponentActivity() {
                 LocalLiquidGlassEnabled provides isGlassActive
             ) {
                 OneUIClockTheme(themeMode = themeMode) {
-                    MainClockApp(
-                        alarmViewModel = alarmViewModel,
-                        stopwatchViewModel = stopwatchViewModel,
-                        timerViewModel = timerViewModel,
-                        settingsManager = settingsManager,
-                        navTabFlow = navTabFlow,
-                        themeMode = themeMode,
-                        animationEnabled = animationEnabled,
-                        animationSpeed = animationSpeed,
-                        hazeState = hazeState,
-                        bgBackdrop = bgBackdrop,
-                        pagerBackdrop = pagerBackdrop,
-                        overlayBackdrop = overlayBackdrop
-                    )
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        MainClockApp(
+                            alarmViewModel = alarmViewModel,
+                            stopwatchViewModel = stopwatchViewModel,
+                            timerViewModel = timerViewModel,
+                            settingsManager = settingsManager,
+                            navTabFlow = navTabFlow,
+                            themeMode = themeMode,
+                            animationEnabled = animationEnabled,
+                            animationSpeed = animationSpeed,
+                            hazeState = hazeState,
+                            bgBackdrop = bgBackdrop,
+                            pagerBackdrop = pagerBackdrop,
+                            overlayBackdrop = overlayBackdrop
+                        )
+                        FpsMeter(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .statusBarsPadding()
+                                .padding(start = 12.dp, top = 4.dp)
+                        )
+                    }
                 }
             }
         }
@@ -763,4 +773,62 @@ fun MainClockApp(
             }
         }
     }
+}
+
+@Composable
+private fun FpsMeter(modifier: Modifier = Modifier) {
+    var fpsText by remember { mutableStateOf("fps -- | worst --ms") }
+
+    DisposableEffect(Unit) {
+        val choreographer = Choreographer.getInstance()
+        var isRunning = true
+        var frameCount = 0
+        var windowStartNs = 0L
+        var lastFrameTimeNs = 0L
+        var worstIntervalNs = 0L
+
+        val callback = object : Choreographer.FrameCallback {
+            override fun doFrame(frameTimeNanos: Long) {
+                if (!isRunning) return
+                if (windowStartNs == 0L) {
+                    windowStartNs = frameTimeNanos
+                    lastFrameTimeNs = frameTimeNanos
+                } else {
+                    frameCount++
+                    val intervalNs = frameTimeNanos - lastFrameTimeNs
+                    lastFrameTimeNs = frameTimeNanos
+                    if (intervalNs > worstIntervalNs) {
+                        worstIntervalNs = intervalNs
+                    }
+
+                    val elapsedNs = frameTimeNanos - windowStartNs
+                    if (elapsedNs >= 1_000_000_000L) {
+                        val fps = if (elapsedNs > 0L) {
+                            ((frameCount * 1_000_000_000L + elapsedNs / 2) / elapsedNs).toInt()
+                        } else 0
+                        val worstMs = (worstIntervalNs / 1_000_000L).toInt()
+                        fpsText = "fps $fps | worst ${worstMs}ms"
+                        frameCount = 0
+                        windowStartNs = frameTimeNanos
+                        worstIntervalNs = 0L
+                    }
+                }
+                choreographer.postFrameCallback(this)
+            }
+        }
+
+        choreographer.postFrameCallback(callback)
+
+        onDispose {
+            isRunning = false
+            choreographer.removeFrameCallback(callback)
+        }
+    }
+
+    Text(
+        text = fpsText,
+        color = Color.Yellow,
+        fontSize = 11.sp,
+        modifier = modifier
+    )
 }
