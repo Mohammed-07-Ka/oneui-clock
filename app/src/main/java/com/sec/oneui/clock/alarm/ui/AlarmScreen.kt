@@ -237,20 +237,29 @@ fun AlarmScreen(
                         .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.Alarm,
-                            contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.25f),
-                            modifier = Modifier.size(54.dp)
-                        )
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Text(
-                            text = "No alarms\nTap + to set an alarm",
-                            fontSize = 17.sp,
-                            color = palette.textSecondary,
-                            fontWeight = FontWeight.Medium
-                        )
+                    AnimatedVisibility(
+                        visible = alarms.isEmpty(),
+                        enter = fadeIn(animationSpec = ClockMotion.smooth()) + scaleIn(
+                            initialScale = 0.96f,
+                            animationSpec = ClockMotion.smooth()
+                        ),
+                        exit = fadeOut(animationSpec = ClockMotion.smooth())
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Alarm,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.25f),
+                                modifier = Modifier.size(54.dp)
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Text(
+                                text = "No alarms\nTap + to set an alarm",
+                                fontSize = 17.sp,
+                                color = palette.textSecondary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
             } else {

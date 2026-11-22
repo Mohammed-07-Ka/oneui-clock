@@ -1,5 +1,10 @@
 package com.sec.oneui.clock.stopwatch.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,6 +39,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sec.oneui.clock.theme.ClockMotion
 import com.sec.oneui.clock.theme.ClockTheme
 import com.sec.oneui.clock.theme.LocalBackdrop
 import com.sec.oneui.clock.theme.LocalLiquidGlassEnabled
@@ -126,13 +132,24 @@ fun StopwatchScreen(
         }
 
         // Action Buttons Row with iOS Liquid Glass Styling and Tactile Press
-        Row(
+        AnimatedContent(
+            targetState = state,
+            transitionSpec = {
+                scaleIn(
+                    initialScale = 0.96f,
+                    animationSpec = ClockMotion.smooth()
+                ).togetherWith(ExitTransition.None)
+            },
+            label = "stopwatchButtonsTransition",
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            when (state) {
+                .padding(vertical = 16.dp)
+        ) { targetState ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                when (targetState) {
                 StopwatchState.IDLE -> {
                     if (isGlassActive && backdrop != null) {
                         Box(
@@ -290,15 +307,26 @@ fun StopwatchScreen(
                 }
             }
         }
+        }
 
         // Lap Times Table Glass Container
         if (laps.isNotEmpty()) {
-            val lapCardShape = RoundedCornerShape(24.dp)
-            Box(
+            AnimatedVisibility(
+                visible = laps.isNotEmpty(),
+                enter = scaleIn(
+                    initialScale = 0.96f,
+                    animationSpec = ClockMotion.smooth()
+                ),
+                exit = ExitTransition.None,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .then(
+            ) {
+                val lapCardShape = RoundedCornerShape(24.dp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(
                         if (isGlassActive && backdrop != null) {
                             Modifier
                                 .drawInteractiveGlass(
@@ -347,6 +375,11 @@ fun StopwatchScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .animateItem(
+                                        placementSpec = ClockMotion.snappy(),
+                                        fadeInSpec = ClockMotion.snappy(),
+                                        fadeOutSpec = ClockMotion.snappy()
+                                    )
                                     .padding(horizontal = 8.dp, vertical = 12.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
@@ -376,6 +409,7 @@ fun StopwatchScreen(
                         }
                     }
                 }
+            }
             }
             Spacer(modifier = Modifier.height(112.dp))
         } else {

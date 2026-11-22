@@ -15,6 +15,21 @@ import androidx.compose.animation.core.spring
  * private values of the UIKit system sheet.
  */
 object ClockMotion {
+    fun <T> smooth(): SpringSpec<T> = spring(
+        dampingRatio = 1.0f,
+        stiffness = 157.91f
+    )
+
+    fun <T> snappy(): SpringSpec<T> = spring(
+        dampingRatio = 0.85f,
+        stiffness = 157.91f
+    )
+
+    fun <T> bouncy(): SpringSpec<T> = spring(
+        dampingRatio = 0.70f,
+        stiffness = 157.91f
+    )
+
     val Smooth: SpringSpec<Float> = spring(
         dampingRatio = 1.0f,
         stiffness = 157.91f

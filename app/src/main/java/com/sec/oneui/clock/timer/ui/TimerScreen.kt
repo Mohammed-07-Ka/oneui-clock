@@ -1,5 +1,9 @@
 package com.sec.oneui.clock.timer.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -42,6 +46,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sec.oneui.clock.theme.ClockMotion
 import com.sec.oneui.clock.theme.ClockTheme
 import com.sec.oneui.clock.theme.LocalBackdrop
 import com.sec.oneui.clock.theme.LocalLiquidGlassEnabled
@@ -96,7 +101,21 @@ fun TimerScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        when (state) {
+        AnimatedContent(
+            targetState = state,
+            transitionSpec = {
+                scaleIn(
+                    initialScale = 0.96f,
+                    animationSpec = ClockMotion.smooth()
+                ).togetherWith(ExitTransition.None)
+            },
+            label = "timerStateTransition",
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) { targetState ->
+            Column(modifier = Modifier.fillMaxSize()) {
+                when (targetState) {
             TimerState.IDLE -> {
                 // Time Input Glass Dial
                 Box(
@@ -547,5 +566,7 @@ fun TimerScreen(
                 }
             }
         }
+    }
+}
     }
 }
