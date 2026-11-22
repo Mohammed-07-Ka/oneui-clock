@@ -569,7 +569,7 @@ fun AlarmEditSheet(
                     .fillMaxSize()
                     .verticalScroll(scrollState)
                     .padding(horizontal = 24.dp)
-                    .padding(top = 16.dp, bottom = 32.dp)
+                    .padding(top = 12.dp, bottom = 24.dp)
             ) {
                 // iOS Drag Handle
                 Box(
@@ -581,7 +581,7 @@ fun AlarmEditSheet(
                         .background(Color.White.copy(alpha = 0.25f))
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // iOS Sheet Header Bar: Cancel on left, Title in center, Save on right
                 Row(
@@ -678,7 +678,7 @@ fun AlarmEditSheet(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(15.dp))
 
             // iOS Liquid Glass Wheel Time Picker
             val timePickerShape = RoundedCornerShape(26.dp)
@@ -705,7 +705,7 @@ fun AlarmEditSheet(
                                 )
                             }
                         )
-                        .padding(vertical = 14.dp, horizontal = 24.dp),
+                        .padding(vertical = 10.dp, horizontal = 24.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -770,7 +770,7 @@ fun AlarmEditSheet(
                                 )
                             }
                         )
-                        .padding(vertical = 14.dp, horizontal = 16.dp),
+                        .padding(vertical = 10.dp, horizontal = 16.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -834,7 +834,7 @@ fun AlarmEditSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(15.dp))
 
             // Day of Week selector
             Text("Repeat", fontSize = 15.sp, color = palette.textSecondary, fontWeight = FontWeight.SemiBold)
@@ -870,7 +870,7 @@ fun AlarmEditSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Calendar Date Picker Glass Card
             val scheduleShape = RoundedCornerShape(18.dp)
@@ -897,7 +897,7 @@ fun AlarmEditSheet(
                         }
                     )
                     .iosClickable(targetScale = 0.96f) { showDatePicker = true }
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -928,7 +928,7 @@ fun AlarmEditSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Ringtone Picker Glass Card
             val ringtoneShape = RoundedCornerShape(18.dp)
@@ -966,7 +966,7 @@ fun AlarmEditSheet(
                         }
                         ringtoneLauncher.launch(intent)
                     }
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -997,7 +997,7 @@ fun AlarmEditSheet(
                     .padding(start = 36.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .clickable { fileLauncher.launch(arrayOf("audio/*")) }
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -1008,7 +1008,7 @@ fun AlarmEditSheet(
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Alarm Volume Glass Card
             val volumeShape = RoundedCornerShape(18.dp)
@@ -1034,7 +1034,7 @@ fun AlarmEditSheet(
                             )
                         }
                     )
-                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1111,7 +1111,7 @@ fun AlarmEditSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Alarm Label TextField
             OutlinedTextField(
@@ -1137,7 +1137,7 @@ fun AlarmEditSheet(
                 )
             )
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Snooze Interval Chips
             Text("Snooze Duration", fontSize = 15.sp, color = palette.textSecondary, fontWeight = FontWeight.SemiBold)
@@ -1166,7 +1166,7 @@ fun AlarmEditSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(30.dp))
         }
     }
 }
