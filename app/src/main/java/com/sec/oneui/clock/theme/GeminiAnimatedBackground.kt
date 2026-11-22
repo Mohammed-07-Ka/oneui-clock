@@ -110,8 +110,8 @@ fun GeminiAnimatedBackground(
     }
 
     val targetGroundColor = when (themeMode) {
-        ThemeMode.AURORA_PURPLE -> Color(0xFF0D0920)
-        ThemeMode.MIDNIGHT_BLUE -> Color(0xFF060C1E)
+        ThemeMode.AURORA_PURPLE -> Color(0xFF07060B)
+        ThemeMode.MIDNIGHT_BLUE -> Color(0xFF04060B)
         ThemeMode.AMOLED_PITCH -> Color(0xFF000000)
     }
 
@@ -167,16 +167,16 @@ fun GeminiAnimatedBackground(
 private fun DrawScope.drawStaticMesh(themeMode: ThemeMode, width: Float, height: Float) {
     when (themeMode) {
         ThemeMode.AURORA_PURPLE -> {
-            val meshRadius = width * 0.85f
+            val meshRadius = width * 1.25f
 
-            // Top-left luminous orb
+            // Top ambient diffused glow
             val orb1X = width * 0.30f
-            val orb1Y = height * 0.22f
+            val orb1Y = height * 0.20f
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF9333EA).copy(alpha = 0.65f),
-                        Color(0xFF6B21A8).copy(alpha = 0.30f),
+                        Color(0xFF7C3AED).copy(alpha = 0.15f),
+                        Color(0xFF581C87).copy(alpha = 0.06f),
                         Color.Transparent
                     ),
                     center = Offset(orb1X, orb1Y),
@@ -186,15 +186,15 @@ private fun DrawScope.drawStaticMesh(themeMode: ThemeMode, width: Float, height:
                 center = Offset(orb1X, orb1Y)
             )
 
-            // Bottom-center ambient glow (directly behind the floating glass bar)
+            // Bottom subtle glow (behind floating glass bar)
             val orb2X = width * 0.50f
             val orb2Y = height * 0.88f
-            val navRadius = width * 0.90f
+            val navRadius = width * 1.30f
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF7C3AED).copy(alpha = 0.65f),
-                        Color(0xFF4C1D95).copy(alpha = 0.30f),
+                        Color(0xFF4F46E5).copy(alpha = 0.16f),
+                        Color(0xFF312E81).copy(alpha = 0.06f),
                         Color.Transparent
                     ),
                     center = Offset(orb2X, orb2Y),
@@ -204,15 +204,14 @@ private fun DrawScope.drawStaticMesh(themeMode: ThemeMode, width: Float, height:
                 center = Offset(orb2X, orb2Y)
             )
 
-            // Right-side warm highlight
+            // Mid accent
             val orb3X = width * 0.75f
-            val orb3Y = height * 0.52f
-            val ambientRadius = width * 0.70f
+            val orb3Y = height * 0.50f
+            val ambientRadius = width * 0.95f
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFFC026D3).copy(alpha = 0.50f),
-                        Color(0xFF38BDF8).copy(alpha = 0.25f),
+                        Color(0xFF9333EA).copy(alpha = 0.10f),
                         Color.Transparent
                     ),
                     center = Offset(orb3X, orb3Y),
@@ -224,14 +223,14 @@ private fun DrawScope.drawStaticMesh(themeMode: ThemeMode, width: Float, height:
         }
 
         ThemeMode.MIDNIGHT_BLUE -> {
-            val localizedRadius = width * 0.85f
+            val localizedRadius = width * 1.25f
             val orb1X = width * 0.75f
             val orb1Y = height * 0.20f
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF2563EB).copy(alpha = 0.65f),
-                        Color(0xFF1E40AF).copy(alpha = 0.30f),
+                        Color(0xFF1D4ED8).copy(alpha = 0.15f),
+                        Color(0xFF1E3A8A).copy(alpha = 0.06f),
                         Color.Transparent
                     ),
                     center = Offset(orb1X, orb1Y),
@@ -244,17 +243,18 @@ private fun DrawScope.drawStaticMesh(themeMode: ThemeMode, width: Float, height:
             // Bottom glow behind navigation bar
             val orb2X = width * 0.45f
             val orb2Y = height * 0.88f
+            val navRadius = width * 1.30f
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF0284C7).copy(alpha = 0.65f),
-                        Color(0xFF0369A1).copy(alpha = 0.30f),
+                        Color(0xFF0284C7).copy(alpha = 0.16f),
+                        Color(0xFF0369A1).copy(alpha = 0.06f),
                         Color.Transparent
                     ),
                     center = Offset(orb2X, orb2Y),
-                    radius = localizedRadius
+                    radius = navRadius
                 ),
-                radius = localizedRadius,
+                radius = navRadius,
                 center = Offset(orb2X, orb2Y)
             )
         }
@@ -271,16 +271,16 @@ private fun DrawScope.drawAnimatedMesh(
 ) {
     when (themeMode) {
         ThemeMode.AURORA_PURPLE -> {
-            val meshRadius = width * 0.85f
+            val meshRadius = width * 1.25f
 
-            // Orb 1: Radiant Electric Violet (#9333EA) undulating top-left
-            val orb1X = width * (0.28f + 0.14f * sin(animatedPhase))
-            val orb1Y = height * (0.20f + 0.10f * cos(animatedPhase * 0.8f))
+            // Top ambient undulating glow
+            val orb1X = width * (0.30f + 0.10f * sin(animatedPhase))
+            val orb1Y = height * (0.20f + 0.08f * cos(animatedPhase * 0.8f))
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF9333EA).copy(alpha = 0.65f),
-                        Color(0xFF6B21A8).copy(alpha = 0.30f),
+                        Color(0xFF7C3AED).copy(alpha = 0.15f),
+                        Color(0xFF581C87).copy(alpha = 0.06f),
                         Color.Transparent
                     ),
                     center = Offset(orb1X, orb1Y),
@@ -290,15 +290,15 @@ private fun DrawScope.drawAnimatedMesh(
                 center = Offset(orb1X, orb1Y)
             )
 
-            // Orb 2: Radiant Royal Purple (#7C3AED) positioned right behind the floating bottom bar
-            val orb2X = width * (0.50f + 0.16f * cos(animatedPhase * 1.1f))
-            val orb2Y = height * (0.86f + 0.08f * sin(animatedPhase * 0.9f))
-            val bottomGlowRadius = width * 0.92f
+            // Bottom ambient glow behind floating liquid glass bar
+            val orb2X = width * (0.50f + 0.12f * cos(animatedPhase * 1.1f))
+            val orb2Y = height * (0.86f + 0.06f * sin(animatedPhase * 0.9f))
+            val bottomGlowRadius = width * 1.30f
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF7C3AED).copy(alpha = 0.65f),
-                        Color(0xFF4C1D95).copy(alpha = 0.30f),
+                        Color(0xFF4F46E5).copy(alpha = 0.16f),
+                        Color(0xFF312E81).copy(alpha = 0.06f),
                         Color.Transparent
                     ),
                     center = Offset(orb2X, orb2Y),
@@ -308,15 +308,14 @@ private fun DrawScope.drawAnimatedMesh(
                 center = Offset(orb2X, orb2Y)
             )
 
-            // Orb 3: Luminous Magenta / Cyan Accent (#C026D3) shifting mid-screen
-            val orb3X = width * (0.72f + 0.15f * sin(animatedPhase * 0.7f + 1.2f))
-            val orb3Y = height * (0.50f + 0.12f * cos(animatedPhase * 1.2f))
-            val midRadius = width * 0.72f
+            // Mid accent shifting gently
+            val orb3X = width * (0.72f + 0.10f * sin(animatedPhase * 0.7f + 1.2f))
+            val orb3Y = height * (0.50f + 0.08f * cos(animatedPhase * 1.2f))
+            val midRadius = width * 0.95f
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFFC026D3).copy(alpha = 0.50f),
-                        Color(0xFF38BDF8).copy(alpha = 0.25f),
+                        Color(0xFF9333EA).copy(alpha = 0.10f),
                         Color.Transparent
                     ),
                     center = Offset(orb3X, orb3Y),
@@ -328,16 +327,16 @@ private fun DrawScope.drawAnimatedMesh(
         }
 
         ThemeMode.MIDNIGHT_BLUE -> {
-            val localizedRadius = width * 0.85f
+            val localizedRadius = width * 1.25f
 
-            // Radiant Sapphire Blue (#2563EB) in top-right
-            val orb1X = width * (0.78f + 0.10f * sin(animatedPhase))
-            val orb1Y = height * (0.20f + 0.08f * cos(animatedPhase * 0.8f))
+            // Top-right sapphire glow
+            val orb1X = width * (0.75f + 0.08f * sin(animatedPhase))
+            val orb1Y = height * (0.20f + 0.06f * cos(animatedPhase * 0.8f))
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF2563EB).copy(alpha = 0.65f),
-                        Color(0xFF1E40AF).copy(alpha = 0.30f),
+                        Color(0xFF1D4ED8).copy(alpha = 0.15f),
+                        Color(0xFF1E3A8A).copy(alpha = 0.06f),
                         Color.Transparent
                     ),
                     center = Offset(orb1X, orb1Y),
@@ -347,15 +346,15 @@ private fun DrawScope.drawAnimatedMesh(
                 center = Offset(orb1X, orb1Y)
             )
 
-            // Electric Azure (#0284C7) directly behind bottom navigation bar
-            val orb2X = width * (0.45f + 0.14f * cos(animatedPhase * 1.1f))
-            val orb2Y = height * (0.86f + 0.08f * sin(animatedPhase * 0.9f))
-            val bottomGlowRadius = width * 0.90f
+            // Bottom azure glow behind floating liquid glass bar
+            val orb2X = width * (0.45f + 0.10f * cos(animatedPhase * 1.1f))
+            val orb2Y = height * (0.86f + 0.06f * sin(animatedPhase * 0.9f))
+            val bottomGlowRadius = width * 1.30f
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF0284C7).copy(alpha = 0.65f),
-                        Color(0xFF0369A1).copy(alpha = 0.30f),
+                        Color(0xFF0284C7).copy(alpha = 0.16f),
+                        Color(0xFF0369A1).copy(alpha = 0.06f),
                         Color.Transparent
                     ),
                     center = Offset(orb2X, orb2Y),

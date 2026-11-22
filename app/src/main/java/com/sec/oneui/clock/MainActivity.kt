@@ -387,7 +387,7 @@ fun MainClockApp(
                                 cornerRadius = 32.dp,
                                 elevation = 16.dp
                             )
-                            .padding(6.dp)
+                            .padding(4.dp)
                     ) {
                         val tabCount = ClockTab.items.size
                         val tabWidth = maxWidth / tabCount
@@ -397,6 +397,7 @@ fun MainClockApp(
                             animationSpec = spring(dampingRatio = 0.72f, stiffness = 450f),
                             label = "activeTabPill"
                         )
+                        val activeColor = if (palette.isBlueTheme) Color(0xFF38BDF8) else Color(0xFFA855F7)
 
                         // Illuminated Liquid Glass Active Pill Indicator (matching SimpMusic "Home" pill)
                         Box(
@@ -406,24 +407,25 @@ fun MainClockApp(
                                 .fillMaxHeight()
                                 .liquidGlassActivePill(
                                     hazeState = hazeState,
-                                    shape = RoundedCornerShape(26.dp),
-                                    cornerRadius = 26.dp,
-                                    glowColor = if (palette.isBlueTheme) Color(0xFF38BDF8) else Color(0xFFA855F7)
+                                    shape = RoundedCornerShape(28.dp),
+                                    cornerRadius = 28.dp,
+                                    glowColor = activeColor
                                 )
                         )
 
-                        // Tab items row (Crisp Icons + Labels)
+                        // Tab items row: Clean vertical layout (Icon on top, label below) matching SimpMusic & iOS
                         Row(
                             modifier = Modifier.fillMaxSize(),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             ClockTab.items.forEach { tab ->
                                 val isSelected = selectedTab == tab.index
+                                val tabColor = if (isSelected) activeColor else Color.White.copy(alpha = 0.55f)
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
                                         .fillMaxHeight()
-                                        .clip(RoundedCornerShape(26.dp))
+                                        .clip(RoundedCornerShape(28.dp))
                                         .clickable(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = null
@@ -438,25 +440,26 @@ fun MainClockApp(
                                                 )
                                             }
                                         }
-                                        .iosPressEffect(targetScale = 0.95f),
+                                        .iosPressEffect(targetScale = 0.94f),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center
+                                    Column(
+                                        verticalArrangement = Arrangement.Center,
+                                        horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
                                         Icon(
                                             imageVector = tab.icon,
                                             contentDescription = tab.title,
-                                            tint = if (isSelected) Color.White else Color.White.copy(alpha = 0.60f),
+                                            tint = tabColor,
                                             modifier = Modifier.size(20.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Spacer(modifier = Modifier.height(2.dp))
                                         Text(
                                             text = tab.title,
-                                            fontSize = 13.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (isSelected) Color.White else Color.White.copy(alpha = 0.60f)
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                            color = tabColor,
+                                            maxLines = 1
                                         )
                                     }
                                 }
