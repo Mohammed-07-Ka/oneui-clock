@@ -208,35 +208,84 @@ fun StopwatchScreen(
                     }
                 }
                 StopwatchState.PAUSED -> {
-                    Button(
-                        onClick = { viewModel.reset() },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(58.dp)
-                            .iosPressEffect(targetScale = 0.96f),
-                        shape = RoundedCornerShape(29.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = palette.cardBackground,
-                            contentColor = palette.textPrimary
-                        )
-                    ) {
-                        Text("Reset", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                    }
+                    if (isGlassActive && backdrop != null) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(58.dp)
+                                .drawInteractiveGlass(
+                                    isDark = true,
+                                    backdrop = backdrop,
+                                    layer = null,
+                                    luminance = { 0.4f },
+                                    shape = RoundedCornerShape(29.dp),
+                                    interaction = null
+                                )
+                                .clip(RoundedCornerShape(29.dp))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { viewModel.reset() }
+                                .iosPressEffect(targetScale = 0.96f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Reset", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                        }
 
-                    Button(
-                        onClick = { viewModel.resume() },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(58.dp)
-                            .iosPressEffect(targetScale = 0.96f),
-                        shape = RoundedCornerShape(29.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = palette.primaryAccent,
-                            contentColor = palette.onPrimaryAccent
-                        )
-                    ) {
-                        Text("Resume", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(58.dp)
+                                .drawInteractiveGlass(
+                                    isDark = true,
+                                    backdrop = backdrop,
+                                    layer = null,
+                                    luminance = { 0.4f },
+                                    shape = RoundedCornerShape(29.dp),
+                                    interaction = null,
+                                    scrimColor = palette.primaryAccent
+                                )
+                                .clip(RoundedCornerShape(29.dp))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { viewModel.resume() }
+                                .iosPressEffect(targetScale = 0.96f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Resume", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    } else {
+                        Button(
+                            onClick = { viewModel.reset() },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(58.dp)
+                                .iosPressEffect(targetScale = 0.96f),
+                            shape = RoundedCornerShape(29.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = palette.cardBackground,
+                                contentColor = palette.textPrimary
+                            )
+                        ) {
+                            Text("Reset", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        Button(
+                            onClick = { viewModel.resume() },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(58.dp)
+                                .iosPressEffect(targetScale = 0.96f),
+                            shape = RoundedCornerShape(29.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = palette.primaryAccent,
+                                contentColor = palette.onPrimaryAccent
+                            )
+                        ) {
+                            Text("Resume", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -244,14 +293,30 @@ fun StopwatchScreen(
 
         // Lap Times Table Glass Container
         if (laps.isNotEmpty()) {
+            val lapCardShape = RoundedCornerShape(24.dp)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .liquidGlass(
-                        shape = RoundedCornerShape(24.dp),
-                        cornerRadius = 24.dp,
-                        elevation = 8.dp
+                    .then(
+                        if (isGlassActive && backdrop != null) {
+                            Modifier
+                                .drawInteractiveGlass(
+                                    isDark = true,
+                                    backdrop = backdrop,
+                                    layer = null,
+                                    luminance = { 0.4f },
+                                    shape = lapCardShape,
+                                    interaction = null
+                                )
+                                .clip(lapCardShape)
+                        } else {
+                            Modifier.liquidGlass(
+                                shape = lapCardShape,
+                                cornerRadius = 24.dp,
+                                elevation = 8.dp
+                            )
+                        }
                     )
                     .padding(16.dp)
             ) {
