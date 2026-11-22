@@ -108,6 +108,9 @@ import com.sec.oneui.clock.settings.SettingsScreen
 import com.sec.oneui.clock.stopwatch.ui.StopwatchScreen
 import com.sec.oneui.clock.stopwatch.ui.StopwatchViewModel
 import com.sec.oneui.clock.settings.ThemeMode
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
 import com.sec.oneui.clock.theme.ClockTheme
 import com.sec.oneui.clock.theme.GeminiAnimatedBackground
 import com.sec.oneui.clock.theme.GeminiBackgroundCanvas
@@ -117,6 +120,8 @@ import com.sec.oneui.clock.theme.LocalHazeState
 import com.sec.oneui.clock.theme.LocalLiquidGlassEnabled
 import com.sec.oneui.clock.theme.OneUIClockTheme
 import com.sec.oneui.clock.theme.PlatformBackdrop
+import com.sec.oneui.clock.theme.drawInteractiveGlass
+import com.sec.oneui.clock.theme.isLiquidGlassEnabled
 import com.sec.oneui.clock.theme.isLiquidGlassSupported
 import com.sec.oneui.clock.theme.iosPressEffect
 import com.sec.oneui.clock.theme.layerBackdrop
@@ -198,13 +203,18 @@ class MainActivity : ComponentActivity() {
             val animationEnabled by settingsManager.animationEnabled.collectAsState()
             val animationSpeed by settingsManager.animationSpeed.collectAsState()
             val hazeState = remember { HazeState() }
-            val backdrop = if (isLiquidGlassSupported) rememberBackdrop(Color.Transparent) else null
+            val isGlassActive = isLiquidGlassSupported && isLiquidGlassEnabled
+            val bgBackdrop = if (isGlassActive) rememberBackdrop(Color.Transparent) else null
+            val pagerBackdrop = if (isGlassActive) rememberBackdrop(Color.Transparent) else null
+            val overlayBackdrop = if (isGlassActive && bgBackdrop != null && pagerBackdrop != null) {
+                rememberCombinedBackdrop(bgBackdrop, pagerBackdrop)
+            } else null
 
             CompositionLocalProvider(
                 LocalLayoutDirection provides LayoutDirection.Ltr,
                 LocalHazeState provides hazeState,
-                LocalBackdrop provides backdrop,
-                LocalLiquidGlassEnabled provides isLiquidGlassSupported
+                LocalBackdrop provides bgBackdrop,
+                LocalLiquidGlassEnabled provides isGlassActive
             ) {
                 OneUIClockTheme(themeMode = themeMode) {
                     MainClockApp(
@@ -217,7 +227,9 @@ class MainActivity : ComponentActivity() {
                         animationEnabled = animationEnabled,
                         animationSpeed = animationSpeed,
                         hazeState = hazeState,
-                        backdrop = backdrop
+                        bgBackdrop = bgBackdrop,
+                        pagerBackdrop = pagerBackdrop,
+                        overlayBackdrop = overlayBackdrop
                     )
                 }
             }
@@ -352,7 +364,9 @@ fun MainClockApp(
     animationEnabled: Boolean = true,
     animationSpeed: Float = 1.0f,
     hazeState: HazeState? = LocalHazeState.current,
-    backdrop: PlatformBackdrop? = LocalBackdrop.current
+    bgBackdrop: LayerBackdrop? = null,
+    pagerBackdrop: LayerBackdrop? = null,
+    overlayBackdrop: Backdrop? = null
 ) {
     var showSettings by rememberSaveable { mutableStateOf(false) }
     val editorState by alarmViewModel.editorState.collectAsState()
@@ -426,26 +440,36 @@ fun MainClockApp(
                     )
                 )
 
-                // 1. Sibling Backdrop Source Layer:
-                // Captures BOTH the real animated mesh background AND the edge-to-edge pager content!
+                val isGlassActive = LocalLiquidGlassEnabled.current
+
+                // 1. Sibling Backdrop Source Layer: Animated Background Canvas ONLY
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .then(
-                            if (isLiquidGlassSupported && backdrop != null) {
-                                Modifier.layerBackdrop(backdrop)
+                            if (isGlassActive && bgBackdrop != null) {
+                                Modifier.layerBackdrop(bgBackdrop)
                             } else Modifier
                         )
                 ) {
-                    // Real Animated Mesh Background Canvas (aurora mesh + color transitions)
                     GeminiBackgroundCanvas(
                         themeMode = themeMode,
                         animationEnabled = animationEnabled,
                         animationSpeed = animationSpeed,
                         hazeState = activeHaze
                     )
+                }
 
-                    // Edge-to-Edge Content Pager (Passes COMPLETELY behind the floating liquid glass bar)
+                // 2. Sibling Content Layer: Edge-to-Edge Content Pager
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(
+                            if (isGlassActive && pagerBackdrop != null) {
+                                Modifier.layerBackdrop(pagerBackdrop)
+                            } else Modifier
+                        )
+                ) {
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
@@ -461,7 +485,7 @@ fun MainClockApp(
                     }
                 }
 
-                // 2. Settings Icon in Top-Right
+                // 3. Settings Icon in Top-Right
                 AnimatedVisibility(
                     visible = !editorState.isOpen,
                     enter = fadeIn(tween(200)),
@@ -471,28 +495,97 @@ fun MainClockApp(
                         .statusBarsPadding()
                         .padding(horizontal = 20.dp, vertical = 16.dp)
                 ) {
-                    IconButton(
-                        onClick = { showSettings = true },
-                        modifier = Modifier
-                            .size(42.dp)
-                            .liquidGlass(
-                                hazeState = hazeState,
-                                shape = CircleShape,
-                                cornerRadius = 21.dp,
-                                elevation = 8.dp
+                    if (isGlassActive && overlayBackdrop != null) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .drawInteractiveGlass(
+                                    isDark = true,
+                                    backdrop = overlayBackdrop,
+                                    layer = null,
+                                    luminance = { 0.4f },
+                                    shape = CircleShape,
+                                    interaction = null
+                                )
+                                .clip(CircleShape)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { showSettings = true }
+                                .iosPressEffect(targetScale = 0.95f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
                             )
-                            .iosPressEffect(targetScale = 0.95f)
+                        }
+                    } else {
+                        IconButton(
+                            onClick = { showSettings = true },
+                            modifier = Modifier
+                                .size(42.dp)
+                                .liquidGlass(
+                                    hazeState = hazeState,
+                                    shape = CircleShape,
+                                    cornerRadius = 21.dp,
+                                    elevation = 8.dp
+                                )
+                                .iosPressEffect(targetScale = 0.95f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+
+                // 4. Floating Liquid Glass Action Button (Hoisted to MainActivity when glass is active)
+                val defaultVibrate by settingsManager.defaultVibrate.collectAsState()
+                AnimatedVisibility(
+                    visible = isGlassActive && overlayBackdrop != null && pagerState.currentPage == 0 && !editorState.isOpen,
+                    enter = fadeIn(tween(200)),
+                    exit = fadeOut(tween(200)),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .navigationBarsPadding()
+                        .padding(end = 24.dp, bottom = 92.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .drawInteractiveGlass(
+                                isDark = true,
+                                backdrop = overlayBackdrop,
+                                layer = null,
+                                luminance = { 0.4f },
+                                shape = CircleShape,
+                                interaction = null,
+                                scrimColor = palette.primaryAccent
+                            )
+                            .clip(CircleShape)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { alarmViewModel.openEditorForNew(defaultVibrate) }
+                            .iosPressEffect(targetScale = 0.94f),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings",
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add Alarm",
                             tint = Color.White,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(30.dp)
                         )
                     }
                 }
 
-                // 3. Floating Liquid Glass Navigation Bar (Overlaid on top of passing content)
+                // 5. Floating Liquid Glass Navigation Bar (Overlaid on top of passing content)
                 AnimatedVisibility(
                     visible = !editorState.isOpen,
                     enter = slideInVertically(
@@ -508,14 +601,13 @@ fun MainClockApp(
                         .navigationBarsPadding()
                         .padding(horizontal = 20.dp, vertical = 14.dp)
                 ) {
-                    val isGlassActive = LocalLiquidGlassEnabled.current && backdrop != null
                     val activeColor = if (palette.isBlueTheme) Color(0xFF38BDF8) else Color(0xFFA855F7)
 
-                    if (isGlassActive) {
+                    if (isGlassActive && overlayBackdrop != null) {
                         LiquidGlassTabBar(
                             tabCount = ClockTab.items.size,
                             selectedTab = pagerState.currentPage.coerceIn(0, ClockTab.items.size - 1),
-                            backdrop = backdrop,
+                            backdrop = overlayBackdrop,
                             onTabSelected = { index ->
                                 coroutineScope.launch {
                                     pagerState.animateScrollToPage(index)

@@ -7,6 +7,8 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +43,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sec.oneui.clock.theme.ClockTheme
+import com.sec.oneui.clock.theme.LocalBackdrop
+import com.sec.oneui.clock.theme.LocalLiquidGlassEnabled
+import com.sec.oneui.clock.theme.drawInteractiveGlass
 import com.sec.oneui.clock.theme.LiquidActiveText
 import com.sec.oneui.clock.theme.LiquidActiveWhite
 import com.sec.oneui.clock.theme.LiquidGlassActive
@@ -219,20 +225,50 @@ fun TimerScreen(
                 }
 
                 // Start Button with iOS Tactile Press
-                Button(
-                    onClick = { viewModel.startTimer() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 96.dp)
-                        .height(58.dp)
-                        .iosPressEffect(targetScale = 0.96f),
-                    shape = RoundedCornerShape(29.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = palette.primaryAccent,
-                        contentColor = palette.onPrimaryAccent
-                    )
-                ) {
-                    Text("Start", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                val isGlassActive = LocalLiquidGlassEnabled.current && LocalBackdrop.current != null
+                val backdrop = LocalBackdrop.current
+
+                if (isGlassActive && backdrop != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 96.dp)
+                            .height(58.dp)
+                            .drawInteractiveGlass(
+                                isDark = true,
+                                backdrop = backdrop,
+                                layer = null,
+                                luminance = { 0.4f },
+                                shape = RoundedCornerShape(29.dp),
+                                interaction = null,
+                                scrimColor = palette.primaryAccent
+                            )
+                            .clip(RoundedCornerShape(29.dp))
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { viewModel.startTimer() }
+                            .iosPressEffect(targetScale = 0.96f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Start", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                } else {
+                    Button(
+                        onClick = { viewModel.startTimer() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 96.dp)
+                            .height(58.dp)
+                            .iosPressEffect(targetScale = 0.96f),
+                        shape = RoundedCornerShape(29.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = palette.primaryAccent,
+                            contentColor = palette.onPrimaryAccent
+                        )
+                    ) {
+                        Text("Start", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
 

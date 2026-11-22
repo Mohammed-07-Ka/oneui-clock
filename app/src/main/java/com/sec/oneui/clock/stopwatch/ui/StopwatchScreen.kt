@@ -2,6 +2,8 @@ package com.sec.oneui.clock.stopwatch.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,6 +35,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sec.oneui.clock.theme.ClockTheme
+import com.sec.oneui.clock.theme.LocalBackdrop
+import com.sec.oneui.clock.theme.LocalLiquidGlassEnabled
+import com.sec.oneui.clock.theme.drawInteractiveGlass
 import com.sec.oneui.clock.theme.LiquidActiveText
 import com.sec.oneui.clock.theme.LiquidGlassActive
 import com.sec.oneui.clock.theme.LiquidGlassBackground
@@ -110,19 +116,48 @@ fun StopwatchScreen(
         ) {
             when (state) {
                 StopwatchState.IDLE -> {
-                    Button(
-                        onClick = { viewModel.start() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(58.dp)
-                            .iosPressEffect(targetScale = 0.96f),
-                        shape = RoundedCornerShape(29.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = palette.primaryAccent,
-                            contentColor = palette.onPrimaryAccent
-                        )
-                    ) {
-                        Text("Start", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    val isGlassActive = LocalLiquidGlassEnabled.current && LocalBackdrop.current != null
+                    val backdrop = LocalBackdrop.current
+
+                    if (isGlassActive && backdrop != null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(58.dp)
+                                .drawInteractiveGlass(
+                                    isDark = true,
+                                    backdrop = backdrop,
+                                    layer = null,
+                                    luminance = { 0.4f },
+                                    shape = RoundedCornerShape(29.dp),
+                                    interaction = null,
+                                    scrimColor = palette.primaryAccent
+                                )
+                                .clip(RoundedCornerShape(29.dp))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { viewModel.start() }
+                                .iosPressEffect(targetScale = 0.96f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Start", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    } else {
+                        Button(
+                            onClick = { viewModel.start() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(58.dp)
+                                .iosPressEffect(targetScale = 0.96f),
+                            shape = RoundedCornerShape(29.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = palette.primaryAccent,
+                                contentColor = palette.onPrimaryAccent
+                            )
+                        ) {
+                            Text("Start", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
                 StopwatchState.RUNNING -> {

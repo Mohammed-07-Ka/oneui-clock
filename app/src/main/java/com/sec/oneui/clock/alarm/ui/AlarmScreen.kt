@@ -119,6 +119,8 @@ import com.sec.oneui.clock.theme.LiquidSpecularBorderSubtle
 import com.sec.oneui.clock.theme.LiquidTextMuted
 import com.sec.oneui.clock.theme.LiquidTextPrimary
 import com.sec.oneui.clock.theme.LiquidTextSecondary
+import com.sec.oneui.clock.theme.LocalBackdrop
+import com.sec.oneui.clock.theme.LocalLiquidGlassEnabled
 import com.sec.oneui.clock.theme.OneUiRed
 import com.sec.oneui.clock.theme.iosClickable
 import com.sec.oneui.clock.theme.iosPressEffect
@@ -260,9 +262,10 @@ fun AlarmScreen(
             }
         }
 
-        // Floating Liquid Glass Action Button with Tactile Press Feedback
+        // Floating Liquid Glass Action Button with Tactile Press Feedback (Fallback when glass is inactive)
+        val isGlassActive = LocalLiquidGlassEnabled.current && LocalBackdrop.current != null
         AnimatedVisibility(
-            visible = !editorState.isOpen,
+            visible = !isGlassActive && !editorState.isOpen,
             enter = fadeIn(tween(200)),
             exit = fadeOut(tween(200)),
             modifier = Modifier

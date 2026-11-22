@@ -64,6 +64,7 @@ import androidx.compose.ui.util.lerp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop as nativeBackdrop
@@ -131,7 +132,7 @@ val LocalLiquidGlassEnabled = staticCompositionLocalOf { isLiquidGlassEnabled }
 /**
  * Backdrop layer typealias matching SimpMusic.
  */
-typealias PlatformBackdrop = LayerBackdrop
+typealias PlatformBackdrop = Backdrop
 
 /**
  * CompositionLocal providing ambient PlatformBackdrop across composables.
@@ -156,14 +157,14 @@ fun Modifier.hazeSource(hazeState: HazeState): Modifier = this.haze(hazeState)
  * Marks a composable as the source layer that sibling glass surfaces sample and refract.
  * Replicates SimpMusic's LiquidGlass.kt:33
  */
-fun Modifier.layerBackdrop(backdrop: PlatformBackdrop): Modifier = this.nativeBackdrop(backdrop)
+fun Modifier.layerBackdrop(backdrop: LayerBackdrop): Modifier = this.nativeBackdrop(backdrop)
 
 /**
  * Creates and remembers a LayerBackdrop with a solid/fallback color base.
  * Replicates SimpMusic's LiquidGlass.kt:36-40
  */
 @Composable
-fun rememberBackdrop(color: Color = Color.Transparent): PlatformBackdrop =
+fun rememberBackdrop(color: Color = Color.Transparent): LayerBackdrop =
     rememberLayerBackdrop {
         drawRect(color)
         drawContent()
@@ -223,6 +224,7 @@ fun Modifier.drawInteractiveGlass(
     blurScale: Float = 1f,
     minScrim: Float = 0.12f,
     maxScrim: Float = 0.5f,
+    scrimColor: Color? = null,
 ): Modifier =
     this
         .drawBackdrop(
@@ -262,7 +264,8 @@ fun Modifier.drawInteractiveGlass(
             },
             onDrawSurface = {
                 val darken = lerp(minScrim, maxScrim, ((luminance() - 0.3f) / 0.5f).coerceIn(0f, 1f))
-                drawRect((if (isDark) Color.Black else Color.White).copy(alpha = darken))
+                val baseColor = scrimColor ?: (if (isDark) Color.Black else Color.White)
+                drawRect(baseColor.copy(alpha = darken))
                 val press = interaction?.pressProgress ?: 0f
                 if (press > 0f) {
                     drawRect(
