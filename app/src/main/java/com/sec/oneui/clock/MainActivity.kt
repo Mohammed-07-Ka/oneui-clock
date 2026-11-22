@@ -34,6 +34,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
@@ -550,8 +552,8 @@ fun MainClockApp(
                 val defaultVibrate by settingsManager.defaultVibrate.collectAsState()
                 AnimatedVisibility(
                     visible = isGlassActive && overlayBackdrop != null && pagerState.currentPage == 0 && !editorState.isOpen,
-                    enter = fadeIn(tween(200)),
-                    exit = fadeOut(tween(200)),
+                    enter = fadeIn() + scaleIn(),
+                    exit = fadeOut() + scaleOut(),
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .navigationBarsPadding()

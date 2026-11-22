@@ -23,6 +23,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -267,8 +269,8 @@ fun AlarmScreen(
         val isGlassActive = LocalLiquidGlassEnabled.current && LocalBackdrop.current != null
         AnimatedVisibility(
             visible = !isGlassActive && !editorState.isOpen,
-            enter = fadeIn(tween(200)),
-            exit = fadeOut(tween(200)),
+            enter = fadeIn() + scaleIn(),
+            exit = fadeOut() + scaleOut(),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .navigationBarsPadding()
