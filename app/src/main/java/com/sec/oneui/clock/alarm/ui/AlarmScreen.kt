@@ -551,6 +551,7 @@ fun AlarmEditSheet(
             ),
         contentAlignment = Alignment.BottomCenter
     ) {
+        val sheetShape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
         Surface(
             modifier = Modifier
                 .fillMaxSize()
@@ -558,15 +559,35 @@ fun AlarmEditSheet(
                 .imePadding()
                 .navigationBarsPadding()
                 .padding(top = 24.dp)
+                .then(
+                    if (isGlassActive && backdrop != null) {
+                        Modifier
+                            .drawInteractiveGlass(
+                                isDark = true,
+                                backdrop = backdrop,
+                                layer = null,
+                                luminance = { 0.4f },
+                                shape = sheetShape,
+                                interaction = null
+                            )
+                            .clip(sheetShape)
+                    } else {
+                        Modifier
+                    }
+                )
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
                 ) {},
-            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-            color = when (palette.themeMode) {
-                ThemeMode.AMOLED_PITCH -> Color.Black
-                ThemeMode.MIDNIGHT_BLUE -> Color(0xFF07050C)
-                ThemeMode.AURORA_PURPLE -> Color(0xFF0E0B18)
+            shape = sheetShape,
+            color = if (isGlassActive && backdrop != null) {
+                Color.Transparent
+            } else {
+                when (palette.themeMode) {
+                    ThemeMode.AMOLED_PITCH -> Color.Black
+                    ThemeMode.MIDNIGHT_BLUE -> Color(0xFF07050C)
+                    ThemeMode.AURORA_PURPLE -> Color(0xFF0E0B18)
+                }
             },
             border = androidx.compose.foundation.BorderStroke(1.dp, palette.cardBorderSubtle)
         ) {
