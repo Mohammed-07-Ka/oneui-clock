@@ -2,13 +2,22 @@ package com.sec.oneui.clock
 
 import android.Manifest
 import android.app.AlarmManager
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
@@ -147,7 +156,16 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        CrashReporter.install(this) // TEMPORARY - remove after debugging
         super.onCreate(savedInstanceState)
+
+        // TEMPORARY - remove after debugging
+        val crashLog = CrashReporter.readCrash(this)
+        if (crashLog != null) {
+            showCrashScreen(crashLog)
+            return
+        }
+
         handleNavIntent(intent)
 
         // 1. Full Edge-to-Edge with transparent system bars & light icons
@@ -228,6 +246,83 @@ class MainActivity : ComponentActivity() {
                 startActivity(intent)
             }
         }
+    }
+
+    // TEMPORARY - remove after debugging
+    private fun showCrashScreen(crashLog: String) {
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(android.graphics.Color.BLACK)
+            setPadding(32, 64, 32, 48)
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        }
+
+        val titleView = TextView(this).apply {
+            text = "App Crash Detected"
+            setTextColor(android.graphics.Color.RED)
+            textSize = 18f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(0, 0, 0, 16)
+        }
+        root.addView(titleView)
+
+        val buttonBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, 0, 0, 16)
+        }
+
+        val copyButton = Button(this).apply {
+            text = "Copy"
+            setOnClickListener {
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("Crash Log", crashLog)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(this@MainActivity, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+            }
+        }
+        buttonBar.addView(copyButton)
+
+        val spacer = android.view.View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(24, 1)
+        }
+        buttonBar.addView(spacer)
+
+        val continueButton = Button(this).apply {
+            text = "Continue"
+            setOnClickListener {
+                CrashReporter.clear(this@MainActivity)
+                recreate()
+            }
+        }
+        buttonBar.addView(continueButton)
+
+        root.addView(buttonBar)
+
+        val scrollView = ScrollView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1f
+            )
+            setBackgroundColor(android.graphics.Color.parseColor("#1E1E1E"))
+            setPadding(16, 16, 16, 16)
+        }
+
+        val logView = TextView(this).apply {
+            text = crashLog
+            setTextColor(android.graphics.Color.WHITE)
+            typeface = Typeface.MONOSPACE
+            textSize = 11f
+            setTextIsSelectable(true)
+        }
+        scrollView.addView(logView)
+
+        root.addView(scrollView)
+
+        setContentView(root)
     }
 }
 
