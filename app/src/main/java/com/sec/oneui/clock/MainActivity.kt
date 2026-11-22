@@ -66,6 +66,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.Settings
@@ -556,32 +557,34 @@ fun MainClockApp(
                         .navigationBarsPadding()
                         .padding(end = 24.dp, bottom = 92.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .drawInteractiveGlass(
-                                isDark = true,
-                                backdrop = overlayBackdrop,
-                                layer = null,
-                                luminance = { 0.4f },
-                                shape = CircleShape,
-                                interaction = null,
-                                scrimColor = palette.primaryAccent
+                    if (overlayBackdrop != null) {
+                        Box(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .drawInteractiveGlass(
+                                    isDark = true,
+                                    backdrop = overlayBackdrop,
+                                    layer = null,
+                                    luminance = { 0.4f },
+                                    shape = CircleShape,
+                                    interaction = null,
+                                    scrimColor = palette.primaryAccent
+                                )
+                                .clip(CircleShape)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { alarmViewModel.openEditorForNew(defaultVibrate) }
+                                .iosPressEffect(targetScale = 0.94f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Add Alarm",
+                                tint = Color.White,
+                                modifier = Modifier.size(30.dp)
                             )
-                            .clip(CircleShape)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { alarmViewModel.openEditorForNew(defaultVibrate) }
-                            .iosPressEffect(targetScale = 0.94f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Add Alarm",
-                            tint = Color.White,
-                            modifier = Modifier.size(30.dp)
-                        )
+                        }
                     }
                 }
 
