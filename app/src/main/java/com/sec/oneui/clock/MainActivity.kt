@@ -11,13 +11,8 @@ import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.os.SystemClock
 import android.provider.Settings
-import android.view.FrameMetrics
 import android.view.ViewGroup
-import android.view.Window
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -85,7 +80,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -142,10 +136,6 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    companion object {
-        private var coldStartToastShown = false
-    }
-
     private val alarmViewModel: AlarmViewModel by viewModels()
     private val stopwatchViewModel: StopwatchViewModel by viewModels()
     private val timerViewModel: TimerViewModel by viewModels()
@@ -174,31 +164,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         CrashReporter.install(this) // TEMPORARY - remove after debugging
         super.onCreate(savedInstanceState)
-
-        // TEMPORARY - measure cold start time and show as Toast
-        if (!coldStartToastShown) {
-            val startTime = android.os.Process.getStartElapsedRealtime()
-            window.decorView.viewTreeObserver.addOnDrawListener(object : android.view.ViewTreeObserver.OnDrawListener {
-                private var reported = false
-                override fun onDraw() {
-                    if (reported) return
-                    reported = true
-                    coldStartToastShown = true
-                    val endTime = android.os.SystemClock.elapsedRealtime()
-                    val diff = endTime - startTime
-                    window.decorView.post {
-                        if (window.decorView.viewTreeObserver.isAlive) {
-                            window.decorView.viewTreeObserver.removeOnDrawListener(this)
-                        }
-                        android.widget.Toast.makeText(
-                            this@MainActivity,
-                            "Start: $diff ms",
-                            android.widget.Toast.LENGTH_LONG
-                        ).show()
-                    }
-                }
-            })
-        }
 
         // TEMPORARY - remove after debugging
         val crashLog = CrashReporter.readCrash(this)
@@ -253,29 +218,20 @@ class MainActivity : ComponentActivity() {
                 LocalLiquidGlassEnabled provides isGlassActive
             ) {
                 OneUIClockTheme(themeMode = themeMode) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        MainClockApp(
-                            alarmViewModel = alarmViewModel,
-                            stopwatchViewModel = stopwatchViewModel,
-                            timerViewModel = timerViewModel,
-                            settingsManager = settingsManager,
-                            navTabFlow = navTabFlow,
-                            themeMode = themeMode,
-                            animationEnabled = animationEnabled,
-                            animationSpeed = animationSpeed,
-                            hazeState = hazeState,
-                            bgBackdrop = bgBackdrop,
-                            pagerBackdrop = pagerBackdrop,
-                            overlayBackdrop = overlayBackdrop
-                        )
-                        FpsMeter(
-                            window = window,
-                            modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .statusBarsPadding()
-                                .padding(start = 12.dp, top = 4.dp)
-                        )
-                    }
+                    MainClockApp(
+                        alarmViewModel = alarmViewModel,
+                        stopwatchViewModel = stopwatchViewModel,
+                        timerViewModel = timerViewModel,
+                        settingsManager = settingsManager,
+                        navTabFlow = navTabFlow,
+                        themeMode = themeMode,
+                        animationEnabled = animationEnabled,
+                        animationSpeed = animationSpeed,
+                        hazeState = hazeState,
+                        bgBackdrop = bgBackdrop,
+                        pagerBackdrop = pagerBackdrop,
+                        overlayBackdrop = overlayBackdrop
+                    )
                 }
             }
         }
@@ -778,108 +734,4 @@ fun MainClockApp(
             }
         }
     }
-}
-
-@Composable
-private fun FpsMeter(window: Window, modifier: Modifier = Modifier) {
-    var fpsText by remember {
-        mutableStateOf(
-            "fps -- | >8.3ms: 0 | >16.7ms: 0 | >33ms: 0\nworst --ms | in -- | anim -- | lay -- | draw -- | sync -- | cmd -- | swap --"
-        )
-    }
-
-    if (Build.VERSION.SDK_INT >= 24) {
-        DisposableEffect(window) {
-            val handler = Handler(Looper.getMainLooper())
-            val records = ArrayDeque<FrameRecord>()
-            var lastUpdateMs = 0L
-
-            val listener = Window.OnFrameMetricsAvailableListener { _, frameMetrics, _ ->
-                if (frameMetrics == null) return@OnFrameMetricsAvailableListener
-                val nowMs = SystemClock.elapsedRealtime()
-                val record = FrameRecord(
-                    timestampMs = nowMs,
-                    totalNs = frameMetrics.getMetric(FrameMetrics.TOTAL_DURATION),
-                    inputNs = frameMetrics.getMetric(FrameMetrics.INPUT_HANDLING_DURATION),
-                    animNs = frameMetrics.getMetric(FrameMetrics.ANIMATION_DURATION),
-                    layoutNs = frameMetrics.getMetric(FrameMetrics.LAYOUT_MEASURE_DURATION),
-                    drawNs = frameMetrics.getMetric(FrameMetrics.DRAW_DURATION),
-                    syncNs = frameMetrics.getMetric(FrameMetrics.SYNC_DURATION),
-                    cmdNs = frameMetrics.getMetric(FrameMetrics.COMMAND_ISSUE_DURATION),
-                    swapNs = frameMetrics.getMetric(FrameMetrics.SWAP_BUFFERS_DURATION)
-                )
-                records.addLast(record)
-
-                while (records.isNotEmpty() && nowMs - records.first().timestampMs > 5000L) {
-                    records.removeFirst()
-                }
-
-                if (nowMs - lastUpdateMs >= 500L) {
-                    lastUpdateMs = nowMs
-                    val count1s = records.count { nowMs - it.timestampMs <= 1000L }
-                    var countA = 0
-                    var countB = 0
-                    var countC = 0
-                    var worstRecord: FrameRecord? = null
-
-                    for (r in records) {
-                        if (r.totalNs > 8_300_000L) countA++
-                        if (r.totalNs > 16_700_000L) countB++
-                        if (r.totalNs > 33_000_000L) countC++
-                        if (worstRecord == null || r.totalNs > worstRecord.totalNs) {
-                            worstRecord = r
-                        }
-                    }
-
-                    val line1 = "fps $count1s | >8.3ms: $countA | >16.7ms: $countB | >33ms: $countC"
-                    val line2 = if (worstRecord != null) {
-                        val totalMs = formatMs(worstRecord.totalNs)
-                        val inMs = formatMs(worstRecord.inputNs)
-                        val animMs = formatMs(worstRecord.animNs)
-                        val layMs = formatMs(worstRecord.layoutNs)
-                        val drawMs = formatMs(worstRecord.drawNs)
-                        val syncMs = formatMs(worstRecord.syncNs)
-                        val cmdMs = formatMs(worstRecord.cmdNs)
-                        val swapMs = formatMs(worstRecord.swapNs)
-                        "worst ${totalMs}ms | in $inMs | anim $animMs | lay $layMs | draw $drawMs | sync $syncMs | cmd $cmdMs | swap $swapMs"
-                    } else {
-                        "worst --ms | in -- | anim -- | lay -- | draw -- | sync -- | cmd -- | swap --"
-                    }
-                    fpsText = "$line1\n$line2"
-                }
-            }
-
-            window.addOnFrameMetricsAvailableListener(listener, handler)
-
-            onDispose {
-                try {
-                    window.removeOnFrameMetricsAvailableListener(listener)
-                } catch (_: Exception) {
-                }
-            }
-        }
-    }
-
-    Text(
-        text = fpsText,
-        color = Color.Yellow,
-        fontSize = 11.sp,
-        modifier = modifier
-    )
-}
-
-private class FrameRecord(
-    val timestampMs: Long,
-    val totalNs: Long,
-    val inputNs: Long,
-    val animNs: Long,
-    val layoutNs: Long,
-    val drawNs: Long,
-    val syncNs: Long,
-    val cmdNs: Long,
-    val swapNs: Long
-)
-
-private fun formatMs(ns: Long): String {
-    return String.format(java.util.Locale.US, "%.1f", maxOf(0L, ns) / 1_000_000.0)
 }
