@@ -11,9 +11,13 @@ import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import android.provider.Settings
-import android.view.Choreographer
+import android.view.FrameMetrics
 import android.view.ViewGroup
+import android.view.Window
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -265,6 +269,7 @@ class MainActivity : ComponentActivity() {
                             overlayBackdrop = overlayBackdrop
                         )
                         FpsMeter(
+                            window = window,
                             modifier = Modifier
                                 .align(Alignment.TopStart)
                                 .statusBarsPadding()
@@ -776,52 +781,82 @@ fun MainClockApp(
 }
 
 @Composable
-private fun FpsMeter(modifier: Modifier = Modifier) {
-    var fpsText by remember { mutableStateOf("fps -- | worst --ms") }
+private fun FpsMeter(window: Window, modifier: Modifier = Modifier) {
+    var fpsText by remember {
+        mutableStateOf(
+            "fps -- | >8.3ms: 0 | >16.7ms: 0 | >33ms: 0\nworst --ms | in -- | anim -- | lay -- | draw -- | sync -- | cmd -- | swap --"
+        )
+    }
 
-    DisposableEffect(Unit) {
-        val choreographer = Choreographer.getInstance()
-        var isRunning = true
-        var frameCount = 0
-        var windowStartNs = 0L
-        var lastFrameTimeNs = 0L
-        var worstIntervalNs = 0L
+    if (Build.VERSION.SDK_INT >= 24) {
+        DisposableEffect(window) {
+            val handler = Handler(Looper.getMainLooper())
+            val records = ArrayDeque<FrameRecord>()
+            var lastUpdateMs = 0L
 
-        val callback = object : Choreographer.FrameCallback {
-            override fun doFrame(frameTimeNanos: Long) {
-                if (!isRunning) return
-                if (windowStartNs == 0L) {
-                    windowStartNs = frameTimeNanos
-                    lastFrameTimeNs = frameTimeNanos
-                } else {
-                    frameCount++
-                    val intervalNs = frameTimeNanos - lastFrameTimeNs
-                    lastFrameTimeNs = frameTimeNanos
-                    if (intervalNs > worstIntervalNs) {
-                        worstIntervalNs = intervalNs
-                    }
+            val listener = Window.OnFrameMetricsAvailableListener { _, frameMetrics, _ ->
+                if (frameMetrics == null) return@OnFrameMetricsAvailableListener
+                val nowMs = SystemClock.elapsedRealtime()
+                val record = FrameRecord(
+                    timestampMs = nowMs,
+                    totalNs = frameMetrics.getMetric(FrameMetrics.TOTAL_DURATION),
+                    inputNs = frameMetrics.getMetric(FrameMetrics.INPUT_HANDLING_DURATION),
+                    animNs = frameMetrics.getMetric(FrameMetrics.ANIMATION_DURATION),
+                    layoutNs = frameMetrics.getMetric(FrameMetrics.LAYOUT_MEASURE_DURATION),
+                    drawNs = frameMetrics.getMetric(FrameMetrics.DRAW_DURATION),
+                    syncNs = frameMetrics.getMetric(FrameMetrics.SYNC_DURATION),
+                    cmdNs = frameMetrics.getMetric(FrameMetrics.COMMAND_ISSUE_DURATION),
+                    swapNs = frameMetrics.getMetric(FrameMetrics.SWAP_BUFFERS_DURATION)
+                )
+                records.addLast(record)
 
-                    val elapsedNs = frameTimeNanos - windowStartNs
-                    if (elapsedNs >= 1_000_000_000L) {
-                        val fps = if (elapsedNs > 0L) {
-                            ((frameCount * 1_000_000_000L + elapsedNs / 2) / elapsedNs).toInt()
-                        } else 0
-                        val worstMs = (worstIntervalNs / 1_000_000L).toInt()
-                        fpsText = "fps $fps | worst ${worstMs}ms"
-                        frameCount = 0
-                        windowStartNs = frameTimeNanos
-                        worstIntervalNs = 0L
-                    }
+                while (records.isNotEmpty() && nowMs - records.first().timestampMs > 5000L) {
+                    records.removeFirst()
                 }
-                choreographer.postFrameCallback(this)
+
+                if (nowMs - lastUpdateMs >= 500L) {
+                    lastUpdateMs = nowMs
+                    val count1s = records.count { nowMs - it.timestampMs <= 1000L }
+                    var countA = 0
+                    var countB = 0
+                    var countC = 0
+                    var worstRecord: FrameRecord? = null
+
+                    for (r in records) {
+                        if (r.totalNs > 8_300_000L) countA++
+                        if (r.totalNs > 16_700_000L) countB++
+                        if (r.totalNs > 33_000_000L) countC++
+                        if (worstRecord == null || r.totalNs > worstRecord.totalNs) {
+                            worstRecord = r
+                        }
+                    }
+
+                    val line1 = "fps $count1s | >8.3ms: $countA | >16.7ms: $countB | >33ms: $countC"
+                    val line2 = if (worstRecord != null) {
+                        val totalMs = formatMs(worstRecord.totalNs)
+                        val inMs = formatMs(worstRecord.inputNs)
+                        val animMs = formatMs(worstRecord.animNs)
+                        val layMs = formatMs(worstRecord.layoutNs)
+                        val drawMs = formatMs(worstRecord.drawNs)
+                        val syncMs = formatMs(worstRecord.syncNs)
+                        val cmdMs = formatMs(worstRecord.cmdNs)
+                        val swapMs = formatMs(worstRecord.swapNs)
+                        "worst ${totalMs}ms | in $inMs | anim $animMs | lay $layMs | draw $drawMs | sync $syncMs | cmd $cmdMs | swap $swapMs"
+                    } else {
+                        "worst --ms | in -- | anim -- | lay -- | draw -- | sync -- | cmd -- | swap --"
+                    }
+                    fpsText = "$line1\n$line2"
+                }
             }
-        }
 
-        choreographer.postFrameCallback(callback)
+            window.addOnFrameMetricsAvailableListener(listener, handler)
 
-        onDispose {
-            isRunning = false
-            choreographer.removeFrameCallback(callback)
+            onDispose {
+                try {
+                    window.removeOnFrameMetricsAvailableListener(listener)
+                } catch (_: Exception) {
+                }
+            }
         }
     }
 
@@ -831,4 +866,20 @@ private fun FpsMeter(modifier: Modifier = Modifier) {
         fontSize = 11.sp,
         modifier = modifier
     )
+}
+
+private class FrameRecord(
+    val timestampMs: Long,
+    val totalNs: Long,
+    val inputNs: Long,
+    val animNs: Long,
+    val layoutNs: Long,
+    val drawNs: Long,
+    val syncNs: Long,
+    val cmdNs: Long,
+    val swapNs: Long
+)
+
+private fun formatMs(ns: Long): String {
+    return String.format(java.util.Locale.US, "%.1f", maxOf(0L, ns) / 1_000_000.0)
 }
