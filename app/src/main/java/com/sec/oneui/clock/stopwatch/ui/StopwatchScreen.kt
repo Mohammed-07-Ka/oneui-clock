@@ -198,9 +198,11 @@ fun StopwatchScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(palette.cardBackground)
-                    .border(1.dp, palette.cardBorder, RoundedCornerShape(24.dp))
+                    .liquidGlass(
+                        shape = RoundedCornerShape(24.dp),
+                        cornerRadius = 24.dp,
+                        elevation = 8.dp
+                    )
                     .padding(16.dp)
             ) {
                 Column {

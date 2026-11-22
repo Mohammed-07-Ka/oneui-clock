@@ -102,6 +102,7 @@ import com.sec.oneui.clock.theme.GeminiAnimatedBackground
 import com.sec.oneui.clock.theme.OneUIClockTheme
 import com.sec.oneui.clock.theme.iosPressEffect
 import com.sec.oneui.clock.theme.liquidGlass
+import com.sec.oneui.clock.theme.liquidGlassActivePill
 import com.sec.oneui.clock.timer.ui.TimerScreen
 import com.sec.oneui.clock.timer.ui.TimerViewModel
 import kotlinx.coroutines.launch
@@ -294,172 +295,161 @@ fun MainClockApp(
                 onBack = { showSettings = false }
             )
         } else {
-            Scaffold(
-                modifier = Modifier.fillMaxSize(),
-                containerColor = Color.Transparent,
-                contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                bottomBar = {
-                    // iOS Liquid Glass Floating Bottom Navigation Bar with Spring Pill Morph
-                    AnimatedVisibility(
-                        visible = !editorState.isOpen,
-                        enter = slideInVertically(
-                            initialOffsetY = { it },
-                            animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f)
-                        ) + fadeIn(tween(250)),
-                        exit = slideOutVertically(
-                            targetOffsetY = { it },
-                            animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f)
-                        ) + fadeOut(tween(200))
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                val instantFling = PagerDefaults.flingBehavior(
+                    state = pagerState,
+                    snapPositionalThreshold = 0.08f,
+                    snapAnimationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessHigh
+                    )
+                )
+
+                // 1. Edge-to-Edge Content Pager (Passes COMPLETELY behind the floating liquid glass bar)
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    userScrollEnabled = true,
+                    beyondBoundsPageCount = 2,
+                    flingBehavior = instantFling
+                ) { pageIndex ->
+                    when (pageIndex) {
+                        0 -> AlarmScreen(viewModel = alarmViewModel)
+                        1 -> StopwatchScreen(viewModel = stopwatchViewModel)
+                        2 -> TimerScreen(viewModel = timerViewModel)
+                    }
+                }
+
+                // 2. Settings Icon in Top-Right
+                AnimatedVisibility(
+                    visible = !editorState.isOpen,
+                    enter = fadeIn(tween(200)),
+                    exit = fadeOut(tween(200)),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .statusBarsPadding()
+                        .padding(horizontal = 20.dp, vertical = 16.dp)
+                ) {
+                    IconButton(
+                        onClick = { showSettings = true },
+                        modifier = Modifier
+                            .size(42.dp)
+                            .liquidGlass(
+                                shape = CircleShape,
+                                cornerRadius = 21.dp,
+                                elevation = 8.dp
+                            )
+                            .iosPressEffect(targetScale = 0.95f)
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                // 3. Floating Liquid Glass Navigation Bar (Overlaid on top of passing content)
+                AnimatedVisibility(
+                    visible = !editorState.isOpen,
+                    enter = slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f)
+                    ) + fadeIn(tween(250)),
+                    exit = slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f)
+                    ) + fadeOut(tween(200)),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                ) {
+                    BoxWithConstraints(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
+                            .liquidGlass(
+                                shape = RoundedCornerShape(32.dp),
+                                cornerRadius = 32.dp,
+                                elevation = 16.dp
+                            )
+                            .padding(6.dp)
+                    ) {
+                        val tabCount = ClockTab.items.size
+                        val tabWidth = maxWidth / tabCount
+                        val selectedTab = pagerState.currentPage.coerceIn(0, tabCount - 1)
+                        val pillOffset by animateDpAsState(
+                            targetValue = tabWidth * selectedTab,
+                            animationSpec = spring(dampingRatio = 0.72f, stiffness = 450f),
+                            label = "activeTabPill"
+                        )
+
+                        // Illuminated Liquid Glass Active Pill Indicator (matching SimpMusic "Home" pill)
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .navigationBarsPadding()
-                                .padding(horizontal = 24.dp, vertical = 12.dp)
-                        ) {
-                            BoxWithConstraints(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(64.dp)
-                                    .liquidGlass(
-                                        shape = RoundedCornerShape(32.dp),
-                                        cornerRadius = 32.dp
-                                    )
-                                    .padding(4.dp)
-                            ) {
-                                val tabCount = ClockTab.items.size
-                                val tabWidth = maxWidth / tabCount
-                                val selectedTab = pagerState.currentPage.coerceIn(0, tabCount - 1)
-                                val pillOffset by animateDpAsState(
-                                    targetValue = tabWidth * selectedTab,
-                                    animationSpec = spring(dampingRatio = 0.7f, stiffness = 500f),
-                                    label = "activeTabPill"
+                                .offset(x = pillOffset)
+                                .width(tabWidth)
+                                .fillMaxHeight()
+                                .liquidGlassActivePill(
+                                    shape = RoundedCornerShape(26.dp),
+                                    cornerRadius = 26.dp,
+                                    glowColor = if (palette.isBlueTheme) Color(0xFF38BDF8) else Color(0xFFA855F7)
                                 )
+                        )
 
-                                // Physical sliding and stretching active pill indicator
+                        // Tab items row (Crisp Icons + Labels)
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            ClockTab.items.forEach { tab ->
+                                val isSelected = selectedTab == tab.index
                                 Box(
                                     modifier = Modifier
-                                        .offset(x = pillOffset)
-                                        .width(tabWidth)
+                                        .weight(1f)
                                         .fillMaxHeight()
-                                        .clip(RoundedCornerShape(28.dp))
-                                        .background(palette.tabSelectedIndicator)
-                                )
-
-                                // Tab items row
-                                Row(
-                                    modifier = Modifier.fillMaxSize(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    ClockTab.items.forEach { tab ->
-                                        val isSelected = selectedTab == tab.index
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .fillMaxHeight()
-                                                .clip(RoundedCornerShape(28.dp))
-                                                .clickable(
-                                                    interactionSource = remember { MutableInteractionSource() },
-                                                    indication = null
-                                                ) {
-                                                    coroutineScope.launch {
-                                                        pagerState.animateScrollToPage(
-                                                            page = tab.index,
-                                                            animationSpec = spring(
-                                                                dampingRatio = 0.75f,
-                                                                stiffness = 500f
-                                                            )
-                                                        )
-                                                    }
-                                                }
-                                                .iosPressEffect(targetScale = 0.96f),
-                                            contentAlignment = Alignment.Center
+                                        .clip(RoundedCornerShape(26.dp))
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
                                         ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = tab.icon,
-                                                    contentDescription = tab.title,
-                                                    tint = if (isSelected) {
-                                                        if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.textPrimary
-                                                    } else palette.textMuted,
-                                                    modifier = Modifier.size(20.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(6.dp))
-                                                Text(
-                                                    text = tab.title,
-                                                    fontSize = 13.sp,
-                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                    color = if (isSelected) {
-                                                        if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.textPrimary
-                                                    } else palette.textMuted
+                                            coroutineScope.launch {
+                                                pagerState.animateScrollToPage(
+                                                    page = tab.index,
+                                                    animationSpec = spring(
+                                                        dampingRatio = 0.75f,
+                                                        stiffness = 500f
+                                                    )
                                                 )
                                             }
                                         }
+                                        .iosPressEffect(targetScale = 0.95f),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = tab.icon,
+                                            contentDescription = tab.title,
+                                            tint = if (isSelected) Color.White else Color.White.copy(alpha = 0.60f),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = tab.title,
+                                            fontSize = 13.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSelected) Color.White else Color.White.copy(alpha = 0.60f)
+                                        )
                                     }
                                 }
                             }
-                        }
-                    }
-                }
-            ) { innerPadding ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = innerPadding.calculateBottomPadding())
-                ) {
-                    val instantFling = PagerDefaults.flingBehavior(
-                        state = pagerState,
-                        snapPositionalThreshold = 0.08f,
-                        snapAnimationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessHigh
-                        )
-                    )
-
-                    // Horizontal Pager with Left/Right Swiping between Alarm, Stopwatch, and Timer with instant zero-lag physics
-                    HorizontalPager(
-                        state = pagerState,
-                        modifier = Modifier.fillMaxSize(),
-                        userScrollEnabled = true,
-                        beyondBoundsPageCount = 2,
-                        flingBehavior = instantFling
-                    ) { pageIndex ->
-                        when (pageIndex) {
-                            0 -> AlarmScreen(viewModel = alarmViewModel)
-                            1 -> StopwatchScreen(viewModel = stopwatchViewModel)
-                            2 -> TimerScreen(viewModel = timerViewModel)
-                        }
-                    }
-
-                    // Discreet Settings Icon in Top-Right (hidden when Add/Edit Alarm sheet is open)
-                    AnimatedVisibility(
-                        visible = !editorState.isOpen,
-                        enter = fadeIn(tween(200)),
-                        exit = fadeOut(tween(200)),
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .statusBarsPadding()
-                            .padding(horizontal = 20.dp, vertical = 16.dp)
-                    ) {
-                        IconButton(
-                            onClick = { showSettings = true },
-                            modifier = Modifier
-                                .size(40.dp)
-                                .liquidGlass(
-                                    shape = CircleShape,
-                                    cornerRadius = 20.dp
-                                )
-                                .iosPressEffect(targetScale = 0.96f)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "Settings",
-                                tint = palette.textSecondary,
-                                modifier = Modifier.size(20.dp)
-                            )
                         }
                     }
                 }

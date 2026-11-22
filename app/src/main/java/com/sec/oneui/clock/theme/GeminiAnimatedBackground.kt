@@ -34,17 +34,19 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * Minimalist Aurora Mesh Background with iOS Fluid Animation
+ * Luminous Fluid Aurora Mesh Background for Authentic Liquid Glass Refraction
  *
  * Supported Themes:
- * 1. Aurora Purple (Default): 85% Deep Pitch Black (#030207) with subdued, darker deep violet glows (#4C1D95 & #3B0764)
- * 2. Midnight Blue & Purple: 65% Pure Black (#000000) with darker, subdued Deep Indigo Navy
- *    and Deep Violet glows occupying only 30-35% in corners.
+ * 1. Aurora Purple (Default): Deep midnight dark base (#0A0815) with vibrant, glowing
+ *    royal purple (#7C3AED), electric violet (#9333EA), and luminous magenta/cyan flares
+ *    that flow and refract directly behind glass surfaces and the floating navigation bar.
+ * 2. Midnight Blue: Deep space dark base (#050816) with radiant sapphire azure (#2563EB)
+ *    and glowing electric cyan (#06B6D4) mesh orbs.
  * 3. AMOLED Pitch: 100% Pure OLED Black (#000000) with no mesh.
  *
  * Performance:
- * - Animated values (phaseState & groundColorState) are read exclusively within DrawScope (drawBehind),
- *   bypassing Composition and Layout passes to eliminate UI lag and guarantee 60-120 FPS rendering.
+ * - Animated values are read exclusively within DrawScope (drawBehind),
+ *   bypassing Composition and Layout passes to guarantee 60-120 FPS rendering.
  * - Lifecycle-aware: pauses animation updates when stopped or backgrounded.
  * - Keyed by animation speed to immediately update cycle duration without app restart.
  * - Static gradient mode when mesh motion is disabled, consuming 0% CPU.
@@ -87,7 +89,6 @@ fun GeminiAnimatedBackground(
     }
 
     // Only instantiate and run InfiniteTransition when animation is enabled AND screen is resumed
-    // key(animationSpeed) ensures recreation immediately on speed change
     val phaseState: State<Float>? = if (animationEnabled && isResumed) {
         key(animationSpeed) {
             val infiniteTransition = rememberInfiniteTransition(label = "auroraMeshClock")
@@ -106,12 +107,12 @@ fun GeminiAnimatedBackground(
     }
 
     val targetGroundColor = when (themeMode) {
-        ThemeMode.AURORA_PURPLE -> Color(0xFF030207)
-        ThemeMode.MIDNIGHT_BLUE -> Color(0xFF000000)
+        ThemeMode.AURORA_PURPLE -> Color(0xFF090714)
+        ThemeMode.MIDNIGHT_BLUE -> Color(0xFF050814)
         ThemeMode.AMOLED_PITCH -> Color(0xFF000000)
     }
 
-    // Smooth 350ms theme switch transition kept as State<Color>
+    // Smooth 350ms theme switch transition
     val groundColorState = animateColorAsState(
         targetValue = targetGroundColor,
         animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
@@ -126,7 +127,7 @@ fun GeminiAnimatedBackground(
                 val height = size.height
                 if (width <= 0f || height <= 0f) return@drawBehind
 
-                // 1. Fill ground floor (read in draw phase only)
+                // 1. Fill ground floor
                 drawRect(color = groundColorState.value)
 
                 // Pure black for AMOLED Pitch
@@ -152,14 +153,16 @@ fun GeminiAnimatedBackground(
 private fun DrawScope.drawStaticMesh(themeMode: ThemeMode, width: Float, height: Float) {
     when (themeMode) {
         ThemeMode.AURORA_PURPLE -> {
-            val meshRadius = width * 0.75f
-            val orb1X = width * 0.35f
-            val orb1Y = height * 0.28f
+            val meshRadius = width * 0.85f
+
+            // Top-left luminous orb
+            val orb1X = width * 0.30f
+            val orb1Y = height * 0.22f
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF4C1D95).copy(alpha = 0.18f),
-                        Color(0xFF3B0764).copy(alpha = 0.08f),
+                        Color(0xFF9333EA).copy(alpha = 0.35f),
+                        Color(0xFF6B21A8).copy(alpha = 0.16f),
                         Color.Transparent
                     ),
                     center = Offset(orb1X, orb1Y),
@@ -169,29 +172,32 @@ private fun DrawScope.drawStaticMesh(themeMode: ThemeMode, width: Float, height:
                 center = Offset(orb1X, orb1Y)
             )
 
-            val orb2X = width * 0.70f
-            val orb2Y = height * 0.65f
+            // Bottom-center ambient glow (directly behind the floating glass bar)
+            val orb2X = width * 0.50f
+            val orb2Y = height * 0.88f
+            val navRadius = width * 0.90f
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF3B0764).copy(alpha = 0.16f),
-                        Color(0xFF1E0B36).copy(alpha = 0.08f),
+                        Color(0xFF7C3AED).copy(alpha = 0.36f),
+                        Color(0xFF4C1D95).copy(alpha = 0.18f),
                         Color.Transparent
                     ),
                     center = Offset(orb2X, orb2Y),
-                    radius = meshRadius
+                    radius = navRadius
                 ),
-                radius = meshRadius,
+                radius = navRadius,
                 center = Offset(orb2X, orb2Y)
             )
 
-            val ambientRadius = width * 0.65f
-            val orb3X = width * 0.50f
-            val orb3Y = height * 0.46f
+            // Right-side warm highlight
+            val orb3X = width * 0.75f
+            val orb3Y = height * 0.52f
+            val ambientRadius = width * 0.70f
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF4C1D95).copy(alpha = 0.12f),
+                        Color(0xFFC026D3).copy(alpha = 0.24f),
                         Color.Transparent
                     ),
                     center = Offset(orb3X, orb3Y),
@@ -203,14 +209,14 @@ private fun DrawScope.drawStaticMesh(themeMode: ThemeMode, width: Float, height:
         }
 
         ThemeMode.MIDNIGHT_BLUE -> {
-            val localizedRadius = width * 0.60f
-            val orb1X = width * 0.80f
+            val localizedRadius = width * 0.85f
+            val orb1X = width * 0.75f
             val orb1Y = height * 0.20f
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF1D4ED8).copy(alpha = 0.22f),
-                        Color(0xFF1E3A8A).copy(alpha = 0.10f),
+                        Color(0xFF2563EB).copy(alpha = 0.38f),
+                        Color(0xFF1E40AF).copy(alpha = 0.18f),
                         Color.Transparent
                     ),
                     center = Offset(orb1X, orb1Y),
@@ -220,13 +226,14 @@ private fun DrawScope.drawStaticMesh(themeMode: ThemeMode, width: Float, height:
                 center = Offset(orb1X, orb1Y)
             )
 
-            val orb2X = width * 0.20f
-            val orb2Y = height * 0.80f
+            // Bottom glow behind navigation bar
+            val orb2X = width * 0.45f
+            val orb2Y = height * 0.88f
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF4C1D95).copy(alpha = 0.20f),
-                        Color(0xFF3B0764).copy(alpha = 0.08f),
+                        Color(0xFF0284C7).copy(alpha = 0.35f),
+                        Color(0xFF0369A1).copy(alpha = 0.16f),
                         Color.Transparent
                     ),
                     center = Offset(orb2X, orb2Y),
@@ -249,16 +256,16 @@ private fun DrawScope.drawAnimatedMesh(
 ) {
     when (themeMode) {
         ThemeMode.AURORA_PURPLE -> {
-            val meshRadius = width * 0.75f
+            val meshRadius = width * 0.85f
 
-            // Orb 1: Deep Violet (#4C1D95 @ 0.18f) undulating top-left to center
-            val orb1X = width * (0.30f + 0.15f * sin(animatedPhase))
-            val orb1Y = height * (0.24f + 0.12f * cos(animatedPhase * 0.8f))
+            // Orb 1: Radiant Electric Violet (#9333EA) undulating top-left
+            val orb1X = width * (0.28f + 0.14f * sin(animatedPhase))
+            val orb1Y = height * (0.20f + 0.10f * cos(animatedPhase * 0.8f))
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF4C1D95).copy(alpha = 0.18f),
-                        Color(0xFF3B0764).copy(alpha = 0.08f),
+                        Color(0xFF9333EA).copy(alpha = 0.36f),
+                        Color(0xFF6B21A8).copy(alpha = 0.16f),
                         Color.Transparent
                     ),
                     center = Offset(orb1X, orb1Y),
@@ -268,52 +275,54 @@ private fun DrawScope.drawAnimatedMesh(
                 center = Offset(orb1X, orb1Y)
             )
 
-            // Orb 2: Deep Dark Wine Purple (#3B0764 @ 0.16f) undulating bottom-right
-            val orb2X = width * (0.74f + 0.14f * cos(animatedPhase * 1.1f))
-            val orb2Y = height * (0.68f + 0.12f * sin(animatedPhase * 0.9f))
+            // Orb 2: Radiant Royal Purple (#7C3AED) positioned right behind the floating bottom bar
+            val orb2X = width * (0.50f + 0.16f * cos(animatedPhase * 1.1f))
+            val orb2Y = height * (0.86f + 0.08f * sin(animatedPhase * 0.9f))
+            val bottomGlowRadius = width * 0.92f
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF3B0764).copy(alpha = 0.16f),
-                        Color(0xFF1E0B36).copy(alpha = 0.08f),
+                        Color(0xFF7C3AED).copy(alpha = 0.38f),
+                        Color(0xFF4C1D95).copy(alpha = 0.18f),
                         Color.Transparent
                     ),
                     center = Offset(orb2X, orb2Y),
-                    radius = meshRadius
+                    radius = bottomGlowRadius
                 ),
-                radius = meshRadius,
+                radius = bottomGlowRadius,
                 center = Offset(orb2X, orb2Y)
             )
 
-            // Orb 3: Subtle ambient glow (#4C1D95 @ 0.12f) undulating mid-screen
-            val orb3X = width * (0.50f + 0.18f * sin(animatedPhase * 0.7f + 1.2f))
-            val orb3Y = height * (0.46f + 0.10f * cos(animatedPhase * 1.2f))
-            val ambientRadius = width * 0.65f
+            // Orb 3: Luminous Magenta / Cyan Accent (#C026D3) shifting mid-screen
+            val orb3X = width * (0.72f + 0.15f * sin(animatedPhase * 0.7f + 1.2f))
+            val orb3Y = height * (0.50f + 0.12f * cos(animatedPhase * 1.2f))
+            val midRadius = width * 0.72f
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF4C1D95).copy(alpha = 0.12f),
+                        Color(0xFFC026D3).copy(alpha = 0.25f),
+                        Color(0xFF38BDF8).copy(alpha = 0.12f),
                         Color.Transparent
                     ),
                     center = Offset(orb3X, orb3Y),
-                    radius = ambientRadius
+                    radius = midRadius
                 ),
-                radius = ambientRadius,
+                radius = midRadius,
                 center = Offset(orb3X, orb3Y)
             )
         }
 
         ThemeMode.MIDNIGHT_BLUE -> {
-            val localizedRadius = width * 0.60f
+            val localizedRadius = width * 0.85f
 
-            // Deep Indigo Blue (#1D4ED8 @ 0.22f) in top-right corner
-            val orb1X = width * (0.82f + 0.08f * sin(animatedPhase))
-            val orb1Y = height * (0.22f + 0.08f * cos(animatedPhase * 0.8f))
+            // Radiant Sapphire Blue (#2563EB) in top-right
+            val orb1X = width * (0.78f + 0.10f * sin(animatedPhase))
+            val orb1Y = height * (0.20f + 0.08f * cos(animatedPhase * 0.8f))
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF1D4ED8).copy(alpha = 0.22f),
-                        Color(0xFF1E3A8A).copy(alpha = 0.10f),
+                        Color(0xFF2563EB).copy(alpha = 0.40f),
+                        Color(0xFF1E40AF).copy(alpha = 0.18f),
                         Color.Transparent
                     ),
                     center = Offset(orb1X, orb1Y),
@@ -323,20 +332,21 @@ private fun DrawScope.drawAnimatedMesh(
                 center = Offset(orb1X, orb1Y)
             )
 
-            // Deep Dark Purple (#4C1D95 @ 0.20f) in bottom-left corner
-            val orb2X = width * (0.20f + 0.08f * cos(animatedPhase * 1.1f))
-            val orb2Y = height * (0.78f + 0.08f * sin(animatedPhase * 0.9f))
+            // Electric Azure (#0284C7) directly behind bottom navigation bar
+            val orb2X = width * (0.45f + 0.14f * cos(animatedPhase * 1.1f))
+            val orb2Y = height * (0.86f + 0.08f * sin(animatedPhase * 0.9f))
+            val bottomGlowRadius = width * 0.90f
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF4C1D95).copy(alpha = 0.20f),
-                        Color(0xFF3B0764).copy(alpha = 0.08f),
+                        Color(0xFF0284C7).copy(alpha = 0.38f),
+                        Color(0xFF0369A1).copy(alpha = 0.18f),
                         Color.Transparent
                     ),
                     center = Offset(orb2X, orb2Y),
-                    radius = localizedRadius
+                    radius = bottomGlowRadius
                 ),
-                radius = localizedRadius,
+                radius = bottomGlowRadius,
                 center = Offset(orb2X, orb2Y)
             )
         }

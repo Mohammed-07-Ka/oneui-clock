@@ -238,7 +238,7 @@ fun AlarmScreen(
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
-                    contentPadding = PaddingValues(bottom = 100.dp)
+                    contentPadding = PaddingValues(bottom = 120.dp)
                 ) {
                     items(alarms, key = { it.id }) { alarm ->
                         AlarmCard(
@@ -256,27 +256,39 @@ fun AlarmScreen(
             }
         }
 
-        // iOS Liquid Glass Floating Action Button with Tactile Press Feedback
+        // Floating Liquid Glass Action Button with Tactile Press Feedback
         AnimatedVisibility(
             visible = !editorState.isOpen,
             enter = fadeIn(tween(200)),
             exit = fadeOut(tween(200)),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 24.dp, bottom = 24.dp)
+                .navigationBarsPadding()
+                .padding(end = 24.dp, bottom = 92.dp)
         ) {
-            FloatingActionButton(
-                onClick = { viewModel.openEditorForNew(defaultVibrate) },
-                containerColor = palette.primaryAccent,
-                contentColor = palette.onPrimaryAccent,
-                shape = CircleShape,
+            Box(
                 modifier = Modifier
-                    .size(62.dp)
+                    .size(60.dp)
+                    .liquidGlass(
+                        shape = CircleShape,
+                        cornerRadius = 30.dp,
+                        tintColor = palette.primaryAccent.copy(alpha = 0.85f),
+                        elevation = 12.dp
+                    )
                     .clip(CircleShape)
-                    .border(1.dp, palette.cardBorder, CircleShape)
-                    .iosPressEffect(targetScale = 0.96f)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { viewModel.openEditorForNew(defaultVibrate) }
+                    .iosPressEffect(targetScale = 0.94f),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Alarm", modifier = Modifier.size(32.dp))
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Alarm",
+                    tint = Color.White,
+                    modifier = Modifier.size(30.dp)
+                )
             }
         }
 

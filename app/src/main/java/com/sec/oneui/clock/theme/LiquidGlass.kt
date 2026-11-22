@@ -3,12 +3,14 @@ package com.sec.oneui.clock.theme
 import android.graphics.RuntimeShader
 import android.os.Build
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.RoundRect
@@ -81,26 +83,35 @@ object LiquidGlassShaders {
 }
 
 /**
- * Applies the true Liquid Glass visual effect:
- * - Ultra-translucent glass substrate
- * - AGSL SDF Specular Highlight on API 33+ (calculates true surface normal and light reflection angle)
- * - Multi-stop specular border fallback on API < 33
- * - Top-edge specular inner rim glow for genuine 3D glass refraction depth
+ * Applies the authentic Liquid Glass visual effect matching SimpMusic:
+ * - Elevated floating drop shadow
+ * - Translucent milky frosted glass substrate
+ * - Internal top-edge curved lens refraction glow
+ * - AGSL SDF Specular Highlight on API 33+ (surface normal & light reflection angle)
+ * - Multi-stop specular fallback on API < 33
  */
 fun Modifier.liquidGlass(
     shape: Shape = RoundedCornerShape(26.dp),
     cornerRadius: Dp = 26.dp,
     tintColor: Color? = null,
     borderWidth: Dp = 1.dp,
-    angleDegrees: Float = 135f // Light arriving from top-left (135 degrees)
+    angleDegrees: Float = 135f,
+    elevation: Dp = 0.dp
 ): Modifier = composed {
     val palette = ClockTheme.palette
     val density = LocalDensity.current
     val cornerRadiusPx = with(density) { cornerRadius.toPx() }
     val borderWidthPx = with(density) { borderWidth.toPx() }
 
-    val baseGlassColor = tintColor ?: palette.cardBackground
-    val highlightColor = if (palette.isBlueTheme) Color(0xFF93C5FD) else Color.White
+    // Authentic translucent frosted glass substrate:
+    // Translucent dark glass with luminous violet/indigo tint
+    val glassSubstrate = tintColor ?: if (palette.isBlueTheme) {
+        Color(0x550F172A)
+    } else {
+        Color(0x521A152E)
+    }
+
+    val highlightColor = if (palette.isBlueTheme) Color(0xFFBAE6FD) else Color.White
 
     // Cache the RuntimeShader on API 33+ to avoid recompilation
     val runtimeShader = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -113,15 +124,59 @@ fun Modifier.liquidGlass(
         }
     } else null
 
+    val shadowModifier = if (elevation > 0.dp) {
+        Modifier.shadow(
+            elevation = elevation,
+            shape = shape,
+            clip = false,
+            ambientColor = Color.Black.copy(alpha = 0.40f),
+            spotColor = Color.Black.copy(alpha = 0.65f)
+        )
+    } else Modifier
+
     this
+        .then(shadowModifier)
         .clip(shape)
-        .background(baseGlassColor)
+        .background(glassSubstrate)
         .drawWithCache {
             val width = size.width
             val height = size.height
 
+            // 1. Frosted surface sheen gradient (milky top-to-bottom light falloff)
+            val surfaceSheenBrush = Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.16f),
+                    Color.White.copy(alpha = 0.04f),
+                    Color.Transparent
+                ),
+                startY = 0f,
+                endY = height * 0.75f
+            )
+
+            // 2. Top-edge curved internal lens refraction glow
+            val lensRefractionBrush = Brush.verticalGradient(
+                colors = listOf(
+                    highlightColor.copy(alpha = 0.32f),
+                    highlightColor.copy(alpha = 0.08f),
+                    Color.Transparent
+                ),
+                startY = 0f,
+                endY = minOf(height * 0.50f, cornerRadiusPx * 2f)
+            )
+
+            // 3. Fallback specular rim brush
+            val fallbackSpecularBrush = Brush.linearGradient(
+                colors = listOf(
+                    highlightColor.copy(alpha = 0.75f),
+                    highlightColor.copy(alpha = 0.25f),
+                    Color.Transparent,
+                    highlightColor.copy(alpha = 0.35f)
+                ),
+                start = Offset(0f, 0f),
+                end = Offset(width, height)
+            )
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && runtimeShader != null) {
-                // Configure AGSL uniforms for current component dimensions
                 runtimeShader.setFloatUniform("size", width, height)
                 runtimeShader.setFloatUniform(
                     "cornerRadii",
@@ -132,19 +187,18 @@ fun Modifier.liquidGlass(
                 )
                 val angleRad = Math.toRadians(angleDegrees.toDouble()).toFloat()
                 runtimeShader.setFloatUniform("angle", angleRad)
-                runtimeShader.setFloatUniform("falloff", 1.4f)
+                runtimeShader.setFloatUniform("falloff", 1.2f)
                 runtimeShader.setColorUniform(
                     "color",
                     android.graphics.Color.valueOf(
                         highlightColor.red,
                         highlightColor.green,
                         highlightColor.blue,
-                        0.50f
+                        0.75f
                     )
                 )
 
                 val shaderBrush = ShaderBrush(runtimeShader)
-
                 val roundRectPath = Path().apply {
                     addRoundRect(
                         RoundRect(
@@ -155,69 +209,119 @@ fun Modifier.liquidGlass(
                 }
 
                 onDrawWithContent {
-                    // 1. Draw child content
+                    // Draw milky surface sheen over background
+                    drawRect(surfaceSheenBrush)
+
+                    // Draw inner lens curvature reflection
+                    drawRoundRect(
+                        brush = lensRefractionBrush,
+                        cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
+                        size = Size(width, minOf(height * 0.50f, cornerRadiusPx * 2f))
+                    )
+
+                    // Draw child content
                     drawContent()
 
-                    // 2. Draw AGSL Specular Highlight along the outer border
+                    // Draw AGSL Specular Highlight along outer border
                     drawPath(
                         path = roundRectPath,
                         brush = shaderBrush,
                         style = Stroke(width = borderWidthPx)
                     )
-
-                    // 3. Draw soft inner top glass refraction glow
-                    drawRoundRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                highlightColor.copy(alpha = 0.16f),
-                                Color.Transparent
-                            ),
-                            startY = 0f,
-                            endY = minOf(height * 0.45f, cornerRadiusPx * 2f)
-                        ),
-                        cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
-                        size = Size(width, minOf(height * 0.45f, cornerRadiusPx * 2f))
-                    )
                 }
             } else {
-                // Graceful fallback for API < 33: Multi-stop linear specular border + inner refraction glow
-                val fallbackSpecularBrush = Brush.linearGradient(
-                    colors = listOf(
-                        highlightColor.copy(alpha = 0.38f),
-                        highlightColor.copy(alpha = 0.10f),
-                        Color.Transparent,
-                        highlightColor.copy(alpha = 0.15f)
-                    ),
-                    start = Offset(0f, 0f),
-                    end = Offset(width, height)
-                )
-
                 onDrawWithContent {
-                    // 1. Draw child content
+                    drawRect(surfaceSheenBrush)
+
+                    drawRoundRect(
+                        brush = lensRefractionBrush,
+                        cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
+                        size = Size(width, minOf(height * 0.50f, cornerRadiusPx * 2f))
+                    )
+
                     drawContent()
 
-                    // 2. Draw fallback specular border
                     drawRoundRect(
                         brush = fallbackSpecularBrush,
                         size = size,
                         cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
                         style = Stroke(width = borderWidthPx)
                     )
-
-                    // 3. Draw soft inner top refraction glow
-                    drawRoundRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                highlightColor.copy(alpha = 0.12f),
-                                Color.Transparent
-                            ),
-                            startY = 0f,
-                            endY = minOf(height * 0.4f, cornerRadiusPx * 1.5f)
-                        ),
-                        cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
-                        size = Size(width, minOf(height * 0.4f, cornerRadiusPx * 1.5f))
-                    )
                 }
+            }
+        }
+}
+
+/**
+ * Replicates the illuminated, glowing liquid glass pill indicator from SimpMusic ("Home" tab).
+ * Features glowing translucent glass substrate, high-contrast specular borders, and soft illumination.
+ */
+fun Modifier.liquidGlassActivePill(
+    shape: Shape = RoundedCornerShape(26.dp),
+    cornerRadius: Dp = 26.dp,
+    glowColor: Color? = null
+): Modifier = composed {
+    val palette = ClockTheme.palette
+    val density = LocalDensity.current
+    val cornerRadiusPx = with(density) { cornerRadius.toPx() }
+    val tint = glowColor ?: if (palette.isBlueTheme) Color(0xFF38BDF8) else Color(0xFFA855F7)
+
+    this
+        .shadow(
+            elevation = 6.dp,
+            shape = shape,
+            clip = false,
+            ambientColor = tint.copy(alpha = 0.35f),
+            spotColor = tint.copy(alpha = 0.55f)
+        )
+        .clip(shape)
+        .background(
+            Brush.verticalGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.28f),
+                    Color.White.copy(alpha = 0.14f),
+                    tint.copy(alpha = 0.25f)
+                )
+            )
+        )
+        .drawWithCache {
+            val width = size.width
+            val height = size.height
+
+            val rimBrush = Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.85f),
+                    Color.White.copy(alpha = 0.30f),
+                    tint.copy(alpha = 0.40f)
+                )
+            )
+
+            val innerGlowBrush = Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.40f),
+                    Color.Transparent
+                ),
+                startY = 0f,
+                endY = height * 0.55f
+            )
+
+            onDrawWithContent {
+                // Top inner reflection arc
+                drawRoundRect(
+                    brush = innerGlowBrush,
+                    size = Size(width, height * 0.55f),
+                    cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx)
+                )
+
+                drawContent()
+
+                // Specular border
+                drawRoundRect(
+                    brush = rimBrush,
+                    size = size,
+                    cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
+                    style = Stroke(width = 1.dp.toPx())
+                )
             }
         }
 }
