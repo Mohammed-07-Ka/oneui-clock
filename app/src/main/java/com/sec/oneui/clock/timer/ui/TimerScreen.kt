@@ -263,7 +263,7 @@ fun TimerScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 96.dp)
+                            .padding(bottom = 112.dp)
                             .height(58.dp)
                             .drawInteractiveGlass(
                                 isDark = true,

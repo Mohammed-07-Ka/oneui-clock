@@ -312,7 +312,7 @@ fun StopwatchScreen(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier.height(112.dp))
         } else {
             Spacer(modifier = Modifier.weight(1f))
         }
