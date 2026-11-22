@@ -95,9 +95,6 @@ dependencies {
     implementation("dev.chrisbanes.haze:haze:1.3.1")
     implementation("dev.chrisbanes.haze:haze-materials:1.3.1")
 
-    // Kyant Backdrop - Liquid Glass (matching SimpMusic reference)
-    implementation("io.github.kyant0:backdrop:2.0.1")
-
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

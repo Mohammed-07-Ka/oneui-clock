@@ -245,7 +245,12 @@ fun Modifier.drawInteractiveGlass(
                         }
                     ) * blurScale + 2f.dp.toPx() * press,
                 )
-                lens(size.minDimension / 4f + 2f.dp.toPx() * press, size.minDimension / 2f, false)
+                lens(
+                    refractionHeight = size.minDimension / 4f + 2f.dp.toPx() * press,
+                    refractionAmount = size.minDimension / 2f,
+                    depthEffect = false,
+                    chromaticAberration = false
+                )
             },
             onDrawBackdrop = { drawBackdrop ->
                 drawBackdrop()
@@ -591,7 +596,12 @@ fun LiquidGlassTabBar(
                             (if (l > 0f) lerp(8f.dp.toPx(), 16f.dp.toPx(), l) else lerp(8f.dp.toPx(), 2f.dp.toPx(), -l)) +
                                 20f.dp.toPx(),
                         )
-                        lens(10f.dp.toPx() * progress, 14f.dp.toPx() * progress, chromaticAberration = true)
+                        lens(
+                            refractionHeight = 10f.dp.toPx() * progress,
+                            refractionAmount = 14f.dp.toPx() * progress,
+                            depthEffect = false,
+                            chromaticAberration = true
+                        )
                     },
                     highlight = { Highlight.Default.copy(alpha = 0.6f) },
                     shadow = { Shadow(radius = 4f.dp, alpha = 0.4f) },
