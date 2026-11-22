@@ -588,15 +588,46 @@ fun AlarmEditSheet(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Cancel",
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Normal,
-                        color = Color(0xFF60A5FA),
-                        modifier = Modifier
-                            .iosClickable(targetScale = 0.95f) { onCancel() }
-                            .padding(vertical = 4.dp, horizontal = 4.dp)
-                    )
+                    val capsuleShape = CircleShape
+                    if (isGlassActive && backdrop != null) {
+                        Box(
+                            modifier = Modifier
+                                .height(42.dp)
+                                .drawInteractiveGlass(
+                                    isDark = true,
+                                    backdrop = backdrop,
+                                    layer = null,
+                                    luminance = { 0.4f },
+                                    shape = capsuleShape,
+                                    interaction = null
+                                )
+                                .clip(capsuleShape)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { onCancel() }
+                                .iosPressEffect(targetScale = 0.95f)
+                                .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Cancel",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = Color(0xFF60A5FA)
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = "Cancel",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = Color(0xFF60A5FA),
+                            modifier = Modifier
+                                .iosClickable(targetScale = 0.95f) { onCancel() }
+                                .padding(vertical = 4.dp, horizontal = 4.dp)
+                        )
+                    }
 
                     Text(
                         text = if (editorState.editingAlarmId == null) "Add Alarm" else "Edit Alarm",
@@ -605,15 +636,45 @@ fun AlarmEditSheet(
                         color = palette.textPrimary
                     )
 
-                    Text(
-                        text = "Save",
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.primaryAccent,
-                        modifier = Modifier
-                            .iosClickable(targetScale = 0.95f) { onSave() }
-                            .padding(vertical = 4.dp, horizontal = 4.dp)
-                    )
+                    if (isGlassActive && backdrop != null) {
+                        Box(
+                            modifier = Modifier
+                                .height(42.dp)
+                                .drawInteractiveGlass(
+                                    isDark = true,
+                                    backdrop = backdrop,
+                                    layer = null,
+                                    luminance = { 0.4f },
+                                    shape = capsuleShape,
+                                    interaction = null
+                                )
+                                .clip(capsuleShape)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { onSave() }
+                                .iosPressEffect(targetScale = 0.95f)
+                                .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Save",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.primaryAccent
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = "Save",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.primaryAccent,
+                            modifier = Modifier
+                                .iosClickable(targetScale = 0.95f) { onSave() }
+                                .padding(vertical = 4.dp, horizontal = 4.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
