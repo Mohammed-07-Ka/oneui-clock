@@ -136,6 +136,10 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
+    companion object {
+        private var coldStartToastShown = false
+    }
+
     private val alarmViewModel: AlarmViewModel by viewModels()
     private val stopwatchViewModel: StopwatchViewModel by viewModels()
     private val timerViewModel: TimerViewModel by viewModels()
@@ -164,6 +168,31 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         CrashReporter.install(this) // TEMPORARY - remove after debugging
         super.onCreate(savedInstanceState)
+
+        // TEMPORARY - measure cold start time and show as Toast
+        if (!coldStartToastShown) {
+            val startTime = android.os.Process.getStartElapsedRealtime()
+            window.decorView.viewTreeObserver.addOnDrawListener(object : android.view.ViewTreeObserver.OnDrawListener {
+                private var reported = false
+                override fun onDraw() {
+                    if (reported) return
+                    reported = true
+                    coldStartToastShown = true
+                    val endTime = android.os.SystemClock.elapsedRealtime()
+                    val diff = endTime - startTime
+                    window.decorView.post {
+                        if (window.decorView.viewTreeObserver.isAlive) {
+                            window.decorView.viewTreeObserver.removeOnDrawListener(this)
+                        }
+                        android.widget.Toast.makeText(
+                            this@MainActivity,
+                            "Start: $diff ms",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            })
+        }
 
         // TEMPORARY - remove after debugging
         val crashLog = CrashReporter.readCrash(this)
