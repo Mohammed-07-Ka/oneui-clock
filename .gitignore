@@ -30,6 +30,8 @@ experiments/
 licenses/
 website/
 scratch_unpack/
+scratch_simpmusic/
+*.zip
 dist/
 .agents/
 .husky/

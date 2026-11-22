@@ -53,6 +53,7 @@ import com.sec.oneui.clock.theme.LiquidTextSecondary
 import com.sec.oneui.clock.theme.OneUiRed
 import com.sec.oneui.clock.theme.iosClickable
 import com.sec.oneui.clock.theme.iosPressEffect
+import com.sec.oneui.clock.theme.liquidGlass
 import com.sec.oneui.clock.ui.components.WheelPicker
 
 @Composable
@@ -100,9 +101,10 @@ fun TimerScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(32.dp))
-                                .background(palette.cardBackground)
-                                .border(1.dp, palette.cardBorder, RoundedCornerShape(32.dp))
+                                .liquidGlass(
+                                    shape = RoundedCornerShape(32.dp),
+                                    cornerRadius = 32.dp
+                                )
                                 .padding(vertical = 14.dp, horizontal = 16.dp),
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
@@ -202,9 +204,10 @@ fun TimerScreen(
                             listOf(5, 10, 15, 30).forEach { mins ->
                                 Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(palette.cardBackground)
-                                        .border(1.dp, palette.cardBorderSubtle, RoundedCornerShape(16.dp))
+                                        .liquidGlass(
+                                            shape = RoundedCornerShape(16.dp),
+                                            cornerRadius = 16.dp
+                                        )
                                         .iosClickable(targetScale = 0.96f) { viewModel.applyPreset(mins) }
                                         .padding(horizontal = 18.dp, vertical = 10.dp)
                                 ) {

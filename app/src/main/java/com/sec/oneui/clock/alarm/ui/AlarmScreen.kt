@@ -122,6 +122,7 @@ import com.sec.oneui.clock.theme.LiquidTextSecondary
 import com.sec.oneui.clock.theme.OneUiRed
 import com.sec.oneui.clock.theme.iosClickable
 import com.sec.oneui.clock.theme.iosPressEffect
+import com.sec.oneui.clock.theme.liquidGlass
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -316,12 +317,14 @@ fun AlarmCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(26.dp))
-            .border(1.dp, palette.cardBorder, RoundedCornerShape(26.dp))
+            .liquidGlass(
+                shape = RoundedCornerShape(26.dp),
+                cornerRadius = 26.dp
+            )
             .iosPressEffect(targetScale = 0.96f, interactionSource = cardInteractionSource)
             .clickable(interactionSource = cardInteractionSource, indication = null) { onClick() },
         shape = RoundedCornerShape(26.dp),
-        colors = CardDefaults.cardColors(containerColor = palette.cardBackground)
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Row(
             modifier = Modifier
@@ -576,9 +579,10 @@ fun AlarmEditSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(26.dp))
-                        .background(palette.cardBackground)
-                        .border(1.dp, palette.cardBorder, RoundedCornerShape(26.dp))
+                        .liquidGlass(
+                            shape = RoundedCornerShape(26.dp),
+                            cornerRadius = 26.dp
+                        )
                         .padding(vertical = 14.dp, horizontal = 24.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
@@ -625,9 +629,10 @@ fun AlarmEditSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(26.dp))
-                        .background(palette.cardBackground)
-                        .border(1.dp, palette.cardBorder, RoundedCornerShape(26.dp))
+                        .liquidGlass(
+                            shape = RoundedCornerShape(26.dp),
+                            cornerRadius = 26.dp
+                        )
                         .padding(vertical = 14.dp, horizontal = 16.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
@@ -734,9 +739,10 @@ fun AlarmEditSheet(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(palette.cardBackground)
-                    .border(1.dp, palette.cardBorder, RoundedCornerShape(18.dp))
+                    .liquidGlass(
+                        shape = RoundedCornerShape(18.dp),
+                        cornerRadius = 18.dp
+                    )
                     .iosClickable(targetScale = 0.96f) { showDatePicker = true }
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -775,9 +781,10 @@ fun AlarmEditSheet(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(palette.cardBackground)
-                    .border(1.dp, palette.cardBorder, RoundedCornerShape(18.dp))
+                    .liquidGlass(
+                        shape = RoundedCornerShape(18.dp),
+                        cornerRadius = 18.dp
+                    )
                     .iosClickable(targetScale = 0.96f) {
                         val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
                             putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
@@ -838,9 +845,10 @@ fun AlarmEditSheet(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(palette.cardBackground)
-                    .border(1.dp, palette.cardBorder, RoundedCornerShape(18.dp))
+                    .liquidGlass(
+                        shape = RoundedCornerShape(18.dp),
+                        cornerRadius = 18.dp
+                    )
                     .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
                 Row(

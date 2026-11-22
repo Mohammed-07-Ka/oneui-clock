@@ -101,6 +101,7 @@ import com.sec.oneui.clock.theme.ClockTheme
 import com.sec.oneui.clock.theme.GeminiAnimatedBackground
 import com.sec.oneui.clock.theme.OneUIClockTheme
 import com.sec.oneui.clock.theme.iosPressEffect
+import com.sec.oneui.clock.theme.liquidGlass
 import com.sec.oneui.clock.timer.ui.TimerScreen
 import com.sec.oneui.clock.timer.ui.TimerViewModel
 import kotlinx.coroutines.launch
@@ -320,9 +321,10 @@ fun MainClockApp(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(64.dp)
-                                    .clip(RoundedCornerShape(32.dp))
-                                    .background(palette.cardBackground)
-                                    .border(1.dp, palette.cardBorder, RoundedCornerShape(32.dp))
+                                    .liquidGlass(
+                                        shape = RoundedCornerShape(32.dp),
+                                        cornerRadius = 32.dp
+                                    )
                                     .padding(4.dp)
                             ) {
                                 val tabCount = ClockTab.items.size
@@ -446,9 +448,10 @@ fun MainClockApp(
                             onClick = { showSettings = true },
                             modifier = Modifier
                                 .size(40.dp)
-                                .clip(CircleShape)
-                                .background(palette.cardBackground)
-                                .border(1.dp, palette.cardBorderSubtle, CircleShape)
+                                .liquidGlass(
+                                    shape = CircleShape,
+                                    cornerRadius = 20.dp
+                                )
                                 .iosPressEffect(targetScale = 0.96f)
                         ) {
                             Icon(

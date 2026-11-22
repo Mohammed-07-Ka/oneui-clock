@@ -43,6 +43,7 @@ import com.sec.oneui.clock.theme.LiquidTextSecondary
 import com.sec.oneui.clock.theme.OneUiGreen
 import com.sec.oneui.clock.theme.OneUiRed
 import com.sec.oneui.clock.theme.iosPressEffect
+import com.sec.oneui.clock.theme.liquidGlass
 
 @Composable
 fun StopwatchScreen(
@@ -83,9 +84,10 @@ fun StopwatchScreen(
         ) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(32.dp))
-                    .background(palette.cardBackground)
-                    .border(1.dp, palette.cardBorder, RoundedCornerShape(32.dp))
+                    .liquidGlass(
+                        shape = RoundedCornerShape(32.dp),
+                        cornerRadius = 32.dp
+                    )
                     .padding(horizontal = 28.dp, vertical = 20.dp)
             ) {
                 Text(
