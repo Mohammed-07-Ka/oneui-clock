@@ -363,54 +363,129 @@ fun TimerScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 96.dp),
+                        .padding(bottom = if (isGlassActive && backdrop != null) 112.dp else 96.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Button(
-                        onClick = { viewModel.resetTimer() },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(58.dp)
-                            .iosPressEffect(targetScale = 0.96f),
-                        shape = RoundedCornerShape(29.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = palette.cardBackground,
-                            contentColor = palette.textPrimary
-                        )
-                    ) {
-                        Text("Cancel", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                    }
-
-                    if (state == TimerState.RUNNING) {
-                        Button(
-                            onClick = { viewModel.pauseTimer() },
+                    if (isGlassActive && backdrop != null) {
+                        Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(58.dp)
+                                .drawInteractiveGlass(
+                                    isDark = true,
+                                    backdrop = backdrop,
+                                    layer = null,
+                                    luminance = { 0.4f },
+                                    shape = RoundedCornerShape(29.dp),
+                                    interaction = null
+                                )
+                                .clip(RoundedCornerShape(29.dp))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { viewModel.resetTimer() }
                                 .iosPressEffect(targetScale = 0.96f),
-                            shape = RoundedCornerShape(29.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = palette.primaryAccent,
-                                contentColor = palette.onPrimaryAccent
-                            )
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text("Pause", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text("Cancel", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                        }
+
+                        if (state == TimerState.RUNNING) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(58.dp)
+                                    .drawInteractiveGlass(
+                                        isDark = true,
+                                        backdrop = backdrop,
+                                        layer = null,
+                                        luminance = { 0.4f },
+                                        shape = RoundedCornerShape(29.dp),
+                                        interaction = null,
+                                        scrimColor = palette.primaryAccent
+                                    )
+                                    .clip(RoundedCornerShape(29.dp))
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null
+                                    ) { viewModel.pauseTimer() }
+                                    .iosPressEffect(targetScale = 0.96f),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("Pause", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(58.dp)
+                                    .drawInteractiveGlass(
+                                        isDark = true,
+                                        backdrop = backdrop,
+                                        layer = null,
+                                        luminance = { 0.4f },
+                                        shape = RoundedCornerShape(29.dp),
+                                        interaction = null,
+                                        scrimColor = palette.primaryAccent
+                                    )
+                                    .clip(RoundedCornerShape(29.dp))
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null
+                                    ) { viewModel.resumeTimer() }
+                                    .iosPressEffect(targetScale = 0.96f),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("Resume", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
                         }
                     } else {
                         Button(
-                            onClick = { viewModel.resumeTimer() },
+                            onClick = { viewModel.resetTimer() },
                             modifier = Modifier
                                 .weight(1f)
                                 .height(58.dp)
                                 .iosPressEffect(targetScale = 0.96f),
                             shape = RoundedCornerShape(29.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = palette.primaryAccent,
-                                contentColor = palette.onPrimaryAccent
+                                containerColor = palette.cardBackground,
+                                contentColor = palette.textPrimary
                             )
                         ) {
-                            Text("Resume", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text("Cancel", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        if (state == TimerState.RUNNING) {
+                            Button(
+                                onClick = { viewModel.pauseTimer() },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(58.dp)
+                                    .iosPressEffect(targetScale = 0.96f),
+                                shape = RoundedCornerShape(29.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = palette.primaryAccent,
+                                    contentColor = palette.onPrimaryAccent
+                                )
+                            ) {
+                                Text("Pause", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            }
+                        } else {
+                            Button(
+                                onClick = { viewModel.resumeTimer() },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(58.dp)
+                                    .iosPressEffect(targetScale = 0.96f),
+                                shape = RoundedCornerShape(29.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = palette.primaryAccent,
+                                    contentColor = palette.onPrimaryAccent
+                                )
+                            ) {
+                                Text("Resume", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
