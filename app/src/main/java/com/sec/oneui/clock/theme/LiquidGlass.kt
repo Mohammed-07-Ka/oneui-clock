@@ -33,6 +33,8 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -244,9 +246,10 @@ fun Modifier.drawInteractiveGlass(
                         }
                     ) * blurScale + 2f.dp.toPx() * press,
                 )
+                val minDim = if (size.isSpecified) size.minDimension else 64.dp.toPx()
                 lens(
-                    refractionHeight = size.minDimension / 4f + 2f.dp.toPx() * press,
-                    refractionAmount = size.minDimension / 2f,
+                    refractionHeight = minDim / 4f + 2f.dp.toPx() * press,
+                    refractionAmount = minDim / 2f,
                     depthEffect = false,
                     chromaticAberration = false
                 )
@@ -260,14 +263,16 @@ fun Modifier.drawInteractiveGlass(
                 drawRect((if (isDark) Color.Black else Color.White).copy(alpha = darken))
                 val press = interaction?.pressProgress ?: 0f
                 if (press > 0f) {
+                    val minDim = if (size.isSpecified) size.minDimension else 64.dp.toPx()
+                    val centerOffset = interaction?.touchPosition ?: (if (size.isSpecified) Offset(size.width / 2f, size.height / 2f) else Offset.Zero)
                     drawRect(
                         brush = Brush.radialGradient(
                             colors = listOf(
                                 Color.White.copy(alpha = 0.18f * press),
                                 Color.Transparent,
                             ),
-                            center = interaction?.touchPosition ?: Offset(size.width / 2f, size.height / 2f),
-                            radius = size.minDimension * 1.2f,
+                            center = centerOffset,
+                            radius = minDim * 1.2f,
                         ),
                         blendMode = BlendMode.Plus,
                     )

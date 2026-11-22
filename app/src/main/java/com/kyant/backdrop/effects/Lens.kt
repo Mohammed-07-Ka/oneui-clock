@@ -9,6 +9,8 @@ import android.graphics.RenderEffect
 import android.os.Build
 import androidx.annotation.FloatRange
 import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.fastCoerceAtLeast
 import androidx.compose.ui.util.fastCoerceAtMost
@@ -44,10 +46,12 @@ fun BackdropEffectScope.lens(
                         RoundedRectRefractionWithDispersionShaderString
                     )
                 }
+            val currentSize = if (size.isSpecified) size else Size.Zero
             shader.apply {
-                setFloatUniform("size", size.width, size.height)
+                setFloatUniform("size", currentSize.width, currentSize.height)
                 setFloatUniform("offset", -padding, -padding)
-                setFloatUniform("cornerRadii", cornerRadii)
+                val radii = cornerRadii ?: floatArrayOf(0f, 0f, 0f, 0f)
+                setFloatUniform("cornerRadii", radii)
                 setFloatUniform("refractionHeight", refractionHeight)
                 setFloatUniform("refractionAmount", -refractionAmount)
                 setFloatUniform("depthEffect", if (depthEffect) 1f else 0f)
@@ -66,6 +70,7 @@ private val BackdropEffectScope.cornerRadii: FloatArray?
     get() {
         val shape = shape as? CornerBasedShape ?: return null
         val size = size
+        if (!size.isSpecified) return null
         val maxRadius = size.minDimension / 2f
         val isLtr = layoutDirection == LayoutDirection.Ltr
         val topLeft =
