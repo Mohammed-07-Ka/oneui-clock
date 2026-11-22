@@ -14,6 +14,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -246,13 +247,14 @@ fun Modifier.drawInteractiveGlass(
                         }
                     ) * blurScale + 2f.dp.toPx() * press,
                 )
-                val minDim = if (size.isSpecified) size.minDimension else 64.dp.toPx()
-                lens(
-                    refractionHeight = minDim / 4f + 2f.dp.toPx() * press,
-                    refractionAmount = minDim / 2f,
-                    depthEffect = false,
-                    chromaticAberration = false
-                )
+                if (size.isSpecified && shape is CornerBasedShape) {
+                    lens(
+                        refractionHeight = size.minDimension / 4f + 2f.dp.toPx() * press,
+                        refractionAmount = size.minDimension / 2f,
+                        depthEffect = false,
+                        chromaticAberration = false
+                    )
+                }
             },
             onDrawBackdrop = { drawBackdrop ->
                 drawBackdrop()
@@ -263,16 +265,14 @@ fun Modifier.drawInteractiveGlass(
                 drawRect((if (isDark) Color.Black else Color.White).copy(alpha = darken))
                 val press = interaction?.pressProgress ?: 0f
                 if (press > 0f) {
-                    val minDim = if (size.isSpecified) size.minDimension else 64.dp.toPx()
-                    val centerOffset = interaction?.touchPosition ?: (if (size.isSpecified) Offset(size.width / 2f, size.height / 2f) else Offset.Zero)
                     drawRect(
                         brush = Brush.radialGradient(
                             colors = listOf(
                                 Color.White.copy(alpha = 0.18f * press),
                                 Color.Transparent,
                             ),
-                            center = centerOffset,
-                            radius = minDim * 1.2f,
+                            center = interaction?.touchPosition ?: Offset(size.width / 2f, size.height / 2f),
+                            radius = size.minDimension * 1.2f,
                         ),
                         blendMode = BlendMode.Plus,
                     )
@@ -600,12 +600,14 @@ fun LiquidGlassTabBar(
                             (if (l > 0f) lerp(8f.dp.toPx(), 16f.dp.toPx(), l) else lerp(8f.dp.toPx(), 2f.dp.toPx(), -l)) +
                                 20f.dp.toPx(),
                         )
-                        lens(
-                            refractionHeight = 10f.dp.toPx() * progress,
-                            refractionAmount = 14f.dp.toPx() * progress,
-                            depthEffect = false,
-                            chromaticAberration = true
-                        )
+                        if (size.isSpecified && shape is CornerBasedShape) {
+                            lens(
+                                refractionHeight = 10f.dp.toPx() * progress,
+                                refractionAmount = 14f.dp.toPx() * progress,
+                                depthEffect = false,
+                                chromaticAberration = true
+                            )
+                        }
                     },
                     highlight = { Highlight.Default.copy(alpha = 0.6f) },
                     shadow = { Shadow(radius = 4f.dp, alpha = 0.4f) },
