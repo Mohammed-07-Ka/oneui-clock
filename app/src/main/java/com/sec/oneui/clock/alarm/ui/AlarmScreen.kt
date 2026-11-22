@@ -122,6 +122,7 @@ import com.sec.oneui.clock.theme.LiquidTextSecondary
 import com.sec.oneui.clock.theme.LocalBackdrop
 import com.sec.oneui.clock.theme.LocalLiquidGlassEnabled
 import com.sec.oneui.clock.theme.OneUiRed
+import com.sec.oneui.clock.theme.drawInteractiveGlass
 import com.sec.oneui.clock.theme.iosClickable
 import com.sec.oneui.clock.theme.iosPressEffect
 import com.sec.oneui.clock.theme.liquidGlass
@@ -335,17 +336,36 @@ fun AlarmCard(
     val palette = ClockTheme.palette
     val haptic = LocalHapticFeedback.current
     val cardInteractionSource = remember { MutableInteractionSource() }
+    val isGlassActive = LocalLiquidGlassEnabled.current && LocalBackdrop.current != null
+    val backdrop = LocalBackdrop.current
+    val cardShape = RoundedCornerShape(26.dp)
+
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .liquidGlassCard(
-                hazeState = hazeState,
-                shape = RoundedCornerShape(26.dp),
-                cornerRadius = 26.dp
+            .then(
+                if (isGlassActive && backdrop != null) {
+                    Modifier
+                        .drawInteractiveGlass(
+                            isDark = true,
+                            backdrop = backdrop,
+                            layer = null,
+                            luminance = { 0.4f },
+                            shape = cardShape,
+                            interaction = null
+                        )
+                        .clip(cardShape)
+                } else {
+                    Modifier.liquidGlassCard(
+                        hazeState = hazeState,
+                        shape = cardShape,
+                        cornerRadius = 26.dp
+                    )
+                }
             )
             .iosPressEffect(targetScale = 0.96f, interactionSource = cardInteractionSource)
             .clickable(interactionSource = cardInteractionSource, indication = null) { onClick() },
-        shape = RoundedCornerShape(26.dp),
+        shape = cardShape,
         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Row(

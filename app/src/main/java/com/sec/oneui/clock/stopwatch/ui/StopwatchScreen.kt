@@ -60,6 +60,8 @@ fun StopwatchScreen(
     val elapsedMillis by viewModel.elapsedMillis.collectAsState()
     val laps by viewModel.laps.collectAsState()
     val palette = ClockTheme.palette
+    val isGlassActive = LocalLiquidGlassEnabled.current && LocalBackdrop.current != null
+    val backdrop = LocalBackdrop.current
 
     val formattedTime = LapItem.formatStopwatchTime(elapsedMillis)
 
@@ -88,11 +90,27 @@ fun StopwatchScreen(
                 .weight(0.7f),
             contentAlignment = Alignment.Center
         ) {
+            val displayCardShape = RoundedCornerShape(32.dp)
             Box(
                 modifier = Modifier
-                    .liquidGlass(
-                        shape = RoundedCornerShape(32.dp),
-                        cornerRadius = 32.dp
+                    .then(
+                        if (isGlassActive && backdrop != null) {
+                            Modifier
+                                .drawInteractiveGlass(
+                                    isDark = true,
+                                    backdrop = backdrop,
+                                    layer = null,
+                                    luminance = { 0.4f },
+                                    shape = displayCardShape,
+                                    interaction = null
+                                )
+                                .clip(displayCardShape)
+                        } else {
+                            Modifier.liquidGlass(
+                                shape = displayCardShape,
+                                cornerRadius = 32.dp
+                            )
+                        }
                     )
                     .padding(horizontal = 28.dp, vertical = 20.dp)
             ) {
@@ -116,9 +134,6 @@ fun StopwatchScreen(
         ) {
             when (state) {
                 StopwatchState.IDLE -> {
-                    val isGlassActive = LocalLiquidGlassEnabled.current && LocalBackdrop.current != null
-                    val backdrop = LocalBackdrop.current
-
                     if (isGlassActive && backdrop != null) {
                         Box(
                             modifier = Modifier

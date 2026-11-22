@@ -76,6 +76,8 @@ fun TimerScreen(
     val inputSeconds by viewModel.inputSeconds.collectAsState()
 
     val palette = ClockTheme.palette
+    val isGlassActive = LocalLiquidGlassEnabled.current && LocalBackdrop.current != null
+    val backdrop = LocalBackdrop.current
 
     Column(
         modifier = modifier
@@ -104,12 +106,28 @@ fun TimerScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        val pickerShape = RoundedCornerShape(32.dp)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .liquidGlass(
-                                    shape = RoundedCornerShape(32.dp),
-                                    cornerRadius = 32.dp
+                                .then(
+                                    if (isGlassActive && backdrop != null) {
+                                        Modifier
+                                            .drawInteractiveGlass(
+                                                isDark = true,
+                                                backdrop = backdrop,
+                                                layer = null,
+                                                luminance = { 0.4f },
+                                                shape = pickerShape,
+                                                interaction = null
+                                            )
+                                            .clip(pickerShape)
+                                    } else {
+                                        Modifier.liquidGlass(
+                                            shape = pickerShape,
+                                            cornerRadius = 32.dp
+                                        )
+                                    }
                                 )
                                 .padding(vertical = 14.dp, horizontal = 16.dp),
                             horizontalArrangement = Arrangement.Center,
@@ -207,12 +225,28 @@ fun TimerScreen(
                         Text("Presets", color = palette.textSecondary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                         Spacer(modifier = Modifier.height(12.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            val chipShape = RoundedCornerShape(16.dp)
                             listOf(5, 10, 15, 30).forEach { mins ->
                                 Box(
                                     modifier = Modifier
-                                        .liquidGlass(
-                                            shape = RoundedCornerShape(16.dp),
-                                            cornerRadius = 16.dp
+                                        .then(
+                                            if (isGlassActive && backdrop != null) {
+                                                Modifier
+                                                    .drawInteractiveGlass(
+                                                        isDark = true,
+                                                        backdrop = backdrop,
+                                                        layer = null,
+                                                        luminance = { 0.4f },
+                                                        shape = chipShape,
+                                                        interaction = null
+                                                    )
+                                                    .clip(chipShape)
+                                            } else {
+                                                Modifier.liquidGlass(
+                                                    shape = chipShape,
+                                                    cornerRadius = 16.dp
+                                                )
+                                            }
                                         )
                                         .iosClickable(targetScale = 0.96f) { viewModel.applyPreset(mins) }
                                         .padding(horizontal = 18.dp, vertical = 10.dp)
@@ -225,9 +259,6 @@ fun TimerScreen(
                 }
 
                 // Start Button with iOS Tactile Press
-                val isGlassActive = LocalLiquidGlassEnabled.current && LocalBackdrop.current != null
-                val backdrop = LocalBackdrop.current
-
                 if (isGlassActive && backdrop != null) {
                     Box(
                         modifier = Modifier
