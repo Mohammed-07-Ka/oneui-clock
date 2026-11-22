@@ -1175,6 +1175,7 @@ fun AlarmEditSheet(
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = editorState.scheduledDateMillis ?: System.currentTimeMillis()
         )
+        val dialogShape = RoundedCornerShape(28.dp)
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
@@ -1182,40 +1183,56 @@ fun AlarmEditSheet(
                     onScheduledDateChanged(datePickerState.selectedDateMillis)
                     showDatePicker = false
                 }) {
-                    Text("OK", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("OK", color = palette.primaryAccent, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel", color = LiquidTextSecondary)
+                    Text("Cancel", color = palette.textSecondary)
                 }
             },
-            colors = DatePickerDefaults.colors(
-                containerColor = Color(0xFF121218)
+            modifier = Modifier.then(
+                if (isGlassActive && backdrop != null) {
+                    Modifier
+                        .drawInteractiveGlass(
+                            isDark = true,
+                            backdrop = backdrop,
+                            layer = null,
+                            luminance = { 0.4f },
+                            shape = dialogShape,
+                            interaction = null
+                        )
+                        .clip(dialogShape)
+                } else {
+                    Modifier
+                }
             ),
-            shape = RoundedCornerShape(28.dp)
+            colors = DatePickerDefaults.colors(
+                containerColor = if (isGlassActive && backdrop != null) Color.Transparent else Color(0xFF121218)
+            ),
+            shape = dialogShape
         ) {
             Surface(
-                color = Color(0xFF121218),
-                shape = RoundedCornerShape(28.dp)
+                color = if (isGlassActive && backdrop != null) Color.Transparent else Color(0xFF121218),
+                shape = dialogShape
             ) {
                 DatePicker(
                     state = datePickerState,
                     colors = DatePickerDefaults.colors(
-                        containerColor = Color(0xFF121218),
+                        containerColor = if (isGlassActive && backdrop != null) Color.Transparent else Color(0xFF121218),
                         titleContentColor = Color.White,
                         headlineContentColor = Color.White,
                         weekdayContentColor = Color.White.copy(alpha = 0.7f),
                         subheadContentColor = Color.White.copy(alpha = 0.8f),
                         yearContentColor = Color.White,
                         currentYearContentColor = Color.White,
-                        selectedYearContentColor = Color.White,
-                        selectedYearContainerColor = Color(0xFF7C3AED),
+                        selectedYearContentColor = palette.onPrimaryAccent,
+                        selectedYearContainerColor = palette.primaryAccent,
                         dayContentColor = Color.White,
                         disabledDayContentColor = Color.White.copy(alpha = 0.38f),
-                        selectedDayContentColor = Color.White,
-                        selectedDayContainerColor = Color(0xFF7C3AED),
-                        todayDateBorderColor = Color(0xFF7C3AED),
+                        selectedDayContentColor = palette.onPrimaryAccent,
+                        selectedDayContainerColor = palette.primaryAccent,
+                        todayDateBorderColor = palette.primaryAccent,
                         todayContentColor = Color.White
                     )
                 )
