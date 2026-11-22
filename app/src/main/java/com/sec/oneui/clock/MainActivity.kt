@@ -98,13 +98,22 @@ import com.sec.oneui.clock.settings.SettingsManager
 import com.sec.oneui.clock.settings.SettingsScreen
 import com.sec.oneui.clock.stopwatch.ui.StopwatchScreen
 import com.sec.oneui.clock.stopwatch.ui.StopwatchViewModel
+import com.sec.oneui.clock.settings.ThemeMode
 import com.sec.oneui.clock.theme.ClockTheme
 import com.sec.oneui.clock.theme.GeminiAnimatedBackground
+import com.sec.oneui.clock.theme.GeminiBackgroundCanvas
+import com.sec.oneui.clock.theme.LiquidGlassTabBar
+import com.sec.oneui.clock.theme.LocalBackdrop
 import com.sec.oneui.clock.theme.LocalHazeState
+import com.sec.oneui.clock.theme.LocalLiquidGlassEnabled
 import com.sec.oneui.clock.theme.OneUIClockTheme
+import com.sec.oneui.clock.theme.PlatformBackdrop
+import com.sec.oneui.clock.theme.isLiquidGlassSupported
 import com.sec.oneui.clock.theme.iosPressEffect
+import com.sec.oneui.clock.theme.layerBackdrop
 import com.sec.oneui.clock.theme.liquidGlass
 import com.sec.oneui.clock.theme.liquidGlassActivePill
+import com.sec.oneui.clock.theme.rememberBackdrop
 import com.sec.oneui.clock.timer.ui.TimerScreen
 import com.sec.oneui.clock.timer.ui.TimerViewModel
 import dev.chrisbanes.haze.HazeState
@@ -171,26 +180,27 @@ class MainActivity : ComponentActivity() {
             val animationEnabled by settingsManager.animationEnabled.collectAsState()
             val animationSpeed by settingsManager.animationSpeed.collectAsState()
             val hazeState = remember { HazeState() }
+            val backdrop = if (isLiquidGlassSupported) rememberBackdrop(Color.Transparent) else null
 
             CompositionLocalProvider(
                 LocalLayoutDirection provides LayoutDirection.Ltr,
-                LocalHazeState provides hazeState
+                LocalHazeState provides hazeState,
+                LocalBackdrop provides backdrop,
+                LocalLiquidGlassEnabled provides isLiquidGlassSupported
             ) {
                 OneUIClockTheme(themeMode = themeMode) {
-                    GeminiAnimatedBackground(
+                    MainClockApp(
+                        alarmViewModel = alarmViewModel,
+                        stopwatchViewModel = stopwatchViewModel,
+                        timerViewModel = timerViewModel,
+                        settingsManager = settingsManager,
+                        navTabFlow = navTabFlow,
                         themeMode = themeMode,
                         animationEnabled = animationEnabled,
                         animationSpeed = animationSpeed,
-                        hazeState = hazeState
-                    ) {
-                        MainClockApp(
-                            alarmViewModel = alarmViewModel,
-                            stopwatchViewModel = stopwatchViewModel,
-                            timerViewModel = timerViewModel,
-                            settingsManager = settingsManager,
-                            navTabFlow = navTabFlow
-                        )
-                    }
+                        hazeState = hazeState,
+                        backdrop = backdrop
+                    )
                 }
             }
         }
@@ -242,14 +252,19 @@ fun MainClockApp(
     stopwatchViewModel: StopwatchViewModel,
     timerViewModel: TimerViewModel,
     settingsManager: SettingsManager,
-    navTabFlow: kotlinx.coroutines.flow.StateFlow<Int?>
+    navTabFlow: kotlinx.coroutines.flow.StateFlow<Int?>,
+    themeMode: ThemeMode = ThemeMode.AURORA_PURPLE,
+    animationEnabled: Boolean = true,
+    animationSpeed: Float = 1.0f,
+    hazeState: HazeState? = LocalHazeState.current,
+    backdrop: PlatformBackdrop? = LocalBackdrop.current
 ) {
     var showSettings by rememberSaveable { mutableStateOf(false) }
     val editorState by alarmViewModel.editorState.collectAsState()
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { ClockTab.items.size })
     val coroutineScope = rememberCoroutineScope()
     val palette = ClockTheme.palette
-    val hazeState = LocalHazeState.current ?: remember { HazeState() }
+    val activeHaze = hazeState ?: LocalHazeState.current ?: remember { HazeState() }
 
     // Handle navigation tab changes (e.g. from notification clicks)
     val targetTab by navTabFlow.collectAsState()
@@ -316,18 +331,38 @@ fun MainClockApp(
                     )
                 )
 
-                // 1. Edge-to-Edge Content Pager (Passes COMPLETELY behind the floating liquid glass bar)
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize(),
-                    userScrollEnabled = true,
-                    beyondViewportPageCount = 2,
-                    flingBehavior = instantFling
-                ) { pageIndex ->
-                    when (pageIndex) {
-                        0 -> AlarmScreen(viewModel = alarmViewModel)
-                        1 -> StopwatchScreen(viewModel = stopwatchViewModel)
-                        2 -> TimerScreen(viewModel = timerViewModel)
+                // 1. Sibling Backdrop Source Layer:
+                // Captures BOTH the real animated mesh background AND the edge-to-edge pager content!
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(
+                            if (isLiquidGlassSupported && backdrop != null) {
+                                Modifier.layerBackdrop(backdrop)
+                            } else Modifier
+                        )
+                ) {
+                    // Real Animated Mesh Background Canvas (aurora mesh + color transitions)
+                    GeminiBackgroundCanvas(
+                        themeMode = themeMode,
+                        animationEnabled = animationEnabled,
+                        animationSpeed = animationSpeed,
+                        hazeState = activeHaze
+                    )
+
+                    // Edge-to-Edge Content Pager (Passes COMPLETELY behind the floating liquid glass bar)
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize(),
+                        userScrollEnabled = true,
+                        beyondViewportPageCount = 2,
+                        flingBehavior = instantFling
+                    ) { pageIndex ->
+                        when (pageIndex) {
+                            0 -> AlarmScreen(viewModel = alarmViewModel)
+                            1 -> StopwatchScreen(viewModel = stopwatchViewModel)
+                            2 -> TimerScreen(viewModel = timerViewModel)
+                        }
                     }
                 }
 
@@ -378,90 +413,128 @@ fun MainClockApp(
                         .navigationBarsPadding()
                         .padding(horizontal = 20.dp, vertical = 14.dp)
                 ) {
-                    BoxWithConstraints(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(64.dp)
-                            .liquidGlass(
-                                hazeState = hazeState,
-                                shape = RoundedCornerShape(32.dp),
-                                cornerRadius = 32.dp,
-                                elevation = 16.dp
-                            )
-                            .padding(4.dp)
-                    ) {
-                        val tabCount = ClockTab.items.size
-                        val tabWidth = maxWidth / tabCount
-                        val selectedTab = pagerState.currentPage.coerceIn(0, tabCount - 1)
-                        val pillOffset by animateDpAsState(
-                            targetValue = tabWidth * selectedTab,
-                            animationSpec = spring(dampingRatio = 0.72f, stiffness = 450f),
-                            label = "activeTabPill"
-                        )
-                        val activeColor = if (palette.isBlueTheme) Color(0xFF38BDF8) else Color(0xFFA855F7)
+                    val isGlassActive = LocalLiquidGlassEnabled.current && backdrop != null
+                    val activeColor = if (palette.isBlueTheme) Color(0xFF38BDF8) else Color(0xFFA855F7)
 
-                        // Illuminated Liquid Glass Active Pill Indicator (matching SimpMusic "Home" pill)
-                        Box(
-                            modifier = Modifier
-                                .offset(x = pillOffset)
-                                .width(tabWidth)
-                                .fillMaxHeight()
-                                .liquidGlassActivePill(
-                                    hazeState = hazeState,
-                                    shape = RoundedCornerShape(28.dp),
-                                    cornerRadius = 28.dp,
-                                    glowColor = activeColor
+                    if (isGlassActive) {
+                        LiquidGlassTabBar(
+                            tabCount = ClockTab.items.size,
+                            selectedTab = pagerState.currentPage.coerceIn(0, ClockTab.items.size - 1),
+                            backdrop = backdrop,
+                            onTabSelected = { index ->
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(index)
+                                }
+                            }
+                        ) { position, isSelected ->
+                            val tab = ClockTab.items[position]
+                            val tabColor = if (isSelected) activeColor else Color.White.copy(alpha = 0.55f)
+                            Column(
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = tab.icon,
+                                    contentDescription = tab.title,
+                                    tint = tabColor,
+                                    modifier = Modifier.size(20.dp)
                                 )
-                        )
-
-                        // Tab items row: Clean vertical layout (Icon on top, label below) matching SimpMusic & iOS
-                        Row(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalAlignment = Alignment.CenterVertically
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = tab.title,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = tabColor,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    } else {
+                        // Fallback: Exact current look completely unchanged for API < 33 or when disabled
+                        BoxWithConstraints(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(64.dp)
+                                .liquidGlass(
+                                    hazeState = activeHaze,
+                                    shape = RoundedCornerShape(32.dp),
+                                    cornerRadius = 32.dp,
+                                    elevation = 16.dp
+                                )
+                                .padding(4.dp)
                         ) {
-                            ClockTab.items.forEach { tab ->
-                                val isSelected = selectedTab == tab.index
-                                val tabColor = if (isSelected) activeColor else Color.White.copy(alpha = 0.55f)
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
-                                        .clip(RoundedCornerShape(28.dp))
-                                        .clickable(
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null
-                                        ) {
-                                            coroutineScope.launch {
-                                                pagerState.animateScrollToPage(
-                                                    page = tab.index,
-                                                    animationSpec = spring(
-                                                        dampingRatio = 0.75f,
-                                                        stiffness = 500f
+                            val tabCount = ClockTab.items.size
+                            val tabWidth = maxWidth / tabCount
+                            val selectedTab = pagerState.currentPage.coerceIn(0, tabCount - 1)
+                            val pillOffset by animateDpAsState(
+                                targetValue = tabWidth * selectedTab,
+                                animationSpec = spring(dampingRatio = 0.72f, stiffness = 450f),
+                                label = "activeTabPill"
+                            )
+
+                            // Current fallback active pill indicator
+                            Box(
+                                modifier = Modifier
+                                    .offset(x = pillOffset)
+                                    .width(tabWidth)
+                                    .fillMaxHeight()
+                                    .liquidGlassActivePill(
+                                        hazeState = activeHaze,
+                                        shape = RoundedCornerShape(28.dp),
+                                        cornerRadius = 28.dp,
+                                        glowColor = activeColor
+                                    )
+                            )
+
+                            // Current fallback tab items row
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                ClockTab.items.forEach { tab ->
+                                    val isSelected = selectedTab == tab.index
+                                    val tabColor = if (isSelected) activeColor else Color.White.copy(alpha = 0.55f)
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight()
+                                            .clip(RoundedCornerShape(28.dp))
+                                            .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null
+                                            ) {
+                                                coroutineScope.launch {
+                                                    pagerState.animateScrollToPage(
+                                                        page = tab.index,
+                                                        animationSpec = spring(
+                                                            dampingRatio = 0.75f,
+                                                            stiffness = 500f
+                                                        )
                                                     )
-                                                )
+                                                }
                                             }
-                                        }
-                                        .iosPressEffect(targetScale = 0.94f),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(
-                                        verticalArrangement = Arrangement.Center,
-                                        horizontalAlignment = Alignment.CenterHorizontally
+                                            .iosPressEffect(targetScale = 0.94f),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
-                                            imageVector = tab.icon,
-                                            contentDescription = tab.title,
-                                            tint = tabColor,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = tab.title,
-                                            fontSize = 11.sp,
-                                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                            color = tabColor,
-                                            maxLines = 1
-                                        )
+                                        Column(
+                                            verticalArrangement = Arrangement.Center,
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Icon(
+                                                imageVector = tab.icon,
+                                                contentDescription = tab.title,
+                                                tint = tabColor,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = tab.title,
+                                                fontSize = 11.sp,
+                                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                                color = tabColor,
+                                                maxLines = 1
+                                            )
+                                        }
                                     }
                                 }
                             }

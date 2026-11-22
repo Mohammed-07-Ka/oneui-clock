@@ -54,13 +54,12 @@ import kotlin.math.sin
  * - Static gradient mode when mesh motion is disabled, consuming 0% CPU.
  */
 @Composable
-fun GeminiAnimatedBackground(
+fun GeminiBackgroundCanvas(
     modifier: Modifier = Modifier,
     themeMode: ThemeMode = ThemeMode.AURORA_PURPLE,
     animationEnabled: Boolean = true,
     animationSpeed: Float = 1.0f,
-    hazeState: HazeState? = LocalHazeState.current,
-    content: @Composable BoxScope.() -> Unit = {}
+    hazeState: HazeState? = LocalHazeState.current
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     var isResumed by remember {
@@ -81,17 +80,12 @@ fun GeminiAnimatedBackground(
         }
     }
 
-    // Explicit and perceivable cycle durations:
-    // Slow (Eco): 20,000ms
-    // Normal: 8,000ms
-    // Dynamic: 3,500ms
     val cycleDurationMs = when {
         animationSpeed <= 0.65f -> 20_000
         animationSpeed >= 1.35f -> 3_500
         else -> 8_000
     }
 
-    // Only instantiate and run InfiniteTransition when animation is enabled AND screen is resumed
     val phaseState: State<Float>? = if (animationEnabled && isResumed) {
         key(animationSpeed) {
             val infiniteTransition = rememberInfiniteTransition(label = "auroraMeshClock")
@@ -115,51 +109,64 @@ fun GeminiAnimatedBackground(
         ThemeMode.AMOLED_PITCH -> Color(0xFF000000)
     }
 
-    // Smooth 350ms theme switch transition
     val groundColorState = animateColorAsState(
         targetValue = targetGroundColor,
         animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
         label = "groundColorTransition"
     )
 
-    Box(modifier = modifier.fillMaxSize()) {
-        val hazeSourceModifier = if (hazeState != null) {
-            Modifier.haze(hazeState)
-        } else {
-            Modifier
-        }
+    val hazeSourceModifier = if (hazeState != null) {
+        Modifier.haze(hazeState)
+    } else {
+        Modifier
+    }
 
-        // Sibling background canvas registered as Haze blur source
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .drawBehind {
-                    val width = size.width
-                    val height = size.height
-                    if (width <= 0f || height <= 0f) return@drawBehind
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .drawBehind {
+                val width = size.width
+                val height = size.height
+                if (width <= 0f || height <= 0f) return@drawBehind
 
-                    // 1. Fill ground floor
-                    drawRect(color = groundColorState.value)
+                // 1. Fill ground floor
+                drawRect(color = groundColorState.value)
 
-                    // Pure black for AMOLED Pitch
-                    if (themeMode == ThemeMode.AMOLED_PITCH) {
-                        return@drawBehind
-                    }
-
-                    // 2. If animation is disabled, render static gradient brush with 0% CPU consumption
-                    if (!animationEnabled) {
-                        drawStaticMesh(themeMode, width, height)
-                        return@drawBehind
-                    }
-
-                    // 3. Read animated phase exclusively in DrawScope -> ZERO Recompositions
-                    val animatedPhase = phaseState?.value ?: 0.85f
-                    drawAnimatedMesh(themeMode, width, height, animatedPhase)
+                // Pure black for AMOLED Pitch
+                if (themeMode == ThemeMode.AMOLED_PITCH) {
+                    return@drawBehind
                 }
-                .then(hazeSourceModifier)
-        )
 
-        // Sibling foreground content (Pager, floating liquid glass bars, cards)
+                // 2. If animation is disabled, render static gradient brush with 0% CPU consumption
+                if (!animationEnabled) {
+                    drawStaticMesh(themeMode, width, height)
+                    return@drawBehind
+                }
+
+                // 3. Read animated phase exclusively in DrawScope -> ZERO Recompositions
+                val animatedPhase = phaseState?.value ?: 0.85f
+                drawAnimatedMesh(themeMode, width, height, animatedPhase)
+            }
+            .then(hazeSourceModifier)
+    )
+}
+
+@Composable
+fun GeminiAnimatedBackground(
+    modifier: Modifier = Modifier,
+    themeMode: ThemeMode = ThemeMode.AURORA_PURPLE,
+    animationEnabled: Boolean = true,
+    animationSpeed: Float = 1.0f,
+    hazeState: HazeState? = LocalHazeState.current,
+    content: @Composable BoxScope.() -> Unit = {}
+) {
+    Box(modifier = modifier.fillMaxSize()) {
+        GeminiBackgroundCanvas(
+            themeMode = themeMode,
+            animationEnabled = animationEnabled,
+            animationSpeed = animationSpeed,
+            hazeState = hazeState
+        )
         content()
     }
 }
