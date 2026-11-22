@@ -525,6 +525,8 @@ fun AlarmEditSheet(
     }
 
     val palette = ClockTheme.palette
+    val isGlassActive = LocalLiquidGlassEnabled.current && LocalBackdrop.current != null
+    val backdrop = LocalBackdrop.current
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
 
@@ -617,13 +619,29 @@ fun AlarmEditSheet(
                 Spacer(modifier = Modifier.height(20.dp))
 
             // iOS Liquid Glass Wheel Time Picker
+            val timePickerShape = RoundedCornerShape(26.dp)
             if (use24HourFormat) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .liquidGlass(
-                            shape = RoundedCornerShape(26.dp),
-                            cornerRadius = 26.dp
+                        .then(
+                            if (isGlassActive && backdrop != null) {
+                                Modifier
+                                    .drawInteractiveGlass(
+                                        isDark = true,
+                                        backdrop = backdrop,
+                                        layer = null,
+                                        luminance = { 0.4f },
+                                        shape = timePickerShape,
+                                        interaction = null
+                                    )
+                                    .clip(timePickerShape)
+                            } else {
+                                Modifier.liquidGlass(
+                                    shape = timePickerShape,
+                                    cornerRadius = 26.dp
+                                )
+                            }
                         )
                         .padding(vertical = 14.dp, horizontal = 24.dp),
                     horizontalArrangement = Arrangement.Center,
@@ -671,9 +689,24 @@ fun AlarmEditSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .liquidGlass(
-                            shape = RoundedCornerShape(26.dp),
-                            cornerRadius = 26.dp
+                        .then(
+                            if (isGlassActive && backdrop != null) {
+                                Modifier
+                                    .drawInteractiveGlass(
+                                        isDark = true,
+                                        backdrop = backdrop,
+                                        layer = null,
+                                        luminance = { 0.4f },
+                                        shape = timePickerShape,
+                                        interaction = null
+                                    )
+                                    .clip(timePickerShape)
+                            } else {
+                                Modifier.liquidGlass(
+                                    shape = timePickerShape,
+                                    cornerRadius = 26.dp
+                                )
+                            }
                         )
                         .padding(vertical = 14.dp, horizontal = 16.dp),
                     horizontalArrangement = Arrangement.Center,
@@ -778,12 +811,28 @@ fun AlarmEditSheet(
             Spacer(modifier = Modifier.height(18.dp))
 
             // Calendar Date Picker Glass Card
+            val scheduleShape = RoundedCornerShape(18.dp)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .liquidGlass(
-                        shape = RoundedCornerShape(18.dp),
-                        cornerRadius = 18.dp
+                    .then(
+                        if (isGlassActive && backdrop != null) {
+                            Modifier
+                                .drawInteractiveGlass(
+                                    isDark = true,
+                                    backdrop = backdrop,
+                                    layer = null,
+                                    luminance = { 0.4f },
+                                    shape = scheduleShape,
+                                    interaction = null
+                                )
+                                .clip(scheduleShape)
+                        } else {
+                            Modifier.liquidGlass(
+                                shape = scheduleShape,
+                                cornerRadius = 18.dp
+                            )
+                        }
                     )
                     .iosClickable(targetScale = 0.96f) { showDatePicker = true }
                     .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -820,12 +869,28 @@ fun AlarmEditSheet(
             Spacer(modifier = Modifier.height(14.dp))
 
             // Ringtone Picker Glass Card
+            val ringtoneShape = RoundedCornerShape(18.dp)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .liquidGlass(
-                        shape = RoundedCornerShape(18.dp),
-                        cornerRadius = 18.dp
+                    .then(
+                        if (isGlassActive && backdrop != null) {
+                            Modifier
+                                .drawInteractiveGlass(
+                                    isDark = true,
+                                    backdrop = backdrop,
+                                    layer = null,
+                                    luminance = { 0.4f },
+                                    shape = ringtoneShape,
+                                    interaction = null
+                                )
+                                .clip(ringtoneShape)
+                        } else {
+                            Modifier.liquidGlass(
+                                shape = ringtoneShape,
+                                cornerRadius = 18.dp
+                            )
+                        }
                     )
                     .iosClickable(targetScale = 0.96f) {
                         val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
@@ -884,12 +949,28 @@ fun AlarmEditSheet(
             Spacer(modifier = Modifier.height(14.dp))
 
             // Alarm Volume Glass Card
+            val volumeShape = RoundedCornerShape(18.dp)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .liquidGlass(
-                        shape = RoundedCornerShape(18.dp),
-                        cornerRadius = 18.dp
+                    .then(
+                        if (isGlassActive && backdrop != null) {
+                            Modifier
+                                .drawInteractiveGlass(
+                                    isDark = true,
+                                    backdrop = backdrop,
+                                    layer = null,
+                                    luminance = { 0.4f },
+                                    shape = volumeShape,
+                                    interaction = null
+                                )
+                                .clip(volumeShape)
+                        } else {
+                            Modifier.liquidGlass(
+                                shape = volumeShape,
+                                cornerRadius = 18.dp
+                            )
+                        }
                     )
                     .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
