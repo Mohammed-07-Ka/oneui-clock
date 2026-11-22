@@ -561,7 +561,11 @@ fun AlarmEditSheet(
                     indication = null
                 ) {},
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-            color = if (palette.themeMode == ThemeMode.AMOLED_PITCH || palette.themeMode == ThemeMode.MIDNIGHT_BLUE) Color(0xFF07050C) else Color(0xFF0E0B18),
+            color = when (palette.themeMode) {
+                ThemeMode.AMOLED_PITCH -> Color.Black
+                ThemeMode.MIDNIGHT_BLUE -> Color(0xFF07050C)
+                ThemeMode.AURORA_PURPLE -> Color(0xFF0E0B18)
+            },
             border = androidx.compose.foundation.BorderStroke(1.dp, palette.cardBorderSubtle)
         ) {
             Column(

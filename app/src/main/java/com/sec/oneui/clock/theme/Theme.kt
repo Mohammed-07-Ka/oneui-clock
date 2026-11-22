@@ -65,19 +65,19 @@ val MidnightBluePalette = ClockThemePalette(
 
 val AmoledPitchPalette = ClockThemePalette(
     themeMode = ThemeMode.AMOLED_PITCH,
-    primaryAccent = Color(0xFFFFFFFF),
-    onPrimaryAccent = Color(0xFF000000),
+    primaryAccent = Color(0xFF2563EB),
+    onPrimaryAccent = Color(0xFFFFFFFF),
     secondaryAccent = Color(0xFF333333),
-    isBlueTheme = false,
+    isBlueTheme = true,
     cardBackground = Color.White.copy(alpha = 0.05f),
     cardBorder = LiquidSpecularBorderSubtle,
     cardBorderSubtle = LiquidSpecularBorderSubtle,
     textPrimary = LiquidTextPrimary,
     textSecondary = LiquidTextSecondary,
     textMuted = LiquidTextMuted,
-    tabSelectedIndicator = Color.White.copy(alpha = 0.12f),
-    toggleActiveTrack = Color(0xFFFFFFFF),
-    toggleActiveThumb = Color(0xFF000000)
+    tabSelectedIndicator = Color(0xFF2563EB).copy(alpha = 0.28f),
+    toggleActiveTrack = Color(0xFF2563EB),
+    toggleActiveThumb = Color(0xFFFFFFFF)
 )
 
 val LocalClockPalette = staticCompositionLocalOf { AuroraPalette }
@@ -122,8 +122,8 @@ private val MidnightBlueColorScheme = darkColorScheme(
 )
 
 private val AmoledPitchColorScheme = darkColorScheme(
-    primary = Color.White,
-    onPrimary = Color.Black,
+    primary = Color(0xFF2563EB),
+    onPrimary = Color.White,
     primaryContainer = Color(0xFF111111),
     secondary = LiquidTextSecondary,
     tertiary = Color.White,
