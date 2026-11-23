@@ -109,6 +109,7 @@ fun TimerScreen(
                     animationSpec = ClockMotion.smooth()
                 ).togetherWith(ExitTransition.None)
             },
+            contentKey = { s -> if (s == TimerState.RUNNING || s == TimerState.PAUSED) "ACTIVE" else s },
             label = "timerStateTransition",
             modifier = Modifier
                 .fillMaxWidth()
