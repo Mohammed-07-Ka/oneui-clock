@@ -435,10 +435,18 @@ fun MainClockApp(
         label = "settingsTransition"
     ) { isSettingsVisible ->
         if (isSettingsVisible) {
-            SettingsScreen(
-                settingsManager = settingsManager,
-                onBack = { showSettings = false }
-            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                GeminiBackgroundCanvas(
+                    themeMode = themeMode,
+                    animationEnabled = animationEnabled,
+                    animationSpeed = animationSpeed,
+                    hazeState = activeHaze
+                )
+                SettingsScreen(
+                    settingsManager = settingsManager,
+                    onBack = { showSettings = false }
+                )
+            }
         } else {
             Box(
                 modifier = Modifier.fillMaxSize()
