@@ -280,9 +280,9 @@ private fun DrawScope.drawAnimatedMesh(
         ThemeMode.AURORA_PURPLE -> {
             val meshRadius = width * 1.25f
 
-            // Top ambient undulating glow
-            val orb1X = width * (0.30f + 0.10f * sin(animatedPhase))
-            val orb1Y = height * (0.20f + 0.08f * cos(animatedPhase * 0.8f))
+            // Full-screen wandering Lissajous path 1 (ratio 1:2)
+            val orb1X = width * (0.50f + 0.38f * sin(animatedPhase))
+            val orb1Y = height * (0.50f + 0.38f * cos(animatedPhase * 2f))
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
@@ -297,9 +297,9 @@ private fun DrawScope.drawAnimatedMesh(
                 center = Offset(orb1X, orb1Y)
             )
 
-            // Bottom ambient glow behind floating liquid glass bar
-            val orb2X = width * (0.50f + 0.12f * cos(animatedPhase * 1.1f))
-            val orb2Y = height * (0.86f + 0.06f * sin(animatedPhase * 0.9f))
+            // Full-screen wandering Lissajous path 2 (ratio 1:3)
+            val orb2X = width * (0.50f + 0.38f * cos(animatedPhase + (PI / 3).toFloat()))
+            val orb2Y = height * (0.50f + 0.38f * sin(animatedPhase * 3f))
             val bottomGlowRadius = width * 1.30f
             drawCircle(
                 brush = Brush.radialGradient(
@@ -315,9 +315,9 @@ private fun DrawScope.drawAnimatedMesh(
                 center = Offset(orb2X, orb2Y)
             )
 
-            // Mid accent shifting gently
-            val orb3X = width * (0.72f + 0.10f * sin(animatedPhase * 0.7f + 1.2f))
-            val orb3Y = height * (0.50f + 0.08f * cos(animatedPhase * 1.2f))
+            // Full-screen wandering Lissajous path 3 (ratio 2:3)
+            val orb3X = width * (0.50f + 0.34f * sin(animatedPhase * 2f + (PI / 2).toFloat()))
+            val orb3Y = height * (0.50f + 0.34f * cos(animatedPhase * 3f + (PI / 6).toFloat()))
             val midRadius = width * 0.95f
             drawCircle(
                 brush = Brush.radialGradient(
@@ -336,9 +336,9 @@ private fun DrawScope.drawAnimatedMesh(
         ThemeMode.MIDNIGHT_BLUE -> {
             val localizedRadius = width * 1.25f
 
-            // Top-right sapphire glow
-            val orb1X = width * (0.75f + 0.08f * sin(animatedPhase))
-            val orb1Y = height * (0.20f + 0.06f * cos(animatedPhase * 0.8f))
+            // Full-screen wandering Lissajous path 1 (ratio 1:2)
+            val orb1X = width * (0.50f + 0.38f * sin(animatedPhase))
+            val orb1Y = height * (0.50f + 0.38f * cos(animatedPhase * 2f))
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
@@ -353,9 +353,9 @@ private fun DrawScope.drawAnimatedMesh(
                 center = Offset(orb1X, orb1Y)
             )
 
-            // Bottom azure glow behind floating liquid glass bar
-            val orb2X = width * (0.45f + 0.10f * cos(animatedPhase * 1.1f))
-            val orb2Y = height * (0.86f + 0.06f * sin(animatedPhase * 0.9f))
+            // Full-screen wandering Lissajous path 2 (ratio 1:3)
+            val orb2X = width * (0.50f + 0.38f * cos(animatedPhase + (PI / 3).toFloat()))
+            val orb2Y = height * (0.50f + 0.38f * sin(animatedPhase * 3f))
             val bottomGlowRadius = width * 1.30f
             drawCircle(
                 brush = Brush.radialGradient(
