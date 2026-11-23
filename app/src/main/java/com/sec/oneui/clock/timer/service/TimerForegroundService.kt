@@ -24,6 +24,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.sec.oneui.clock.MainActivity
+import com.sec.oneui.clock.settings.notificationAccentColor
 import com.sec.oneui.clock.timer.ui.TimerState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -396,7 +397,7 @@ class TimerForegroundService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        return NotificationCompat.Builder(this, CHANNEL_ALERT_ID)
+        val builder = NotificationCompat.Builder(this, CHANNEL_ALERT_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle("Timer")
             .setContentText("Time's up!")
@@ -407,7 +408,12 @@ class TimerForegroundService : Service() {
             .setAutoCancel(false)
             .setContentIntent(openAppPendingIntent)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Dismiss", dismissPendingIntent)
-            .build()
+
+        notificationAccentColor(this)?.let { accentColor ->
+            builder.setColor(accentColor)
+        }
+
+        return builder.build()
     }
 
     private fun createOpenAppPendingIntent(): PendingIntent {

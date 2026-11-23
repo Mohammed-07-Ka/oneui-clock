@@ -24,8 +24,8 @@ import com.sec.oneui.clock.alarm.data.AlarmDatabase
 import com.sec.oneui.clock.alarm.data.AlarmEntity
 import com.sec.oneui.clock.alarm.receiver.AlarmReceiver
 import com.sec.oneui.clock.alarm.scheduler.AlarmScheduler
-import kotlin.math.roundToInt
 import com.sec.oneui.clock.alarm.ui.AlarmRingingActivity
+import com.sec.oneui.clock.settings.notificationAccentColor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -294,7 +294,7 @@ class AlarmForegroundService : Service() {
 
     private fun buildAlarmNotification(alarm: AlarmEntity?): Notification {
         val alarmId = alarm?.id ?: -1
-        val label = alarm?.label?.ifBlank { "Alarm" } ?: "Alarm"
+        val title = if (!alarm?.label.isNullOrBlank()) alarm.label else "Alarm"
         val timeStr = alarm?.formattedTime() ?: ""
 
         // Fullscreen intent
@@ -327,9 +327,9 @@ class AlarmForegroundService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle(label)
+            .setContentTitle(title)
             .setContentText("Ringing: $timeStr")
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -339,7 +339,12 @@ class AlarmForegroundService : Service() {
             .setFullScreenIntent(fullScreenPendingIntent, true)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Dismiss", dismissPendingIntent)
             .addAction(android.R.drawable.ic_popup_reminder, "Snooze", snoozePendingIntent)
-            .build()
+
+        notificationAccentColor(this)?.let { accentColor ->
+            builder.setColor(accentColor)
+        }
+
+        return builder.build()
     }
 
     private fun createNotificationChannel() {

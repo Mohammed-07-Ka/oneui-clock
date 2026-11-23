@@ -150,3 +150,24 @@ class SettingsManager(context: Context) {
         }
     }
 }
+
+/**
+ * Returns the 32-bit ARGB color integer matching the current theme's tab accent:
+ * - Aurora Purple: 0xFFA855F7
+ * - Midnight Blue & Purple: 0xFF38BDF8
+ * - AMOLED Pitch: 0xFF38BDF8
+ *
+ * Wrapped defensively to guarantee safe execution from background services.
+ */
+fun notificationAccentColor(context: Context): Int? {
+    return try {
+        val prefs = context.applicationContext.getSharedPreferences("clock_settings", Context.MODE_PRIVATE)
+        val key = prefs.getString("theme_mode", ThemeMode.MIDNIGHT_BLUE.key)
+        when (ThemeMode.fromKey(key)) {
+            ThemeMode.AURORA_PURPLE -> 0xFFA855F7.toInt()
+            ThemeMode.MIDNIGHT_BLUE, ThemeMode.AMOLED_PITCH -> 0xFF38BDF8.toInt()
+        }
+    } catch (_: Throwable) {
+        null
+    }
+}
