@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -66,6 +67,8 @@ import com.sec.oneui.clock.theme.iosClickable
 import com.sec.oneui.clock.theme.iosPressEffect
 import com.sec.oneui.clock.theme.liquidGlass
 import com.sec.oneui.clock.ui.components.WheelPicker
+
+val TIMER_IDLE_CONTENT_SHIFT_UP = 56.dp
 
 @Composable
 fun TimerScreen(
@@ -115,7 +118,17 @@ fun TimerScreen(
                 .fillMaxWidth()
                 .weight(1f)
         ) { targetState ->
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(
+                        if (targetState == TimerState.IDLE) {
+                            Modifier.offset(y = -TIMER_IDLE_CONTENT_SHIFT_UP)
+                        } else {
+                            Modifier
+                        }
+                    )
+            ) {
                 when (targetState) {
             TimerState.IDLE -> {
                 // Time Input Glass Dial
