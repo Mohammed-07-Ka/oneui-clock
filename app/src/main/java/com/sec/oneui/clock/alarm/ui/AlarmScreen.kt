@@ -20,6 +20,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -147,6 +148,9 @@ import dev.chrisbanes.haze.HazeState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+private const val ALARM_DELETE_SLIDE_MS = 250
+private const val ALARM_DELETE_PLACEMENT_MS = 250
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -304,12 +308,18 @@ fun AlarmScreen(
                                         launch {
                                             scale.animateTo(
                                                 targetValue = 0.96f,
-                                                animationSpec = ClockMotion.smooth()
+                                                animationSpec = tween(
+                                                    durationMillis = ALARM_DELETE_SLIDE_MS,
+                                                    easing = FastOutLinearInEasing
+                                                )
                                             )
                                         }
                                         translationX.animateTo(
                                             targetValue = -targetOffset,
-                                            animationSpec = ClockMotion.smooth()
+                                            animationSpec = tween(
+                                                durationMillis = ALARM_DELETE_SLIDE_MS,
+                                                easing = FastOutLinearInEasing
+                                            )
                                         )
                                         viewModel.deleteAlarm(alarm)
                                         removingAlarmIds = removingAlarmIds - alarm.id
@@ -318,7 +328,10 @@ fun AlarmScreen(
                             },
                             modifier = Modifier
                                 .animateItem(
-                                    placementSpec = ClockMotion.snappy(),
+                                    placementSpec = tween(
+                                        durationMillis = ALARM_DELETE_PLACEMENT_MS,
+                                        easing = FastOutSlowInEasing
+                                    ),
                                     fadeInSpec = null,
                                     fadeOutSpec = null
                                 )
