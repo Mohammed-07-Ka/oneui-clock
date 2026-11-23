@@ -164,6 +164,11 @@ fun AlarmScreen(
     val nearestRemaining by viewModel.nearestAlarmHeader.collectAsState()
     val editorState by viewModel.editorState.collectAsState()
     val palette = ClockTheme.palette
+    val coroutineScope = rememberCoroutineScope()
+    var removingAlarmIds by remember { mutableStateOf(setOf<Int>()) }
+    val density = LocalDensity.current
+    val marginPx = with(density) { 20.dp.toPx() }
+    val screenWidthPx = with(density) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
 
     // System Back Button closes Add/Edit Alarm sheet
     BackHandler(enabled = editorState.isOpen) {
@@ -273,16 +278,58 @@ fun AlarmScreen(
                     contentPadding = PaddingValues(bottom = 120.dp)
                 ) {
                     items(alarms, key = { it.id }) { alarm ->
+                        val translationX = remember { Animatable(0f) }
+                        val scale = remember { Animatable(1f) }
+                        var cardWidthPx by remember { mutableFloatStateOf(0f) }
+
                         AlarmCard(
                             alarm = alarm,
                             use24HourFormat = use24HourFormat,
                             hazeState = hazeState,
-                            onToggle = { viewModel.toggleAlarm(alarm) },
-                            onClick = { viewModel.openEditorForExisting(alarm) },
-                            onDelete = { viewModel.deleteAlarm(alarm) },
-                            modifier = Modifier.animateItemPlacement(
-                                animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
-                            )
+                            onToggle = {
+                                if (alarm.id !in removingAlarmIds) {
+                                    viewModel.toggleAlarm(alarm)
+                                }
+                            },
+                            onClick = {
+                                if (alarm.id !in removingAlarmIds) {
+                                    viewModel.openEditorForExisting(alarm)
+                                }
+                            },
+                            onDelete = {
+                                if (alarm.id !in removingAlarmIds) {
+                                    removingAlarmIds = removingAlarmIds + alarm.id
+                                    coroutineScope.launch {
+                                        val targetOffset = (if (cardWidthPx > 0f) cardWidthPx else screenWidthPx) + marginPx
+                                        launch {
+                                            scale.animateTo(
+                                                targetValue = 0.96f,
+                                                animationSpec = ClockMotion.smooth()
+                                            )
+                                        }
+                                        translationX.animateTo(
+                                            targetValue = -targetOffset,
+                                            animationSpec = ClockMotion.smooth()
+                                        )
+                                        viewModel.deleteAlarm(alarm)
+                                        removingAlarmIds = removingAlarmIds - alarm.id
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .animateItem(
+                                    placementSpec = ClockMotion.snappy(),
+                                    fadeInSpec = null,
+                                    fadeOutSpec = null
+                                )
+                                .onSizeChanged { size ->
+                                    cardWidthPx = size.width.toFloat()
+                                }
+                                .graphicsLayer {
+                                    this.translationX = translationX.value
+                                    this.scaleX = scale.value
+                                    this.scaleY = scale.value
+                                }
                         )
                     }
                 }
