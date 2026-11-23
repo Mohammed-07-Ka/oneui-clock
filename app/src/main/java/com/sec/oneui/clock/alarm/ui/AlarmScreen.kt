@@ -531,6 +531,39 @@ fun AlarmCard(
     }
 }
 
+// TEMPORARY EXPERIMENT - remove after testing
+const val EXPERIMENT_STATIC_WHEELS = true
+
+@Composable
+private fun StaticWheelPlaceholder(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(144.dp)
+            .padding(horizontal = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(Color.White.copy(alpha = 0.08f))
+                .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(14.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = text,
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+    }
+}
+
 private val HOURS_24_ITEMS = (0..23).toList()
 private val MINUTES_ITEMS = (0..59).toList()
 private val HOURS_12_ITEMS = (1..12).toList()
@@ -916,16 +949,23 @@ fun AlarmEditSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Hours (00..23)
-                    WheelPicker(
-                        items = HOURS_24_ITEMS,
-                        initialIndex = editorState.hour.coerceIn(0, 23),
-                        onItemSelected = { onTimeChanged(it, editorState.minute) },
-                        modifier = Modifier.weight(1f),
-                        formatItem = { String.format("%02d", it) },
-                        isNumeric = true,
-                        minValue = 0,
-                        maxValue = 23
-                    )
+                    if (EXPERIMENT_STATIC_WHEELS) {
+                        StaticWheelPlaceholder(
+                            text = String.format("%02d", editorState.hour),
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        WheelPicker(
+                            items = HOURS_24_ITEMS,
+                            initialIndex = editorState.hour.coerceIn(0, 23),
+                            onItemSelected = { onTimeChanged(it, editorState.minute) },
+                            modifier = Modifier.weight(1f),
+                            formatItem = { String.format("%02d", it) },
+                            isNumeric = true,
+                            minValue = 0,
+                            maxValue = 23
+                        )
+                    }
 
                     Text(
                         text = ":",
@@ -936,16 +976,23 @@ fun AlarmEditSheet(
                     )
 
                     // Minutes (00..59)
-                    WheelPicker(
-                        items = MINUTES_ITEMS,
-                        initialIndex = editorState.minute.coerceIn(0, 59),
-                        onItemSelected = { onTimeChanged(editorState.hour, it) },
-                        modifier = Modifier.weight(1f),
-                        formatItem = { String.format("%02d", it) },
-                        isNumeric = true,
-                        minValue = 0,
-                        maxValue = 59
-                    )
+                    if (EXPERIMENT_STATIC_WHEELS) {
+                        StaticWheelPlaceholder(
+                            text = String.format("%02d", editorState.minute),
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        WheelPicker(
+                            items = MINUTES_ITEMS,
+                            initialIndex = editorState.minute.coerceIn(0, 59),
+                            onItemSelected = { onTimeChanged(editorState.hour, it) },
+                            modifier = Modifier.weight(1f),
+                            formatItem = { String.format("%02d", it) },
+                            isNumeric = true,
+                            minValue = 0,
+                            maxValue = 59
+                        )
+                    }
                 }
             } else {
                 val hour12 = when (val h = editorState.hour % 12) {
@@ -981,23 +1028,30 @@ fun AlarmEditSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Hours (1..12)
-                    WheelPicker(
-                        items = HOURS_12_ITEMS,
-                        initialIndex = (hour12 - 1).coerceIn(0, 11),
-                        onItemSelected = { newH12 ->
-                            val newH24 = if (isPm) {
-                                if (newH12 == 12) 12 else newH12 + 12
-                            } else {
-                                if (newH12 == 12) 0 else newH12
-                            }
-                            onTimeChanged(newH24, editorState.minute)
-                        },
-                        modifier = Modifier.weight(1f),
-                        formatItem = { String.format("%02d", it) },
-                        isNumeric = true,
-                        minValue = 1,
-                        maxValue = 12
-                    )
+                    if (EXPERIMENT_STATIC_WHEELS) {
+                        StaticWheelPlaceholder(
+                            text = String.format("%02d", hour12),
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        WheelPicker(
+                            items = HOURS_12_ITEMS,
+                            initialIndex = (hour12 - 1).coerceIn(0, 11),
+                            onItemSelected = { newH12 ->
+                                val newH24 = if (isPm) {
+                                    if (newH12 == 12) 12 else newH12 + 12
+                                } else {
+                                    if (newH12 == 12) 0 else newH12
+                                }
+                                onTimeChanged(newH24, editorState.minute)
+                            },
+                            modifier = Modifier.weight(1f),
+                            formatItem = { String.format("%02d", it) },
+                            isNumeric = true,
+                            minValue = 1,
+                            maxValue = 12
+                        )
+                    }
 
                     Text(
                         text = ":",
@@ -1008,35 +1062,49 @@ fun AlarmEditSheet(
                     )
 
                     // Minutes (00..59)
-                    WheelPicker(
-                        items = MINUTES_ITEMS,
-                        initialIndex = editorState.minute.coerceIn(0, 59),
-                        onItemSelected = { onTimeChanged(editorState.hour, it) },
-                        modifier = Modifier.weight(1f),
-                        formatItem = { String.format("%02d", it) },
-                        isNumeric = true,
-                        minValue = 0,
-                        maxValue = 59
-                    )
+                    if (EXPERIMENT_STATIC_WHEELS) {
+                        StaticWheelPlaceholder(
+                            text = String.format("%02d", editorState.minute),
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        WheelPicker(
+                            items = MINUTES_ITEMS,
+                            initialIndex = editorState.minute.coerceIn(0, 59),
+                            onItemSelected = { onTimeChanged(editorState.hour, it) },
+                            modifier = Modifier.weight(1f),
+                            formatItem = { String.format("%02d", it) },
+                            isNumeric = true,
+                            minValue = 0,
+                            maxValue = 59
+                        )
+                    }
 
                     Spacer(modifier = Modifier.width(12.dp))
 
                     // AM / PM
-                    WheelPicker(
-                        items = AM_PM_ITEMS,
-                        initialIndex = if (isPm) 1 else 0,
-                        onItemSelected = { newAmPm ->
-                            val newIsPm = (newAmPm == "PM")
-                            val newH24 = if (newIsPm) {
-                                if (hour12 == 12) 12 else hour12 + 12
-                            } else {
-                                if (hour12 == 12) 0 else hour12
-                            }
-                            onTimeChanged(newH24, editorState.minute)
-                        },
-                        modifier = Modifier.weight(1f),
-                        formatItem = { it }
-                    )
+                    if (EXPERIMENT_STATIC_WHEELS) {
+                        StaticWheelPlaceholder(
+                            text = if (isPm) "PM" else "AM",
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        WheelPicker(
+                            items = AM_PM_ITEMS,
+                            initialIndex = if (isPm) 1 else 0,
+                            onItemSelected = { newAmPm ->
+                                val newIsPm = (newAmPm == "PM")
+                                val newH24 = if (newIsPm) {
+                                    if (hour12 == 12) 12 else hour12 + 12
+                                } else {
+                                    if (hour12 == 12) 0 else hour12
+                                }
+                                onTimeChanged(newH24, editorState.minute)
+                            },
+                            modifier = Modifier.weight(1f),
+                            formatItem = { it }
+                        )
+                    }
                 }
             }
 
