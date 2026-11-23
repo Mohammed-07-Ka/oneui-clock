@@ -55,6 +55,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sec.oneui.clock.alarm.data.AlarmEntity
+import com.sec.oneui.clock.theme.ClockTheme
+import com.sec.oneui.clock.theme.LocalBackdrop
+import com.sec.oneui.clock.theme.LocalLiquidGlassEnabled
+import com.sec.oneui.clock.theme.drawInteractiveGlass
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -102,12 +106,16 @@ fun AlarmRingingScreen(
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF050409))
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
         val screenHeightPx = constraints.maxHeight.toFloat()
         val thresholdPx = (screenHeightPx * 0.22f).coerceAtLeast(140f)
+
+        val isGlassActive = LocalLiquidGlassEnabled.current && LocalBackdrop.current != null
+        val backdrop = LocalBackdrop.current
+        val palette = ClockTheme.palette
+        val snoozeShape = RoundedCornerShape(32.dp)
 
         Box(
             modifier = Modifier
@@ -187,41 +195,48 @@ fun AlarmRingingScreen(
                     .graphicsLayer {
                         val currentY = dragOffsetAnimatable.value.coerceAtMost(0f)
                         translationY = currentY
-                        alpha = (1f - (abs(currentY) / (screenHeightPx * 0.8f))).coerceIn(0.1f, 1f)
                     },
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Spacer(modifier = Modifier.height(48.dp))
 
                 // ── TOP: Date & Day in soft gray + Large clean white time ──
-                Text(
-                    text = currentDateTimeHeader,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = Color(0xFF9E9E9E),
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = displayTime,
-                    fontSize = 86.sp,
-                    fontWeight = FontWeight.Light,
-                    color = Color.White,
-                    textAlign = TextAlign.Center,
-                    letterSpacing = 1.sp
-                )
-
-                if (!alarm?.label.isNullOrBlank() && alarm?.label != "Alarm") {
-                    Spacer(modifier = Modifier.height(6.dp))
+                Column(
+                    modifier = Modifier.graphicsLayer {
+                        val currentY = dragOffsetAnimatable.value.coerceAtMost(0f)
+                        alpha = (1f - (abs(currentY) / (screenHeightPx * 0.8f))).coerceIn(0.1f, 1f)
+                    },
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(
-                        text = alarm!!.label,
-                        fontSize = 18.sp,
+                        text = currentDateTimeHeader,
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.Normal,
-                        color = Color(0xFFB0B0B0),
+                        color = palette.textSecondary,
                         textAlign = TextAlign.Center
                     )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = displayTime,
+                        fontSize = 86.sp,
+                        fontWeight = FontWeight.Light,
+                        color = palette.textPrimary,
+                        textAlign = TextAlign.Center,
+                        letterSpacing = 1.sp
+                    )
+
+                    if (!alarm?.label.isNullOrBlank() && alarm?.label != "Alarm") {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = alarm!!.label,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = palette.textSecondary,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -229,12 +244,28 @@ fun AlarmRingingScreen(
                 // ── CENTER: Glassmorphic Pill Button for instant Snooze ──
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(32.dp))
-                        .background(Color.White.copy(alpha = 0.12f))
-                        .border(
-                            width = 1.dp,
-                            color = Color.White.copy(alpha = 0.22f),
-                            shape = RoundedCornerShape(32.dp)
+                        .then(
+                            if (isGlassActive && backdrop != null) {
+                                Modifier
+                                    .drawInteractiveGlass(
+                                        isDark = true,
+                                        backdrop = backdrop,
+                                        layer = null,
+                                        luminance = { 0.4f },
+                                        shape = snoozeShape,
+                                        interaction = null
+                                    )
+                                    .clip(snoozeShape)
+                            } else {
+                                Modifier
+                                    .clip(snoozeShape)
+                                    .background(Color.White.copy(alpha = 0.12f))
+                                    .border(
+                                        width = 1.dp,
+                                        color = Color.White.copy(alpha = 0.22f),
+                                        shape = snoozeShape
+                                    )
+                            }
                         )
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
@@ -273,13 +304,18 @@ fun AlarmRingingScreen(
 
                 // ── BOTTOM: Chevron (^) with "Swipe up to stop" ──
                 Column(
-                    modifier = Modifier.padding(bottom = 36.dp),
+                    modifier = Modifier
+                        .padding(bottom = 36.dp)
+                        .graphicsLayer {
+                            val currentY = dragOffsetAnimatable.value.coerceAtMost(0f)
+                            alpha = (1f - (abs(currentY) / (screenHeightPx * 0.8f))).coerceIn(0.1f, 1f)
+                        },
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
                         imageVector = Icons.Default.KeyboardArrowUp,
                         contentDescription = "Swipe up to stop",
-                        tint = Color.White.copy(alpha = 0.75f),
+                        tint = palette.textPrimary.copy(alpha = 0.75f),
                         modifier = Modifier
                             .size(26.dp)
                             .offset(y = arrowOffsetY.dp)
@@ -289,7 +325,7 @@ fun AlarmRingingScreen(
                         text = "Swipe up to stop",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Normal,
-                        color = Color.White.copy(alpha = 0.55f),
+                        color = palette.textSecondary,
                         textAlign = TextAlign.Center
                     )
                 }

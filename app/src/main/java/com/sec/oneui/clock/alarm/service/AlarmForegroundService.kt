@@ -294,7 +294,7 @@ class AlarmForegroundService : Service() {
 
     private fun buildAlarmNotification(alarm: AlarmEntity?): Notification {
         val alarmId = alarm?.id ?: -1
-        val title = if (!alarm?.label.isNullOrBlank()) alarm.label else "Alarm"
+        val title = alarm?.label?.ifBlank { "Alarm" } ?: "Alarm"
         val timeStr = alarm?.formattedTime() ?: ""
 
         // Fullscreen intent

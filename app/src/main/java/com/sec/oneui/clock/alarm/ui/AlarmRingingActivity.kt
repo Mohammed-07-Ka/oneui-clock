@@ -65,9 +65,14 @@ import com.sec.oneui.clock.alarm.receiver.AlarmReceiver
 import com.sec.oneui.clock.alarm.scheduler.AlarmScheduler
 import com.sec.oneui.clock.settings.SettingsManager
 import com.sec.oneui.clock.theme.ClockTheme
-import com.sec.oneui.clock.theme.GeminiAnimatedBackground
+import com.sec.oneui.clock.theme.GeminiBackgroundCanvas
+import com.sec.oneui.clock.theme.LocalBackdrop
+import com.sec.oneui.clock.theme.LocalLiquidGlassEnabled
 import com.sec.oneui.clock.theme.OneUIClockTheme
 import com.sec.oneui.clock.theme.OneUiRed
+import com.sec.oneui.clock.theme.isLiquidGlassSupported
+import com.sec.oneui.clock.theme.layerBackdrop
+import com.sec.oneui.clock.theme.rememberBackdrop
 import com.sec.oneui.clock.theme.iosPressEffect
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -103,8 +108,16 @@ class AlarmRingingActivity : ComponentActivity() {
             val themeMode by settingsManager.themeMode.collectAsState()
             val animationEnabled by settingsManager.animationEnabled.collectAsState()
             val animationSpeed by settingsManager.animationSpeed.collectAsState()
+            val liquidGlassEnabled by settingsManager.liquidGlassEnabled.collectAsState()
 
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            val isGlassActive = isLiquidGlassSupported && liquidGlassEnabled
+            val bgBackdrop = if (isGlassActive) rememberBackdrop(Color.Transparent) else null
+
+            CompositionLocalProvider(
+                LocalLayoutDirection provides LayoutDirection.Ltr,
+                LocalBackdrop provides bgBackdrop,
+                LocalLiquidGlassEnabled provides isGlassActive
+            ) {
                 OneUIClockTheme(themeMode = themeMode) {
                     var alarm by remember { mutableStateOf<AlarmEntity?>(null) }
 
@@ -117,11 +130,25 @@ class AlarmRingingActivity : ComponentActivity() {
                         }
                     }
 
-                    GeminiAnimatedBackground(
-                        themeMode = themeMode,
-                        animationEnabled = animationEnabled,
-                        animationSpeed = animationSpeed
-                    ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // 1. Sibling Backdrop Source Layer: Animated Background Canvas ONLY
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .then(
+                                    if (isGlassActive && bgBackdrop != null) {
+                                        Modifier.layerBackdrop(bgBackdrop)
+                                    } else Modifier
+                                )
+                        ) {
+                            GeminiBackgroundCanvas(
+                                themeMode = themeMode,
+                                animationEnabled = animationEnabled,
+                                animationSpeed = animationSpeed
+                            )
+                        }
+
+                        // 2. Sibling Content Layer: Alarm Ringing Screen
                         AlarmRingingScreen(
                             alarm = alarm,
                             onDismiss = {
