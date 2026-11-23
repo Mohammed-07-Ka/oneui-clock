@@ -139,7 +139,7 @@ private val AmoledPitchColorScheme = darkColorScheme(
 
 @Composable
 fun OneUIClockTheme(
-    themeMode: ThemeMode = ThemeMode.AURORA_PURPLE,
+    themeMode: ThemeMode = ThemeMode.MIDNIGHT_BLUE,
     content: @Composable () -> Unit
 ) {
     val palette = when (themeMode) {
@@ -165,4 +165,4 @@ fun OneUIClockTheme(
 @Composable
 fun OneUiClockTheme(
     content: @Composable () -> Unit
-) = OneUIClockTheme(themeMode = ThemeMode.AURORA_PURPLE, content = content)
+) = OneUIClockTheme(themeMode = ThemeMode.MIDNIGHT_BLUE, content = content)

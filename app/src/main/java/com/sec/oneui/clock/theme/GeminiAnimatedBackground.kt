@@ -56,7 +56,7 @@ import kotlin.math.sin
 @Composable
 fun GeminiBackgroundCanvas(
     modifier: Modifier = Modifier,
-    themeMode: ThemeMode = ThemeMode.AURORA_PURPLE,
+    themeMode: ThemeMode = ThemeMode.MIDNIGHT_BLUE,
     animationEnabled: Boolean = true,
     animationSpeed: Float = 1.0f,
     hazeState: HazeState? = LocalHazeState.current
@@ -154,7 +154,7 @@ fun GeminiBackgroundCanvas(
 @Composable
 fun GeminiAnimatedBackground(
     modifier: Modifier = Modifier,
-    themeMode: ThemeMode = ThemeMode.AURORA_PURPLE,
+    themeMode: ThemeMode = ThemeMode.MIDNIGHT_BLUE,
     animationEnabled: Boolean = true,
     animationSpeed: Float = 1.0f,
     hazeState: HazeState? = LocalHazeState.current,

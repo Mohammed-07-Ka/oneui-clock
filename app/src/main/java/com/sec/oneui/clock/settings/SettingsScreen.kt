@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.sp
 import com.sec.oneui.clock.alarm.scheduler.AlarmScheduler
 import com.sec.oneui.clock.alarm.service.AlarmAudioPreviewer
 import com.sec.oneui.clock.theme.ClockTheme
+import com.sec.oneui.clock.theme.isLiquidGlassSupported
 import com.sec.oneui.clock.theme.iosClickable
 import com.sec.oneui.clock.theme.iosPressEffect
 
@@ -68,6 +69,7 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val themeMode by settingsManager.themeMode.collectAsState()
+    val liquidGlassEnabled by settingsManager.liquidGlassEnabled.collectAsState()
     val use24HourFormat by settingsManager.use24HourFormat.collectAsState()
     val alarmCustomVolume by settingsManager.alarmCustomVolume.collectAsState()
     val gradualVolumeDuration by settingsManager.gradualVolumeDuration.collectAsState()
@@ -185,6 +187,41 @@ fun SettingsScreen(
                 if (mode != ThemeMode.entries.last()) {
                     HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
                 }
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
+
+            // Liquid Glass Toggle Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Liquid Glass", fontSize = 16.sp, color = textColor)
+                    Text("Refractive glass optics & shaders", fontSize = 13.sp, color = subTextColor)
+                }
+                Switch(
+                    checked = isLiquidGlassSupported && liquidGlassEnabled,
+                    onCheckedChange = if (isLiquidGlassSupported) {
+                        {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            settingsManager.setLiquidGlassEnabled(it)
+                        }
+                    } else null,
+                    enabled = isLiquidGlassSupported,
+                    modifier = if (isLiquidGlassSupported) Modifier.iosPressEffect(targetScale = 0.96f) else Modifier,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = palette.toggleActiveThumb,
+                        checkedTrackColor = palette.toggleActiveTrack,
+                        uncheckedThumbColor = subTextColor,
+                        uncheckedTrackColor = palette.cardBackground,
+                        disabledUncheckedThumbColor = subTextColor.copy(alpha = 0.5f),
+                        disabledUncheckedTrackColor = palette.cardBackground.copy(alpha = 0.5f)
+                    )
+                )
             }
         }
 

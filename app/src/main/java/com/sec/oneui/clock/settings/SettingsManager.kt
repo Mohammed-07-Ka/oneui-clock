@@ -57,6 +57,9 @@ class SettingsManager(context: Context) {
     private val _animationSpeed = MutableStateFlow(prefs.getFloat("bg_animation_speed", 1.0f))
     val animationSpeed: StateFlow<Float> = _animationSpeed.asStateFlow()
 
+    private val _liquidGlassEnabled = MutableStateFlow(prefs.getBoolean("liquid_glass_enabled", true))
+    val liquidGlassEnabled: StateFlow<Boolean> = _liquidGlassEnabled.asStateFlow()
+
     private val _upcomingAlarmMinutes = MutableStateFlow(prefs.getInt("upcoming_alarm_minutes", 0))
     val upcomingAlarmMinutes: StateFlow<Int> = _upcomingAlarmMinutes.asStateFlow()
 
@@ -111,6 +114,11 @@ class SettingsManager(context: Context) {
         _animationSpeed.value = speed
     }
 
+    fun setLiquidGlassEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("liquid_glass_enabled", enabled).apply()
+        _liquidGlassEnabled.value = enabled
+    }
+
     val defaultRingtoneUri: String?
         get() = prefs.getString("default_ringtone_uri", null)
 
@@ -125,7 +133,7 @@ class SettingsManager(context: Context) {
     }
 
     private fun loadThemeMode(): ThemeMode {
-        val key = prefs.getString("theme_mode", ThemeMode.AURORA_PURPLE.key)
+        val key = prefs.getString("theme_mode", ThemeMode.MIDNIGHT_BLUE.key)
         return ThemeMode.fromKey(key)
     }
 

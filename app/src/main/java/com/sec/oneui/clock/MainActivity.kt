@@ -210,8 +210,10 @@ class MainActivity : ComponentActivity() {
             val themeMode by settingsManager.themeMode.collectAsState()
             val animationEnabled by settingsManager.animationEnabled.collectAsState()
             val animationSpeed by settingsManager.animationSpeed.collectAsState()
+            val liquidGlassEnabled by settingsManager.liquidGlassEnabled.collectAsState()
             val hazeState = remember { HazeState() }
-            val isGlassActive = isLiquidGlassSupported && isLiquidGlassEnabled
+            val isGlassActive = isLiquidGlassSupported && liquidGlassEnabled
+            isLiquidGlassEnabled = isGlassActive
             val bgBackdrop = if (isGlassActive) rememberBackdrop(Color.Transparent) else null
             val pagerBackdrop = if (isGlassActive) rememberBackdrop(Color.Transparent) else null
             val overlayBackdrop = if (isGlassActive && bgBackdrop != null && pagerBackdrop != null) {
@@ -368,7 +370,7 @@ fun MainClockApp(
     timerViewModel: TimerViewModel,
     settingsManager: SettingsManager,
     navTabFlow: kotlinx.coroutines.flow.StateFlow<Int?>,
-    themeMode: ThemeMode = ThemeMode.AURORA_PURPLE,
+    themeMode: ThemeMode = ThemeMode.MIDNIGHT_BLUE,
     animationEnabled: Boolean = true,
     animationSpeed: Float = 1.0f,
     hazeState: HazeState? = LocalHazeState.current,
