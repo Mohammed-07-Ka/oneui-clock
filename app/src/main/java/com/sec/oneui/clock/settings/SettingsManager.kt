@@ -164,10 +164,10 @@ fun notificationAccentColor(context: Context): Int? {
         val prefs = context.applicationContext.getSharedPreferences("clock_settings", Context.MODE_PRIVATE)
         val key = prefs.getString("theme_mode", ThemeMode.MIDNIGHT_BLUE.key)
         when (ThemeMode.fromKey(key)) {
-            ThemeMode.AURORA_PURPLE -> 0xFFA855F7.toInt()
-            ThemeMode.MIDNIGHT_BLUE, ThemeMode.AMOLED_PITCH -> 0xFF38BDF8.toInt()
+            ThemeMode.AURORA_PURPLE -> 0xFFA855F7L.toInt()
+            ThemeMode.MIDNIGHT_BLUE, ThemeMode.AMOLED_PITCH -> 0xFF38BDF8L.toInt()
         }
-    } catch (_: Throwable) {
+    } catch (e: Throwable) {
         null
     }
 }
