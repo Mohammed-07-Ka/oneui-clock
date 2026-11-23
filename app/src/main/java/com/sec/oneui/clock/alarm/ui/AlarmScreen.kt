@@ -518,6 +518,11 @@ fun AlarmCard(
     }
 }
 
+private val HOURS_24_ITEMS = (0..23).toList()
+private val MINUTES_ITEMS = (0..59).toList()
+private val HOURS_12_ITEMS = (1..12).toList()
+private val AM_PM_ITEMS = listOf("AM", "PM")
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlarmEditSheet(
@@ -541,6 +546,7 @@ fun AlarmEditSheet(
 ) {
     val context = LocalContext.current
     var showDatePicker by remember { mutableStateOf(false) }
+    val dateFormatter = remember { SimpleDateFormat("EEE, MMM d, yyyy", Locale.getDefault()) }
 
     // System Back Button closes DatePickerDialog if open
     BackHandler(enabled = showDatePicker) {
@@ -898,7 +904,7 @@ fun AlarmEditSheet(
                 ) {
                     // Hours (00..23)
                     WheelPicker(
-                        items = (0..23).toList(),
+                        items = HOURS_24_ITEMS,
                         initialIndex = editorState.hour.coerceIn(0, 23),
                         onItemSelected = { onTimeChanged(it, editorState.minute) },
                         modifier = Modifier.weight(1f),
@@ -918,7 +924,7 @@ fun AlarmEditSheet(
 
                     // Minutes (00..59)
                     WheelPicker(
-                        items = (0..59).toList(),
+                        items = MINUTES_ITEMS,
                         initialIndex = editorState.minute.coerceIn(0, 59),
                         onItemSelected = { onTimeChanged(editorState.hour, it) },
                         modifier = Modifier.weight(1f),
@@ -963,7 +969,7 @@ fun AlarmEditSheet(
                 ) {
                     // Hours (1..12)
                     WheelPicker(
-                        items = (1..12).toList(),
+                        items = HOURS_12_ITEMS,
                         initialIndex = (hour12 - 1).coerceIn(0, 11),
                         onItemSelected = { newH12 ->
                             val newH24 = if (isPm) {
@@ -990,7 +996,7 @@ fun AlarmEditSheet(
 
                     // Minutes (00..59)
                     WheelPicker(
-                        items = (0..59).toList(),
+                        items = MINUTES_ITEMS,
                         initialIndex = editorState.minute.coerceIn(0, 59),
                         onItemSelected = { onTimeChanged(editorState.hour, it) },
                         modifier = Modifier.weight(1f),
@@ -1004,7 +1010,7 @@ fun AlarmEditSheet(
 
                     // AM / PM
                     WheelPicker(
-                        items = listOf("AM", "PM"),
+                        items = AM_PM_ITEMS,
                         initialIndex = if (isPm) 1 else 0,
                         onItemSelected = { newAmPm ->
                             val newIsPm = (newAmPm == "PM")
@@ -1108,7 +1114,7 @@ fun AlarmEditSheet(
                     Text("Schedule Date", fontSize = 15.sp, color = palette.textPrimary, fontWeight = FontWeight.SemiBold)
                     Text(
                         text = if (editorState.scheduledDateMillis != null) {
-                            SimpleDateFormat("EEE, MMM d, yyyy", Locale.getDefault()).format(Date(editorState.scheduledDateMillis))
+                            dateFormatter.format(Date(editorState.scheduledDateMillis))
                         } else "Not set (next occurrence)",
                         fontSize = 13.sp,
                         color = palette.textSecondary

@@ -93,6 +93,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -758,6 +759,9 @@ fun MainClockApp(
                 LaunchedEffect(editorState.isOpen) {
                     if (editorState.isOpen) {
                         exitVelocity = 0f
+                        repeat(3) {
+                            withFrameNanos {}
+                        }
                         sheetProgress.animateTo(1f, animationSpec = ClockMotion.Smooth)
                     } else {
                         if (sheetProgress.value > 0.0001f) {
