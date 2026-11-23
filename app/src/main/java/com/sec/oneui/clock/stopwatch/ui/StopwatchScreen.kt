@@ -209,19 +209,45 @@ fun StopwatchScreen(
                         Text("Lap", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                     }
 
-                    Button(
-                        onClick = { viewModel.pause() },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(58.dp)
-                            .iosPressEffect(targetScale = 0.96f),
-                        shape = RoundedCornerShape(29.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = OneUiRed,
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Text("Stop", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    if (isGlassActive && backdrop != null) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(58.dp)
+                                .drawInteractiveGlass(
+                                    isDark = true,
+                                    backdrop = backdrop,
+                                    layer = null,
+                                    luminance = { 0.4f },
+                                    shape = RoundedCornerShape(29.dp),
+                                    interaction = null,
+                                    scrimColor = OneUiRed
+                                )
+                                .clip(RoundedCornerShape(29.dp))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { viewModel.pause() }
+                                .iosPressEffect(targetScale = 0.96f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Stop", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    } else {
+                        Button(
+                            onClick = { viewModel.pause() },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(58.dp)
+                                .iosPressEffect(targetScale = 0.96f),
+                            shape = RoundedCornerShape(29.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = OneUiRed,
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Text("Stop", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
                 StopwatchState.PAUSED -> {
