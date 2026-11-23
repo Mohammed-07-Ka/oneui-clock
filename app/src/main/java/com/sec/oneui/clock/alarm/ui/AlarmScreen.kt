@@ -97,6 +97,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -118,6 +119,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import com.sec.oneui.clock.alarm.data.AlarmEntity
 import com.sec.oneui.clock.alarm.service.AlarmAudioPreviewer
 import com.sec.oneui.clock.alarm.service.AlarmForegroundService
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import com.sec.oneui.clock.settings.SettingsManager
 import com.sec.oneui.clock.settings.ThemeMode
@@ -545,12 +547,22 @@ fun AlarmEditSheet(
     var sheetHeightPx by remember { mutableFloatStateOf(screenHeightPx) }
     val velocityTracker = remember { VelocityTracker() }
 
+    val dragChannel = remember { Channel<Float>(Channel.CONFLATED) }
+    androidx.compose.runtime.LaunchedEffect(dragChannel) {
+        for (newProgress in dragChannel) {
+            sheetProgress.snapTo(newProgress)
+        }
+    }
+
     val dragModifier = Modifier.pointerInput(isSheetOpen, sheetHeightPx) {
         if (!isSheetOpen) return@pointerInput
+
+        var dragTranslationY = 0f
 
         detectVerticalDragGestures(
             onDragStart = {
                 velocityTracker.resetTracking()
+                dragTranslationY = (1f - sheetProgress.value) * sheetHeightPx
             },
             onDragEnd = {
                 val velocityY = velocityTracker.calculateVelocity().y
@@ -559,6 +571,8 @@ fun AlarmEditSheet(
                 val thresholdPx = (sheetHeightPx * 0.30f).coerceAtLeast(140f * density.density)
                 val flingVelocityThresholdPx = 1000f * density.density
                 val progressVelocity = if (sheetHeightPx > 0f) -velocityY / sheetHeightPx else 0f
+
+                while (dragChannel.tryReceive().isSuccess) {}
 
                 if (dragDistancePx >= thresholdPx || velocityY >= flingVelocityThresholdPx) {
                     onDragDismiss(progressVelocity)
@@ -573,6 +587,7 @@ fun AlarmEditSheet(
                 }
             },
             onDragCancel = {
+                while (dragChannel.tryReceive().isSuccess) {}
                 coroutineScope.launch {
                     sheetProgress.animateTo(
                         targetValue = 1f,
@@ -584,15 +599,12 @@ fun AlarmEditSheet(
                 change.consume()
                 velocityTracker.addPosition(change.uptimeMillis, change.position)
 
-                val currentTranslationY = (1f - sheetProgress.value) * sheetHeightPx
-                val newTranslationY = (currentTranslationY + dragAmount).coerceAtLeast(0f)
+                dragTranslationY = (dragTranslationY + dragAmount).coerceAtLeast(0f)
                 val newProgress = if (sheetHeightPx > 0f) {
-                    (1f - newTranslationY / sheetHeightPx).coerceIn(0f, 1f)
+                    (1f - dragTranslationY / sheetHeightPx).coerceIn(0f, 1f)
                 } else 1f
 
-                coroutineScope.launch {
-                    sheetProgress.snapTo(newProgress)
-                }
+                dragChannel.trySend(newProgress)
             }
         )
     }
@@ -608,7 +620,12 @@ fun AlarmEditSheet(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = (sheetProgress.value * 0.65f).coerceIn(0f, 0.65f)))
+            .drawBehind {
+                drawRect(
+                    color = Color.Black,
+                    alpha = (sheetProgress.value * 0.65f).coerceIn(0f, 0.65f)
+                )
+            }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,

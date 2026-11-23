@@ -748,6 +748,10 @@ fun MainClockApp(
 
                 val sheetProgress = remember { Animatable(0f) }
                 var exitVelocity by remember { mutableFloatStateOf(0f) }
+                var isSheetComposed by remember { mutableStateOf(false) }
+                if (editorState.isOpen) {
+                    isSheetComposed = true
+                }
 
                 LaunchedEffect(editorState.isOpen) {
                     if (editorState.isOpen) {
@@ -759,11 +763,11 @@ fun MainClockApp(
                             exitVelocity = 0f
                             sheetProgress.animateTo(0f, animationSpec = ClockMotion.Smooth, initialVelocity = v)
                         }
+                        isSheetComposed = false
                     }
                 }
 
-                val isSheetVisible = editorState.isOpen || sheetProgress.value > 0.0001f
-                if (isSheetVisible) {
+                if (isSheetComposed) {
                     val displayState = if (editorState.isOpen) editorState else lastOpenEditorState
                     AlarmEditSheet(
                         editorState = displayState,
