@@ -34,6 +34,10 @@ import dev.chrisbanes.haze.haze
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.random.Random
+
+private const val BLOB_PERIOD_SCALE = 7.5f
+private val RANDOM_START_PHASE = Random.nextFloat() * (2 * PI).toFloat()
 
 /**
  * Luminous Fluid Aurora Mesh Background for Authentic Liquid Glass Refraction
@@ -80,11 +84,12 @@ fun GeminiBackgroundCanvas(
         }
     }
 
-    val cycleDurationMs = when {
+    val baseCycleDurationMs = when {
         animationSpeed <= 0.65f -> 20_000
         animationSpeed >= 1.35f -> 3_500
         else -> 8_000
     }
+    val cycleDurationMs = (baseCycleDurationMs * BLOB_PERIOD_SCALE).toInt()
 
     val phaseState: State<Float>? = if (animationEnabled && isResumed) {
         key(animationSpeed) {
@@ -276,13 +281,14 @@ private fun DrawScope.drawAnimatedMesh(
     height: Float,
     animatedPhase: Float
 ) {
+    val phase = animatedPhase + RANDOM_START_PHASE
     when (themeMode) {
         ThemeMode.AURORA_PURPLE -> {
             val meshRadius = width * 1.25f
 
-            // Full-screen wandering Lissajous path 1 (ratio 1:2)
-            val orb1X = width * (0.50f + 0.38f * sin(animatedPhase))
-            val orb1Y = height * (0.50f + 0.38f * cos(animatedPhase * 2f))
+            // Wandering quasi-periodic path 1 (incommensurable ratios: 1.0 : 1.414 on X, 0.732 : 1.618 on Y)
+            val orb1X = width * (0.50f + 0.26f * sin(phase) + 0.12f * sin(phase * 1.414f))
+            val orb1Y = height * (0.50f + 0.26f * cos(phase * 0.732f) + 0.12f * cos(phase * 1.618f))
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
@@ -297,9 +303,9 @@ private fun DrawScope.drawAnimatedMesh(
                 center = Offset(orb1X, orb1Y)
             )
 
-            // Full-screen wandering Lissajous path 2 (ratio 1:3)
-            val orb2X = width * (0.50f + 0.38f * cos(animatedPhase + (PI / 3).toFloat()))
-            val orb2Y = height * (0.50f + 0.38f * sin(animatedPhase * 3f))
+            // Wandering quasi-periodic path 2 (incommensurable ratios: 0.854 : 1.317 on X, 1.118 : 1.732 on Y)
+            val orb2X = width * (0.50f + 0.26f * cos(phase * 0.854f + (PI / 3).toFloat()) + 0.12f * sin(phase * 1.317f))
+            val orb2Y = height * (0.50f + 0.26f * sin(phase * 1.118f) + 0.12f * cos(phase * 1.732f))
             val bottomGlowRadius = width * 1.30f
             drawCircle(
                 brush = Brush.radialGradient(
@@ -315,9 +321,9 @@ private fun DrawScope.drawAnimatedMesh(
                 center = Offset(orb2X, orb2Y)
             )
 
-            // Full-screen wandering Lissajous path 3 (ratio 2:3)
-            val orb3X = width * (0.50f + 0.34f * sin(animatedPhase * 2f + (PI / 2).toFloat()))
-            val orb3Y = height * (0.50f + 0.34f * cos(animatedPhase * 3f + (PI / 6).toFloat()))
+            // Wandering quasi-periodic path 3 (incommensurable ratios: 0.913 : 1.528 on X, 0.781 : 1.382 on Y)
+            val orb3X = width * (0.50f + 0.23f * sin(phase * 0.913f + (PI / 2).toFloat()) + 0.11f * cos(phase * 1.528f))
+            val orb3Y = height * (0.50f + 0.23f * cos(phase * 0.781f + (PI / 6).toFloat()) + 0.11f * sin(phase * 1.382f))
             val midRadius = width * 0.95f
             drawCircle(
                 brush = Brush.radialGradient(
@@ -336,9 +342,9 @@ private fun DrawScope.drawAnimatedMesh(
         ThemeMode.MIDNIGHT_BLUE -> {
             val localizedRadius = width * 1.25f
 
-            // Full-screen wandering Lissajous path 1 (ratio 1:2)
-            val orb1X = width * (0.50f + 0.38f * sin(animatedPhase))
-            val orb1Y = height * (0.50f + 0.38f * cos(animatedPhase * 2f))
+            // Wandering quasi-periodic path 1 (incommensurable ratios: 1.0 : 1.414 on X, 0.732 : 1.618 on Y)
+            val orb1X = width * (0.50f + 0.26f * sin(phase) + 0.12f * sin(phase * 1.414f))
+            val orb1Y = height * (0.50f + 0.26f * cos(phase * 0.732f) + 0.12f * cos(phase * 1.618f))
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
@@ -353,9 +359,9 @@ private fun DrawScope.drawAnimatedMesh(
                 center = Offset(orb1X, orb1Y)
             )
 
-            // Full-screen wandering Lissajous path 2 (ratio 1:3)
-            val orb2X = width * (0.50f + 0.38f * cos(animatedPhase + (PI / 3).toFloat()))
-            val orb2Y = height * (0.50f + 0.38f * sin(animatedPhase * 3f))
+            // Wandering quasi-periodic path 2 (incommensurable ratios: 0.854 : 1.317 on X, 1.118 : 1.732 on Y)
+            val orb2X = width * (0.50f + 0.26f * cos(phase * 0.854f + (PI / 3).toFloat()) + 0.12f * sin(phase * 1.317f))
+            val orb2Y = height * (0.50f + 0.26f * sin(phase * 1.118f) + 0.12f * cos(phase * 1.732f))
             val bottomGlowRadius = width * 1.30f
             drawCircle(
                 brush = Brush.radialGradient(
