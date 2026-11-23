@@ -57,6 +57,8 @@ import com.sec.oneui.clock.theme.OneUiRed
 import com.sec.oneui.clock.theme.iosPressEffect
 import com.sec.oneui.clock.theme.liquidGlass
 
+private const val STOP_GLASS_TINT_ALPHA = 0.5f
+
 @Composable
 fun StopwatchScreen(
     viewModel: StopwatchViewModel,
@@ -221,6 +223,8 @@ fun StopwatchScreen(
                                     luminance = { 0.4f },
                                     shape = RoundedCornerShape(29.dp),
                                     interaction = null,
+                                    minScrim = STOP_GLASS_TINT_ALPHA,
+                                    maxScrim = STOP_GLASS_TINT_ALPHA,
                                     scrimColor = OneUiRed
                                 )
                                 .clip(RoundedCornerShape(29.dp))
