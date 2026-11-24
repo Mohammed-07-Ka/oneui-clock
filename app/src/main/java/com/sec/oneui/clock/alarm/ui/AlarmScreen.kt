@@ -718,7 +718,6 @@ fun AlarmEditSheet(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .imePadding()
-                .navigationBarsPadding()
                 .padding(top = 24.dp)
                 .graphicsLayer {
                     val progress = sheetProgress.value.coerceIn(0f, 1f)
@@ -776,6 +775,7 @@ fun AlarmEditSheet(
                     .verticalScroll(scrollState)
                     .padding(horizontal = 24.dp)
                     .padding(top = 12.dp, bottom = 24.dp)
+                    .navigationBarsPadding()
             ) {
                 // iOS Drag Handle with generous touch target
                 Box(

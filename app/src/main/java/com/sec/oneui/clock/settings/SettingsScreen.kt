@@ -109,9 +109,9 @@ fun SettingsScreen(
             .fillMaxSize()
             .background(Color.Transparent)
             .statusBarsPadding()
-            .navigationBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
+            .navigationBarsPadding()
     ) {
         Spacer(modifier = Modifier.height(16.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
