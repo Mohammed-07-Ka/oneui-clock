@@ -27,6 +27,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -111,6 +113,7 @@ import kotlin.math.absoluteValue
 import com.sec.oneui.clock.alarm.ui.AlarmEditSheet
 import com.sec.oneui.clock.alarm.ui.AlarmScreen
 import com.sec.oneui.clock.alarm.ui.AlarmViewModel
+import com.sec.oneui.clock.settings.DiagFlags
 import com.sec.oneui.clock.settings.SettingsManager
 import com.sec.oneui.clock.settings.SettingsScreen
 import com.sec.oneui.clock.stopwatch.ui.StopwatchScreen
@@ -202,6 +205,7 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         val settingsManager = SettingsManager.getInstance(this)
+        DiagFlags.init(this)
 
         // 3. Permissions
         checkAndRequestNotificationPermission()
@@ -508,8 +512,8 @@ fun MainClockApp(
                 // 3. Settings Icon in Top-Right
                 AnimatedVisibility(
                     visible = !editorState.isOpen,
-                    enter = fadeIn(tween(200)),
-                    exit = fadeOut(tween(200)),
+                    enter = if (DiagFlags.snapTabBarFabGear) EnterTransition.None else fadeIn(tween(200)),
+                    exit = if (DiagFlags.snapTabBarFabGear) ExitTransition.None else fadeOut(tween(200)),
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .statusBarsPadding()
@@ -569,8 +573,8 @@ fun MainClockApp(
                 val defaultVibrate by settingsManager.defaultVibrate.collectAsState()
                 AnimatedVisibility(
                     visible = isGlassActive && overlayBackdrop != null && pagerState.currentPage == 0 && !editorState.isOpen,
-                    enter = fadeIn() + scaleIn(),
-                    exit = fadeOut() + scaleOut(),
+                    enter = if (DiagFlags.snapTabBarFabGear) EnterTransition.None else (fadeIn() + scaleIn()),
+                    exit = if (DiagFlags.snapTabBarFabGear) ExitTransition.None else (fadeOut() + scaleOut()),
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .navigationBarsPadding()
@@ -610,14 +614,22 @@ fun MainClockApp(
                 // 5. Floating Liquid Glass Navigation Bar (Overlaid on top of passing content)
                 AnimatedVisibility(
                     visible = !editorState.isOpen,
-                    enter = slideInVertically(
-                        initialOffsetY = { it },
-                        animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f)
-                    ) + fadeIn(tween(250)),
-                    exit = slideOutVertically(
-                        targetOffsetY = { it },
-                        animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f)
-                    ) + fadeOut(tween(200)),
+                    enter = if (DiagFlags.snapTabBarFabGear) {
+                        EnterTransition.None
+                    } else {
+                        slideInVertically(
+                            initialOffsetY = { it },
+                            animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f)
+                        ) + fadeIn(tween(250))
+                    },
+                    exit = if (DiagFlags.snapTabBarFabGear) {
+                        ExitTransition.None
+                    } else {
+                        slideOutVertically(
+                            targetOffsetY = { it },
+                            animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f)
+                        ) + fadeOut(tween(200))
+                    },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .navigationBarsPadding()
@@ -766,11 +778,17 @@ fun MainClockApp(
 
                 LaunchedEffect(editorState.isOpen) {
                     if (editorState.isOpen) {
+                        if (DiagFlags.frameTimingOverlay) {
+                            DiagFlags.startTimingSession()
+                        }
                         exitVelocity = 0f
                         repeat(3) {
                             withFrameNanos {}
                         }
                         sheetProgress.animateTo(1f, animationSpec = ClockMotion.Smooth)
+                        if (DiagFlags.frameTimingOverlay) {
+                            DiagFlags.stopTimingSession()
+                        }
                     } else {
                         if (sheetProgress.value > 0.0001f) {
                             val v = exitVelocity

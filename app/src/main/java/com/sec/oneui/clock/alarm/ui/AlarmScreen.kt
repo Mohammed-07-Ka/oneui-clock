@@ -122,6 +122,7 @@ import com.sec.oneui.clock.alarm.service.AlarmAudioPreviewer
 import com.sec.oneui.clock.alarm.service.AlarmForegroundService
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import com.sec.oneui.clock.settings.DiagFlags
 import com.sec.oneui.clock.settings.SettingsManager
 import com.sec.oneui.clock.settings.ThemeMode
 import com.sec.oneui.clock.theme.ClockMotion
@@ -180,13 +181,15 @@ fun AlarmScreen(
     }
 
     // Authentic iOS Modal Sheet background scale down and dimming
+    val targetBgScale = if (editorState.isOpen && !DiagFlags.noPageScaleAlpha) 0.94f else 1f
+    val targetBgAlpha = if (editorState.isOpen && !DiagFlags.noPageScaleAlpha) 0.7f else 1f
     val bgScale by animateFloatAsState(
-        targetValue = if (editorState.isOpen) 0.94f else 1f,
+        targetValue = targetBgScale,
         animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f),
         label = "alarmBgScale"
     )
     val bgAlpha by animateFloatAsState(
-        targetValue = if (editorState.isOpen) 0.7f else 1f,
+        targetValue = targetBgAlpha,
         animationSpec = tween(320, easing = FastOutSlowInEasing),
         label = "alarmBgAlpha"
     )
@@ -200,9 +203,9 @@ fun AlarmScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
-                    scaleX = bgScale
-                    scaleY = bgScale
-                    alpha = bgAlpha
+                    scaleX = if (DiagFlags.noPageScaleAlpha) 1f else bgScale
+                    scaleY = if (DiagFlags.noPageScaleAlpha) 1f else bgScale
+                    alpha = if (DiagFlags.noPageScaleAlpha) 1f else bgAlpha
                 }
                 .statusBarsPadding()
                 .padding(horizontal = 20.dp)
@@ -686,12 +689,16 @@ fun AlarmEditSheet(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .drawBehind {
-                drawRect(
-                    color = Color.Black,
-                    alpha = (sheetProgress.value * 0.65f).coerceIn(0f, 0.65f)
-                )
-            }
+            .then(
+                if (!DiagFlags.noDimmer) {
+                    Modifier.drawBehind {
+                        drawRect(
+                            color = Color.Black,
+                            alpha = (sheetProgress.value * 0.65f).coerceIn(0f, 0.65f)
+                        )
+                    }
+                } else Modifier
+            )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -1040,9 +1047,12 @@ fun AlarmEditSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(15.dp))
+            if (DiagFlags.deferSheetContent && sheetProgress.value < 0.999f) {
+                Spacer(modifier = Modifier.height(580.dp))
+            } else {
+                Spacer(modifier = Modifier.height(15.dp))
 
-            // Day of Week selector
+                // Day of Week selector
             Text("Repeat", fontSize = 15.sp, color = palette.textSecondary, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(8.dp))
             Row(
@@ -1397,6 +1407,30 @@ fun AlarmEditSheet(
             Spacer(modifier = Modifier.height(30.dp))
         }
     }
+}
+
+        if (DiagFlags.frameTimingOverlay && (isSheetOpen || sheetProgress.value > 0.001f)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(top = 8.dp),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                val maxMs = String.format(Locale.US, "%.1f", DiagFlags.worstFrameTimeMs)
+                Text(
+                    text = "max ${maxMs}ms | >16.7ms: ${DiagFlags.framesOver16Ms} | >25ms: ${DiagFlags.framesOver25Ms}",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    color = Color(0xFF4ADE80),
+                    modifier = Modifier
+                        .background(Color.Black.copy(alpha = 0.85f), RoundedCornerShape(8.dp))
+                        .border(1.dp, Color(0xFF4ADE80).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                )
+            }
+        }
 
     if (!isSheetOpen) {
         Box(

@@ -870,6 +870,168 @@ fun SettingsScreen(
             }
         }
 
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ── 6. TEMP DIAGNOSTICS ──
+        SectionTitle("TEMP DIAGNOSTICS", textColor = subTextColor)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(cardColor)
+                .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
+        ) {
+            // D1 "No page scale/alpha during sheet"
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("No page scale/alpha during sheet", fontSize = 16.sp, color = textColor)
+                    Text("bgScale and bgAlpha stay at 1f while sheet opens/closes", fontSize = 13.sp, color = subTextColor)
+                }
+                Switch(
+                    checked = DiagFlags.noPageScaleAlpha,
+                    onCheckedChange = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        DiagFlags.setNoPageScaleAlpha(it)
+                    },
+                    modifier = Modifier.iosPressEffect(targetScale = 0.96f),
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = palette.toggleActiveThumb,
+                        checkedTrackColor = palette.toggleActiveTrack,
+                        uncheckedThumbColor = subTextColor,
+                        uncheckedTrackColor = palette.cardBackground
+                    )
+                )
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
+
+            // D2 "Snap tab bar / FAB / gear"
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Snap tab bar / FAB / gear", fontSize = 16.sp, color = textColor)
+                    Text("Their visibility changes instantly without animation", fontSize = 13.sp, color = subTextColor)
+                }
+                Switch(
+                    checked = DiagFlags.snapTabBarFabGear,
+                    onCheckedChange = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        DiagFlags.setSnapTabBarFabGear(it)
+                    },
+                    modifier = Modifier.iosPressEffect(targetScale = 0.96f),
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = palette.toggleActiveThumb,
+                        checkedTrackColor = palette.toggleActiveTrack,
+                        uncheckedThumbColor = subTextColor,
+                        uncheckedTrackColor = palette.cardBackground
+                    )
+                )
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
+
+            // D3 "No dimmer"
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("No dimmer", fontSize = 16.sp, color = textColor)
+                    Text("The dimmer drawBehind rect is not drawn", fontSize = 13.sp, color = subTextColor)
+                }
+                Switch(
+                    checked = DiagFlags.noDimmer,
+                    onCheckedChange = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        DiagFlags.setNoDimmer(it)
+                    },
+                    modifier = Modifier.iosPressEffect(targetScale = 0.96f),
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = palette.toggleActiveThumb,
+                        checkedTrackColor = palette.toggleActiveTrack,
+                        uncheckedThumbColor = subTextColor,
+                        uncheckedTrackColor = palette.cardBackground
+                    )
+                )
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
+
+            // D4 "Defer sheet content"
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Defer sheet content", fontSize = 16.sp, color = textColor)
+                    Text("Sections below time card composed only after sheet reaches 1f", fontSize = 13.sp, color = subTextColor)
+                }
+                Switch(
+                    checked = DiagFlags.deferSheetContent,
+                    onCheckedChange = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        DiagFlags.setDeferSheetContent(it)
+                    },
+                    modifier = Modifier.iosPressEffect(targetScale = 0.96f),
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = palette.toggleActiveThumb,
+                        checkedTrackColor = palette.toggleActiveTrack,
+                        uncheckedThumbColor = subTextColor,
+                        uncheckedTrackColor = palette.cardBackground
+                    )
+                )
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
+
+            // D5 "Frame timing overlay"
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Frame timing overlay", fontSize = 16.sp, color = textColor)
+                    Text("Show worst frame time and jank frames during open animation", fontSize = 13.sp, color = subTextColor)
+                }
+                Switch(
+                    checked = DiagFlags.frameTimingOverlay,
+                    onCheckedChange = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        DiagFlags.setFrameTimingOverlay(it)
+                    },
+                    modifier = Modifier.iosPressEffect(targetScale = 0.96f),
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = palette.toggleActiveThumb,
+                        checkedTrackColor = palette.toggleActiveTrack,
+                        uncheckedThumbColor = subTextColor,
+                        uncheckedTrackColor = palette.cardBackground
+                    )
+                )
+            }
+        }
+
         Spacer(modifier = Modifier.height(48.dp))
     }
 }
