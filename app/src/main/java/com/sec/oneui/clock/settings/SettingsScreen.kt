@@ -66,7 +66,8 @@ import com.sec.oneui.clock.theme.iosPressEffect
 @Composable
 fun SettingsScreen(
     settingsManager: SettingsManager,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onRunGpuBenchmark: (() -> Unit)? = null
 ) {
     val themeMode by settingsManager.themeMode.collectAsState()
     val liquidGlassEnabled by settingsManager.liquidGlassEnabled.collectAsState()
@@ -1119,6 +1120,36 @@ fun SettingsScreen(
                         uncheckedTrackColor = palette.cardBackground
                     )
                 )
+            }
+
+            if (onRunGpuBenchmark != null) {
+                HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .iosClickable(targetScale = 0.98f) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onRunGpuBenchmark()
+                        }
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Run GPU benchmark (Add Alarm)",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.primaryAccent
+                        )
+                        Text(
+                            text = "Auto-runs V0–V5 (3 repeats each) and shows FrameMetrics table",
+                            fontSize = 13.sp,
+                            color = subTextColor
+                        )
+                    }
+                }
             }
         }
 

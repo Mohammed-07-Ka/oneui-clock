@@ -114,6 +114,8 @@ import com.sec.oneui.clock.alarm.ui.AlarmEditSheet
 import com.sec.oneui.clock.alarm.ui.AlarmScreen
 import com.sec.oneui.clock.alarm.ui.AlarmViewModel
 import com.sec.oneui.clock.settings.DiagFlags
+import com.sec.oneui.clock.settings.GpuBenchOverlay
+import com.sec.oneui.clock.settings.GpuBenchRunner
 import com.sec.oneui.clock.settings.SettingsManager
 import com.sec.oneui.clock.settings.SettingsScreen
 import com.sec.oneui.clock.stopwatch.ui.StopwatchScreen
@@ -390,6 +392,32 @@ fun MainClockApp(
     val coroutineScope = rememberCoroutineScope()
     val palette = ClockTheme.palette
     val activeHaze = hazeState ?: LocalHazeState.current ?: remember { HazeState() }
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    val sheetProgress = remember { Animatable(0f) }
+    var exitVelocity by remember { mutableFloatStateOf(0f) }
+    var isSheetComposed by remember { mutableStateOf(false) }
+
+    val gpuBenchRunner = remember(context, coroutineScope) {
+        GpuBenchRunner(
+            context = context,
+            coroutineScope = coroutineScope,
+            leaveSettingsToAlarmTab = {
+                showSettings = false
+                pagerState.scrollToPage(0)
+            },
+            openSheetLikeFab = {
+                alarmViewModel.openEditorForNew(settingsManager.defaultVibrate.value)
+            },
+            closeSheetLikeCancel = {
+                alarmViewModel.cancelDraft()
+            },
+            isSheetOpen = { alarmViewModel.editorState.value.isOpen },
+            isSheetComposed = { isSheetComposed },
+            isSheetProgressRunning = { sheetProgress.isRunning },
+            sheetProgressValue = { sheetProgress.value }
+        )
+    }
 
     // Handle navigation tab changes (e.g. from notification clicks)
     val targetTab by navTabFlow.collectAsState()
@@ -411,47 +439,49 @@ fun MainClockApp(
     }
 
     // Smooth iOS-style vertical slide transition for Settings screen (320ms, easeOut)
-    AnimatedContent(
-        targetState = showSettings,
-        transitionSpec = {
-            if (targetState) {
-                (slideInVertically(
-                    initialOffsetY = { it },
-                    animationSpec = tween(320, easing = FastOutSlowInEasing)
-                ) + fadeIn(animationSpec = tween(320, easing = FastOutSlowInEasing))).togetherWith(
-                    slideOutVertically(
-                        targetOffsetY = { -it / 4 },
+    Box(modifier = Modifier.fillMaxSize()) {
+        AnimatedContent(
+            targetState = showSettings,
+            transitionSpec = {
+                if (targetState) {
+                    (slideInVertically(
+                        initialOffsetY = { it },
                         animationSpec = tween(320, easing = FastOutSlowInEasing)
-                    ) + fadeOut(animationSpec = tween(320, easing = FastOutSlowInEasing))
-                )
+                    ) + fadeIn(animationSpec = tween(320, easing = FastOutSlowInEasing))).togetherWith(
+                        slideOutVertically(
+                            targetOffsetY = { -it / 4 },
+                            animationSpec = tween(320, easing = FastOutSlowInEasing)
+                        ) + fadeOut(animationSpec = tween(320, easing = FastOutSlowInEasing))
+                    )
+                } else {
+                    (slideInVertically(
+                        initialOffsetY = { -it / 4 },
+                        animationSpec = tween(320, easing = FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(320, easing = FastOutSlowInEasing))).togetherWith(
+                        slideOutVertically(
+                            targetOffsetY = { it },
+                            animationSpec = tween(320, easing = FastOutSlowInEasing)
+                        ) + fadeOut(animationSpec = tween(320, easing = FastOutSlowInEasing))
+                    )
+                }
+            },
+            label = "settingsTransition"
+        ) { isSettingsVisible ->
+            if (isSettingsVisible) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    GeminiBackgroundCanvas(
+                        themeMode = themeMode,
+                        animationEnabled = animationEnabled,
+                        animationSpeed = animationSpeed,
+                        hazeState = activeHaze
+                    )
+                    SettingsScreen(
+                        settingsManager = settingsManager,
+                        onBack = { showSettings = false },
+                        onRunGpuBenchmark = { gpuBenchRunner.start() }
+                    )
+                }
             } else {
-                (slideInVertically(
-                    initialOffsetY = { -it / 4 },
-                    animationSpec = tween(320, easing = FastOutSlowInEasing)
-                ) + fadeIn(animationSpec = tween(320, easing = FastOutSlowInEasing))).togetherWith(
-                    slideOutVertically(
-                        targetOffsetY = { it },
-                        animationSpec = tween(320, easing = FastOutSlowInEasing)
-                    ) + fadeOut(animationSpec = tween(320, easing = FastOutSlowInEasing))
-                )
-            }
-        },
-        label = "settingsTransition"
-    ) { isSettingsVisible ->
-        if (isSettingsVisible) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                GeminiBackgroundCanvas(
-                    themeMode = themeMode,
-                    animationEnabled = animationEnabled,
-                    animationSpeed = animationSpeed,
-                    hazeState = activeHaze
-                )
-                SettingsScreen(
-                    settingsManager = settingsManager,
-                    onBack = { showSettings = false }
-                )
-            }
-        } else {
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {
@@ -769,9 +799,6 @@ fun MainClockApp(
                     lastOpenEditorState = editorState
                 }
 
-                val sheetProgress = remember { Animatable(0f) }
-                var exitVelocity by remember { mutableFloatStateOf(0f) }
-                var isSheetComposed by remember { mutableStateOf(false) }
                 if (editorState.isOpen) {
                     isSheetComposed = true
                 }
@@ -826,5 +853,17 @@ fun MainClockApp(
                 }
             }
         }
+        }
+
+        if (gpuBenchRunner.isRunning) {
+            androidx.compose.runtime.key(isSheetComposed) {
+                BackHandler(enabled = true) { gpuBenchRunner.cancel() }
+            }
+        }
+        if (!gpuBenchRunner.isRunning && gpuBenchRunner.showResultsOverlay) {
+            BackHandler(enabled = true) { gpuBenchRunner.dismissResults() }
+        }
+
+        GpuBenchOverlay(runner = gpuBenchRunner)
     }
 }

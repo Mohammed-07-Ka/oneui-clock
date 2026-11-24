@@ -9,26 +9,49 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
+data class BenchOverride(
+    val noPageScaleAlpha: Boolean = false,
+    val snapTabBarFabGear: Boolean = false,
+    val noDimmer: Boolean = false,
+    val deferSheetContent: Boolean = false,
+    val frameTimingOverlay: Boolean = false,
+    val sheetFlatContainer: Boolean = false,
+    val sheetNoInnerGlass: Boolean = false,
+    val sheetNoEffects: Boolean = false
+)
+
 object DiagFlags {
     private const val PREFS_NAME = "diag_prefs"
     private var prefs: SharedPreferences? = null
 
-    var noPageScaleAlpha by mutableStateOf(false)
+    private var savedNoPageScaleAlpha by mutableStateOf(false)
+    private var savedSnapTabBarFabGear by mutableStateOf(false)
+    private var savedNoDimmer by mutableStateOf(false)
+    private var savedDeferSheetContent by mutableStateOf(false)
+    private var savedFrameTimingOverlay by mutableStateOf(false)
+    private var savedSheetFlatContainer by mutableStateOf(false)
+    private var savedSheetNoInnerGlass by mutableStateOf(false)
+    private var savedSheetNoEffects by mutableStateOf(false)
+
+    var benchOverride by mutableStateOf<BenchOverride?>(null)
         private set
-    var snapTabBarFabGear by mutableStateOf(false)
-        private set
-    var noDimmer by mutableStateOf(false)
-        private set
-    var deferSheetContent by mutableStateOf(false)
-        private set
-    var frameTimingOverlay by mutableStateOf(false)
-        private set
-    var sheetFlatContainer by mutableStateOf(false)
-        private set
-    var sheetNoInnerGlass by mutableStateOf(false)
-        private set
-    var sheetNoEffects by mutableStateOf(false)
-        private set
+
+    val noPageScaleAlpha: Boolean
+        get() = benchOverride?.noPageScaleAlpha ?: savedNoPageScaleAlpha
+    val snapTabBarFabGear: Boolean
+        get() = benchOverride?.snapTabBarFabGear ?: savedSnapTabBarFabGear
+    val noDimmer: Boolean
+        get() = benchOverride?.noDimmer ?: savedNoDimmer
+    val deferSheetContent: Boolean
+        get() = benchOverride?.deferSheetContent ?: savedDeferSheetContent
+    val frameTimingOverlay: Boolean
+        get() = benchOverride?.frameTimingOverlay ?: savedFrameTimingOverlay
+    val sheetFlatContainer: Boolean
+        get() = benchOverride?.sheetFlatContainer ?: savedSheetFlatContainer
+    val sheetNoInnerGlass: Boolean
+        get() = benchOverride?.sheetNoInnerGlass ?: savedSheetNoInnerGlass
+    val sheetNoEffects: Boolean
+        get() = benchOverride?.sheetNoEffects ?: savedSheetNoEffects
 
     // Frame timing measurements for D5
     var worstFrameTimeMs by mutableFloatStateOf(0f)
@@ -65,53 +88,57 @@ object DiagFlags {
         if (prefs != null) return
         val p = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs = p
-        noPageScaleAlpha = p.getBoolean("d1_no_page_scale_alpha", false)
-        snapTabBarFabGear = p.getBoolean("d2_snap_tab_bar_fab_gear", false)
-        noDimmer = p.getBoolean("d3_no_dimmer", false)
-        deferSheetContent = p.getBoolean("d4_defer_sheet_content", false)
-        frameTimingOverlay = p.getBoolean("d5_frame_timing_overlay", false)
-        sheetFlatContainer = p.getBoolean("d6_sheet_flat_container", false)
-        sheetNoInnerGlass = p.getBoolean("d7_sheet_no_inner_glass", false)
-        sheetNoEffects = p.getBoolean("d8_sheet_no_effects", false)
+        savedNoPageScaleAlpha = p.getBoolean("d1_no_page_scale_alpha", false)
+        savedSnapTabBarFabGear = p.getBoolean("d2_snap_tab_bar_fab_gear", false)
+        savedNoDimmer = p.getBoolean("d3_no_dimmer", false)
+        savedDeferSheetContent = p.getBoolean("d4_defer_sheet_content", false)
+        savedFrameTimingOverlay = p.getBoolean("d5_frame_timing_overlay", false)
+        savedSheetFlatContainer = p.getBoolean("d6_sheet_flat_container", false)
+        savedSheetNoInnerGlass = p.getBoolean("d7_sheet_no_inner_glass", false)
+        savedSheetNoEffects = p.getBoolean("d8_sheet_no_effects", false)
+    }
+
+    fun updateBenchOverride(override: BenchOverride?) {
+        benchOverride = override
     }
 
     fun updateNoPageScaleAlpha(enabled: Boolean) {
-        noPageScaleAlpha = enabled
+        savedNoPageScaleAlpha = enabled
         prefs?.edit()?.putBoolean("d1_no_page_scale_alpha", enabled)?.apply()
     }
 
     fun updateSnapTabBarFabGear(enabled: Boolean) {
-        snapTabBarFabGear = enabled
+        savedSnapTabBarFabGear = enabled
         prefs?.edit()?.putBoolean("d2_snap_tab_bar_fab_gear", enabled)?.apply()
     }
 
     fun updateNoDimmer(enabled: Boolean) {
-        noDimmer = enabled
+        savedNoDimmer = enabled
         prefs?.edit()?.putBoolean("d3_no_dimmer", enabled)?.apply()
     }
 
     fun updateDeferSheetContent(enabled: Boolean) {
-        deferSheetContent = enabled
+        savedDeferSheetContent = enabled
         prefs?.edit()?.putBoolean("d4_defer_sheet_content", enabled)?.apply()
     }
 
     fun updateFrameTimingOverlay(enabled: Boolean) {
-        frameTimingOverlay = enabled
+        savedFrameTimingOverlay = enabled
         prefs?.edit()?.putBoolean("d5_frame_timing_overlay", enabled)?.apply()
     }
 
     fun updateSheetFlatContainer(enabled: Boolean) {
-        sheetFlatContainer = enabled
+        savedSheetFlatContainer = enabled
         prefs?.edit()?.putBoolean("d6_sheet_flat_container", enabled)?.apply()
     }
 
     fun updateSheetNoInnerGlass(enabled: Boolean) {
-        sheetNoInnerGlass = enabled
+        savedSheetNoInnerGlass = enabled
         prefs?.edit()?.putBoolean("d7_sheet_no_inner_glass", enabled)?.apply()
     }
 
     fun updateSheetNoEffects(enabled: Boolean) {
-        sheetNoEffects = enabled
+        savedSheetNoEffects = enabled
         prefs?.edit()?.putBoolean("d8_sheet_no_effects", enabled)?.apply()
     }
 
