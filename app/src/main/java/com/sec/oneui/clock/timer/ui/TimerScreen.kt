@@ -122,7 +122,10 @@ fun TimerScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .then(
-                        if (targetState == TimerState.IDLE) {
+                        if (targetState == TimerState.IDLE ||
+                            targetState == TimerState.RUNNING ||
+                            targetState == TimerState.PAUSED
+                        ) {
                             Modifier.offset(y = -TIMER_IDLE_CONTENT_SHIFT_UP)
                         } else {
                             Modifier
