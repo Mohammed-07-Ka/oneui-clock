@@ -3,12 +3,27 @@ package com.sec.oneui.clock.settings
 import android.content.Context
 import android.content.SharedPreferences
 import android.view.Choreographer
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
+@Immutable
+data class GlassEffectMask(
+    val noBlur: Boolean = false,
+    val noLens: Boolean = false,
+    val noColor: Boolean = false,
+    val noHighlight: Boolean = false,
+    val noScrim: Boolean = false
+) {
+    companion object {
+        val None = GlassEffectMask()
+    }
+}
+
+@Immutable
 data class BenchOverride(
     val noPageScaleAlpha: Boolean = false,
     val snapTabBarFabGear: Boolean = false,
@@ -17,7 +32,9 @@ data class BenchOverride(
     val frameTimingOverlay: Boolean = false,
     val sheetFlatContainer: Boolean = false,
     val sheetNoInnerGlass: Boolean = false,
-    val sheetNoEffects: Boolean = false
+    val sheetNoEffects: Boolean = false,
+    val containerGlassMask: GlassEffectMask = GlassEffectMask.None,
+    val innerGlassMask: GlassEffectMask = GlassEffectMask.None
 )
 
 object DiagFlags {
@@ -52,6 +69,12 @@ object DiagFlags {
         get() = benchOverride?.sheetNoInnerGlass ?: savedSheetNoInnerGlass
     val sheetNoEffects: Boolean
         get() = benchOverride?.sheetNoEffects ?: savedSheetNoEffects
+
+    val sheetContainerMask: GlassEffectMask
+        get() = benchOverride?.containerGlassMask ?: GlassEffectMask.None
+
+    val sheetInnerMask: GlassEffectMask
+        get() = benchOverride?.innerGlassMask ?: GlassEffectMask.None
 
     // Frame timing measurements for D5
     var worstFrameTimeMs by mutableFloatStateOf(0f)

@@ -15,8 +15,8 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -67,7 +66,9 @@ import kotlin.math.ceil
 
 private const val BENCH_TAG = "GpuBench"
 private const val REPEATS_PER_VARIANT = 3
+private const val EARLY_FRAME_COUNT = 12
 private const val OPEN_SETTLED_HOLD_MS = 560L
+private const val WARMUP_SETTLED_HOLD_MS = 400L
 private const val METRICS_FLUSH_MS = 40L
 private const val BETWEEN_REPEATS_MS = 800L
 private const val OVER_16_MS_NANOS = 16_700_000L
@@ -80,47 +81,81 @@ data class BenchVariantSpec(
 
 val GPU_BENCH_VARIANTS = listOf(
     BenchVariantSpec(
-        id = "V0",
-        label = "V0 baseline",
+        id = "X0",
+        label = "X0 baseline",
         override = BenchOverride()
     ),
     BenchVariantSpec(
-        id = "V1",
-        label = "V1 D6 flat",
-        override = BenchOverride(sheetFlatContainer = true)
+        id = "X1",
+        label = "X1 ctr:noBlur",
+        override = BenchOverride(containerGlassMask = GlassEffectMask(noBlur = true))
     ),
     BenchVariantSpec(
-        id = "V2",
-        label = "V2 D7 no inner",
-        override = BenchOverride(sheetNoInnerGlass = true)
+        id = "X2",
+        label = "X2 ctr:noLens",
+        override = BenchOverride(containerGlassMask = GlassEffectMask(noLens = true))
     ),
     BenchVariantSpec(
-        id = "V3",
-        label = "V3 D8 no fx",
-        override = BenchOverride(sheetNoEffects = true)
+        id = "X3",
+        label = "X3 ctr:noColor",
+        override = BenchOverride(containerGlassMask = GlassEffectMask(noColor = true))
     ),
     BenchVariantSpec(
-        id = "V4",
-        label = "V4 D6+D7",
+        id = "X4",
+        label = "X4 inr:noBlur",
+        override = BenchOverride(innerGlassMask = GlassEffectMask(noBlur = true))
+    ),
+    BenchVariantSpec(
+        id = "X5",
+        label = "X5 inr:noLens",
+        override = BenchOverride(innerGlassMask = GlassEffectMask(noLens = true))
+    ),
+    BenchVariantSpec(
+        id = "X6",
+        label = "X6 inr:noColor",
+        override = BenchOverride(innerGlassMask = GlassEffectMask(noColor = true))
+    ),
+    BenchVariantSpec(
+        id = "X6a",
+        label = "X6a ctr:noHi",
+        override = BenchOverride(containerGlassMask = GlassEffectMask(noHighlight = true))
+    ),
+    BenchVariantSpec(
+        id = "X6b",
+        label = "X6b ctr:noScrim",
+        override = BenchOverride(containerGlassMask = GlassEffectMask(noScrim = true))
+    ),
+    BenchVariantSpec(
+        id = "X6c",
+        label = "X6c inr:noHi",
+        override = BenchOverride(innerGlassMask = GlassEffectMask(noHighlight = true))
+    ),
+    BenchVariantSpec(
+        id = "X6d",
+        label = "X6d inr:noScrim",
+        override = BenchOverride(innerGlassMask = GlassEffectMask(noScrim = true))
+    ),
+    BenchVariantSpec(
+        id = "X7",
+        label = "X7 D6+D7",
         override = BenchOverride(sheetFlatContainer = true, sheetNoInnerGlass = true)
     ),
     BenchVariantSpec(
-        id = "V5",
-        label = "V5 D1+D2+D3",
-        override = BenchOverride(
-            noPageScaleAlpha = true,
-            snapTabBarFabGear = true,
-            noDimmer = true
-        )
+        id = "X8",
+        label = "X8 baseline 2",
+        override = BenchOverride()
     )
 )
 
 data class BenchFrameSample(
     val totalNs: Long,
+    val animationNs: Long,
+    val layoutMeasureNs: Long,
+    val drawNs: Long,
+    val syncNs: Long,
     val cmdIssueNs: Long,
     val swapNs: Long,
-    val drawNs: Long,
-    val layoutMeasureNs: Long,
+    val unknownDelayNs: Long,
     val gpuNs: Long?
 )
 
@@ -130,12 +165,23 @@ data class BenchVariantResult(
     val avgTotalMs: Double,
     val p95TotalMs: Double,
     val maxTotalMs: Double,
-    val avgGpuMs: Double?,
+    val framesOver16Ms: Int,
+    val earlyFrameCount: Int,
+    val earlyAvgTotalMs: Double,
+    val earlyMaxTotalMs: Double,
+    val earlyOver16Ms: Int,
+    val lateFrameCount: Int,
+    val lateAvgTotalMs: Double,
+    val lateMaxTotalMs: Double,
+    val lateOver16Ms: Int,
+    val avgAnimationMs: Double,
+    val avgLayoutMeasureMs: Double,
+    val avgDrawMs: Double,
+    val avgSyncMs: Double,
     val avgCmdIssueMs: Double,
     val avgSwapMs: Double,
-    val avgDrawMs: Double,
-    val avgLayoutMeasureMs: Double,
-    val framesOver16Ms: Int
+    val avgGpuMs: Double?,
+    val avgUnknownDelayMs: Double
 )
 
 @Stable
@@ -151,6 +197,8 @@ class GpuBenchRunner(
     private val sheetProgressValue: () -> Float
 ) {
     var isRunning by mutableStateOf(false)
+        private set
+    var isWarmingUp by mutableStateOf(false)
         private set
     var currentVariantIndex by mutableIntStateOf(0)
         private set
@@ -172,6 +220,7 @@ class GpuBenchRunner(
         results = emptyList()
         errorMessage = null
         showResultsOverlay = false
+        isWarmingUp = false
         currentVariantIndex = 0
         totalVariants = GPU_BENCH_VARIANTS.size
         isRunning = true
@@ -213,10 +262,13 @@ class GpuBenchRunner(
                 val frameListener = Window.OnFrameMetricsAvailableListener { _, frameMetrics, _ ->
                     val totalNs = frameMetrics.getMetric(FrameMetrics.TOTAL_DURATION)
                     if (totalNs < 0L) return@OnFrameMetricsAvailableListener
+                    val animationNs = frameMetrics.getMetric(FrameMetrics.ANIMATION_DURATION)
+                    val layoutNs = frameMetrics.getMetric(FrameMetrics.LAYOUT_MEASURE_DURATION)
+                    val drawNs = frameMetrics.getMetric(FrameMetrics.DRAW_DURATION)
+                    val syncNs = frameMetrics.getMetric(FrameMetrics.SYNC_DURATION)
                     val cmdIssueNs = frameMetrics.getMetric(FrameMetrics.COMMAND_ISSUE_DURATION)
                     val swapNs = frameMetrics.getMetric(FrameMetrics.SWAP_BUFFERS_DURATION)
-                    val drawNs = frameMetrics.getMetric(FrameMetrics.DRAW_DURATION)
-                    val layoutNs = frameMetrics.getMetric(FrameMetrics.LAYOUT_MEASURE_DURATION)
+                    val unknownDelayNs = frameMetrics.getMetric(FrameMetrics.UNKNOWN_DELAY_DURATION)
                     val gpuNs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                         val v = frameMetrics.getMetric(FrameMetrics.GPU_DURATION)
                         if (v >= 0L) v else null
@@ -228,10 +280,13 @@ class GpuBenchRunner(
                             currentSamples.add(
                                 BenchFrameSample(
                                     totalNs = totalNs,
+                                    animationNs = animationNs,
+                                    layoutMeasureNs = layoutNs,
+                                    drawNs = drawNs,
+                                    syncNs = syncNs,
                                     cmdIssueNs = cmdIssueNs,
                                     swapNs = swapNs,
-                                    drawNs = drawNs,
-                                    layoutMeasureNs = layoutNs,
+                                    unknownDelayNs = unknownDelayNs,
                                     gpuNs = gpuNs
                                 )
                             )
@@ -239,7 +294,7 @@ class GpuBenchRunner(
                     }
                 }
 
-                // 1. Leave Settings, navigate to Alarm tab, ensure no sheet is open
+                // 1. Leave Settings, go to Alarm tab, make sure no sheet is open
                 DiagFlags.updateBenchOverride(null)
                 leaveSettingsToAlarmTab()
                 delay(450L)
@@ -252,15 +307,33 @@ class GpuBenchRunner(
                     delay(300L)
                 }
 
+                // 2. One WARM-UP cycle whose frames are discarded
+                isWarmingUp = true
+                DiagFlags.updateBenchOverride(BenchOverride())
+                repeat(2) { withFrameNanos {} }
+                openSheetLikeFab()
+                snapshotFlow {
+                    isSheetOpen() && isSheetComposed() && !isSheetProgressRunning() && sheetProgressValue() >= 0.9999f
+                }.first { it }
+                delay(WARMUP_SETTLED_HOLD_MS)
+                closeSheetLikeCancel()
+                snapshotFlow {
+                    !isSheetOpen() && !isSheetComposed() && !isSheetProgressRunning() && sheetProgressValue() <= 0.0001f
+                }.first { it }
+                delay(BETWEEN_REPEATS_MS)
+                isWarmingUp = false
+
                 val collectedResults = mutableListOf<BenchVariantResult>()
 
-                // 2. Execute V0..V5, 3 repeats each
+                // 3. Execute variants in order, 3 repeats each
                 GPU_BENCH_VARIANTS.forEachIndexed { index, spec ->
                     currentVariantIndex = index + 1
                     DiagFlags.updateBenchOverride(spec.override)
                     repeat(2) { withFrameNanos {} }
 
-                    val pooledSamples = mutableListOf<BenchFrameSample>()
+                    val pooledAll = mutableListOf<BenchFrameSample>()
+                    val pooledEarly = mutableListOf<BenchFrameSample>()
+                    val pooledLate = mutableListOf<BenchFrameSample>()
 
                     for (repeatIdx in 1..REPEATS_PER_VARIANT) {
                         synchronized(sampleLock) {
@@ -271,28 +344,30 @@ class GpuBenchRunner(
                         attachedListener = frameListener
                         window.addOnFrameMetricsAvailableListener(frameListener, bgHandler)
 
-                        // Trigger sheet open via the exact FAB path
                         openSheetLikeFab()
 
-                        // Wait until open animation (repeat(3) + sheetProgress.animateTo(1f)) fully settles
                         snapshotFlow {
                             isSheetOpen() && isSheetComposed() && !isSheetProgressRunning() && sheetProgressValue() >= 0.9999f
                         }.first { it }
 
-                        // Allow async FrameMetrics callback for the final animation frame to flush
                         withFrameNanos {}
                         delay(METRICS_FLUSH_MS)
 
                         detachListenerSafe()
+                        val repeatSnapshot: List<BenchFrameSample>
                         synchronized(sampleLock) {
-                            pooledSamples.addAll(currentSamples)
+                            repeatSnapshot = currentSamples.toList()
                             currentSamples.clear()
                         }
 
-                        // Hold open ~600ms total before closing
+                        pooledAll.addAll(repeatSnapshot)
+                        pooledEarly.addAll(repeatSnapshot.take(EARLY_FRAME_COUNT))
+                        if (repeatSnapshot.size > EARLY_FRAME_COUNT) {
+                            pooledLate.addAll(repeatSnapshot.drop(EARLY_FRAME_COUNT))
+                        }
+
                         delay(OPEN_SETTLED_HOLD_MS)
 
-                        // Close through exact Cancel path and wait until uncomposed
                         closeSheetLikeCancel()
                         snapshotFlow {
                             !isSheetOpen() && !isSheetComposed() && !isSheetProgressRunning() && sheetProgressValue() <= 0.0001f
@@ -301,12 +376,19 @@ class GpuBenchRunner(
                         delay(BETWEEN_REPEATS_MS)
                     }
 
-                    collectedResults.add(aggregateVariantSamples(spec.label, pooledSamples))
+                    collectedResults.add(
+                        aggregateVariantSamples(
+                            label = spec.label,
+                            allSamples = pooledAll,
+                            earlySamples = pooledEarly,
+                            lateSamples = pooledLate
+                        )
+                    )
                 }
 
                 results = collectedResults
-                val tableText = formatBenchmarkTable(collectedResults)
-                tableText.lineSequence().forEach { line ->
+                val combinedText = formatBothTables(collectedResults)
+                combinedText.lineSequence().forEach { line ->
                     Log.i(BENCH_TAG, line)
                 }
                 showResultsOverlay = true
@@ -325,6 +407,7 @@ class GpuBenchRunner(
                     if (isSheetOpen()) {
                         closeSheetLikeCancel()
                     }
+                    isWarmingUp = false
                     isRunning = false
                 }
             }
@@ -338,6 +421,7 @@ class GpuBenchRunner(
         if (isSheetOpen()) {
             closeSheetLikeCancel()
         }
+        isWarmingUp = false
         isRunning = false
     }
 
@@ -347,82 +431,150 @@ class GpuBenchRunner(
     }
 }
 
+private fun avgValidMs(samples: List<BenchFrameSample>, selector: (BenchFrameSample) -> Long): Double {
+    var sum = 0L
+    var count = 0
+    for (s in samples) {
+        val v = selector(s)
+        if (v >= 0L) {
+            sum += v
+            count++
+        }
+    }
+    return if (count > 0) (sum.toDouble() / count.toDouble()) / 1_000_000.0 else 0.0
+}
+
 private fun aggregateVariantSamples(
     label: String,
-    samples: List<BenchFrameSample>
+    allSamples: List<BenchFrameSample>,
+    earlySamples: List<BenchFrameSample>,
+    lateSamples: List<BenchFrameSample>
 ): BenchVariantResult {
-    if (samples.isEmpty()) {
+    if (allSamples.isEmpty()) {
         return BenchVariantResult(
             variantLabel = label,
             frameCount = 0,
             avgTotalMs = 0.0,
             p95TotalMs = 0.0,
             maxTotalMs = 0.0,
-            avgGpuMs = null,
+            framesOver16Ms = 0,
+            earlyFrameCount = 0,
+            earlyAvgTotalMs = 0.0,
+            earlyMaxTotalMs = 0.0,
+            earlyOver16Ms = 0,
+            lateFrameCount = 0,
+            lateAvgTotalMs = 0.0,
+            lateMaxTotalMs = 0.0,
+            lateOver16Ms = 0,
+            avgAnimationMs = 0.0,
+            avgLayoutMeasureMs = 0.0,
+            avgDrawMs = 0.0,
+            avgSyncMs = 0.0,
             avgCmdIssueMs = 0.0,
             avgSwapMs = 0.0,
-            avgDrawMs = 0.0,
-            avgLayoutMeasureMs = 0.0,
-            framesOver16Ms = 0
+            avgGpuMs = null,
+            avgUnknownDelayMs = 0.0
         )
     }
 
-    val totalsSorted = samples.map { it.totalNs }.sorted()
-    val avgTotalMs = samples.map { it.totalNs }.average() / 1_000_000.0
+    val totalsSorted = allSamples.map { it.totalNs }.sorted()
+    val avgTotalMs = totalsSorted.average() / 1_000_000.0
     val p95Index = (ceil(totalsSorted.size * 0.95).toInt() - 1).coerceIn(0, totalsSorted.lastIndex)
     val p95TotalMs = totalsSorted[p95Index] / 1_000_000.0
     val maxTotalMs = totalsSorted.last() / 1_000_000.0
 
-    val gpuValues = samples.mapNotNull { it.gpuNs }
+    val gpuValues = allSamples.mapNotNull { it.gpuNs }
     val avgGpuMs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && gpuValues.isNotEmpty()) {
         gpuValues.average() / 1_000_000.0
     } else {
         null
     }
 
-    val validCmd = samples.mapNotNull { if (it.cmdIssueNs >= 0L) it.cmdIssueNs else null }
-    val validSwap = samples.mapNotNull { if (it.swapNs >= 0L) it.swapNs else null }
-    val validDraw = samples.mapNotNull { if (it.drawNs >= 0L) it.drawNs else null }
-    val validLayout = samples.mapNotNull { if (it.layoutMeasureNs >= 0L) it.layoutMeasureNs else null }
+    val earlyTotals = earlySamples.map { it.totalNs }
+    val earlyAvgMs = if (earlyTotals.isNotEmpty()) earlyTotals.average() / 1_000_000.0 else 0.0
+    val earlyMaxMs = if (earlyTotals.isNotEmpty()) earlyTotals.max() / 1_000_000.0 else 0.0
+
+    val lateTotals = lateSamples.map { it.totalNs }
+    val lateAvgMs = if (lateTotals.isNotEmpty()) lateTotals.average() / 1_000_000.0 else 0.0
+    val lateMaxMs = if (lateTotals.isNotEmpty()) lateTotals.max() / 1_000_000.0 else 0.0
 
     return BenchVariantResult(
         variantLabel = label,
-        frameCount = samples.size,
+        frameCount = allSamples.size,
         avgTotalMs = avgTotalMs,
         p95TotalMs = p95TotalMs,
         maxTotalMs = maxTotalMs,
+        framesOver16Ms = allSamples.count { it.totalNs > OVER_16_MS_NANOS },
+        earlyFrameCount = earlySamples.size,
+        earlyAvgTotalMs = earlyAvgMs,
+        earlyMaxTotalMs = earlyMaxMs,
+        earlyOver16Ms = earlySamples.count { it.totalNs > OVER_16_MS_NANOS },
+        lateFrameCount = lateSamples.size,
+        lateAvgTotalMs = lateAvgMs,
+        lateMaxTotalMs = lateMaxMs,
+        lateOver16Ms = lateSamples.count { it.totalNs > OVER_16_MS_NANOS },
+        avgAnimationMs = avgValidMs(allSamples) { it.animationNs },
+        avgLayoutMeasureMs = avgValidMs(allSamples) { it.layoutMeasureNs },
+        avgDrawMs = avgValidMs(allSamples) { it.drawNs },
+        avgSyncMs = avgValidMs(allSamples) { it.syncNs },
+        avgCmdIssueMs = avgValidMs(allSamples) { it.cmdIssueNs },
+        avgSwapMs = avgValidMs(allSamples) { it.swapNs },
         avgGpuMs = avgGpuMs,
-        avgCmdIssueMs = if (validCmd.isNotEmpty()) validCmd.average() / 1_000_000.0 else 0.0,
-        avgSwapMs = if (validSwap.isNotEmpty()) validSwap.average() / 1_000_000.0 else 0.0,
-        avgDrawMs = if (validDraw.isNotEmpty()) validDraw.average() / 1_000_000.0 else 0.0,
-        avgLayoutMeasureMs = if (validLayout.isNotEmpty()) validLayout.average() / 1_000_000.0 else 0.0,
-        framesOver16Ms = samples.count { it.totalNs > OVER_16_MS_NANOS }
+        avgUnknownDelayMs = avgValidMs(allSamples) { it.unknownDelayNs }
     )
 }
 
-fun formatBenchmarkTable(results: List<BenchVariantResult>): String {
-    val sb = StringBuilder()
-    sb.appendLine(
-        "variant        | frames | avg total ms | p95 total ms | max total ms | avg GPU ms | avg cmd-issue ms | avg swap ms | frames > 16.7 ms"
+private const val TABLE_A_HEADER =
+    "variant         | frames | avg tot | p95 tot | max tot | >16.7 | E frm | E avg  | E max  | E>16.7 | L frm | L avg  | L max  | L>16.7"
+
+private const val TABLE_B_HEADER =
+    "variant         | anim   | layout | draw   | sync   | cmd-iss | swap   | GPU    | unk-dly"
+
+private fun formatTableARow(row: BenchVariantResult): String = String.format(
+    Locale.US,
+    "%-15s | %6d | %7.2f | %7.2f | %7.2f | %5d | %5d | %6.2f | %6.2f | %6d | %5d | %6.2f | %6.2f | %6d",
+    row.variantLabel,
+    row.frameCount,
+    row.avgTotalMs,
+    row.p95TotalMs,
+    row.maxTotalMs,
+    row.framesOver16Ms,
+    row.earlyFrameCount,
+    row.earlyAvgTotalMs,
+    row.earlyMaxTotalMs,
+    row.earlyOver16Ms,
+    row.lateFrameCount,
+    row.lateAvgTotalMs,
+    row.lateMaxTotalMs,
+    row.lateOver16Ms
+)
+
+private fun formatTableBRow(row: BenchVariantResult): String {
+    val gpuStr = row.avgGpuMs?.let { String.format(Locale.US, "%.2f", it) } ?: "n/a"
+    return String.format(
+        Locale.US,
+        "%-15s | %6.2f | %6.2f | %6.2f | %6.2f | %7.2f | %6.2f | %6s | %7.2f",
+        row.variantLabel,
+        row.avgAnimationMs,
+        row.avgLayoutMeasureMs,
+        row.avgDrawMs,
+        row.avgSyncMs,
+        row.avgCmdIssueMs,
+        row.avgSwapMs,
+        gpuStr,
+        row.avgUnknownDelayMs
     )
-    results.forEach { row ->
-        val gpuStr = row.avgGpuMs?.let { String.format(Locale.US, "%.2f", it) } ?: "n/a"
-        sb.appendLine(
-            String.format(
-                Locale.US,
-                "%-14s | %6d | %12.2f | %12.2f | %12.2f | %10s | %16.2f | %11.2f | %16d",
-                row.variantLabel,
-                row.frameCount,
-                row.avgTotalMs,
-                row.p95TotalMs,
-                row.maxTotalMs,
-                gpuStr,
-                row.avgCmdIssueMs,
-                row.avgSwapMs,
-                row.framesOver16Ms
-            )
-        )
-    }
+}
+
+fun formatBothTables(results: List<BenchVariantResult>): String {
+    val sb = StringBuilder()
+    sb.appendLine("=== Table A (Totals & Early/Late, ms) ===")
+    sb.appendLine(TABLE_A_HEADER)
+    results.forEach { sb.appendLine(formatTableARow(it)) }
+    sb.appendLine()
+    sb.appendLine("=== Table B (Stage Breakdown, avg ms) ===")
+    sb.appendLine(TABLE_B_HEADER)
+    results.forEach { sb.appendLine(formatTableBRow(it)) }
     return sb.toString().trimEnd()
 }
 
@@ -452,8 +604,13 @@ fun GpuBenchOverlay(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                val statusText = if (runner.isWarmingUp) {
+                    "Benchmark running\u2026 warm-up (0/${runner.totalVariants})"
+                } else {
+                    "Benchmark running\u2026 variant ${runner.currentVariantIndex}/${runner.totalVariants}"
+                }
                 Text(
-                    text = "Benchmark running\u2026 variant ${runner.currentVariantIndex}/${runner.totalVariants}",
+                    text = statusText,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     fontFamily = FontFamily.Monospace,
@@ -483,13 +640,13 @@ fun GpuBenchOverlay(
             .fillMaxWidth()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .padding(horizontal = 8.dp, vertical = 8.dp),
         contentAlignment = Alignment.TopCenter
     ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 520.dp),
+                .heightIn(max = 560.dp),
             shape = RoundedCornerShape(18.dp),
             color = Color(0xF210121A),
             border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f))
@@ -497,7 +654,7 @@ fun GpuBenchOverlay(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(14.dp)
+                    .padding(12.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -505,8 +662,8 @@ fun GpuBenchOverlay(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (runner.errorMessage != null) "GPU Benchmark Error" else "GPU Benchmark (Add Alarm)",
-                        fontSize = 15.sp,
+                        text = if (runner.errorMessage != null) "GPU Benchmark Error" else "GPU Benchmark v2 (Add Alarm)",
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (runner.errorMessage != null) Color(0xFFF87171) else Color.White
                     )
@@ -514,9 +671,9 @@ fun GpuBenchOverlay(
                         if (runner.results.isNotEmpty() || runner.errorMessage != null) {
                             TextButton(
                                 onClick = {
-                                    val copyText = runner.errorMessage ?: formatBenchmarkTable(runner.results)
+                                    val copyText = runner.errorMessage ?: formatBothTables(runner.results)
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                                    clipboard?.setPrimaryClip(ClipData.newPlainText("GPU Benchmark", copyText))
+                                    clipboard?.setPrimaryClip(ClipData.newPlainText("GPU Benchmark v2", copyText))
                                     Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
                                 }
                             ) {
@@ -530,7 +687,7 @@ fun GpuBenchOverlay(
                 }
 
                 HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 val err = runner.errorMessage
                 if (err != null) {
@@ -542,57 +699,83 @@ fun GpuBenchOverlay(
                         modifier = Modifier.verticalScroll(rememberScrollState())
                     )
                 } else {
-                    val hScroll = rememberScrollState()
                     val vScroll = rememberScrollState()
+                    val hScrollA = rememberScrollState()
+                    val hScrollB = rememberScrollState()
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .verticalScroll(vScroll)
-                            .horizontalScroll(hScroll)
                     ) {
-                        val headerLine =
-                            "variant        | frames | avg total ms | p95 total ms | max total ms | avg GPU ms | avg cmd-issue ms | avg swap ms | frames > 16.7 ms"
                         Text(
-                            text = headerLine,
-                            fontSize = 10.sp,
+                            text = "Table A: Total & Early(1..12)/Late ms",
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace,
-                            color = Color(0xFF93C5FD),
-                            softWrap = false,
-                            maxLines = 1
+                            color = Color(0xFF93C5FD)
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        runner.results.forEachIndexed { idx, row ->
-                            val gpuStr = row.avgGpuMs?.let { String.format(Locale.US, "%.2f", it) } ?: "n/a"
-                            val line = String.format(
-                                Locale.US,
-                                "%-14s | %6d | %12.2f | %12.2f | %12.2f | %10s | %16.2f | %11.2f | %16d",
-                                row.variantLabel,
-                                row.frameCount,
-                                row.avgTotalMs,
-                                row.p95TotalMs,
-                                row.maxTotalMs,
-                                gpuStr,
-                                row.avgCmdIssueMs,
-                                row.avgSwapMs,
-                                row.framesOver16Ms
-                            )
+                        Column(modifier = Modifier.horizontalScroll(hScrollA)) {
                             Text(
-                                text = line,
-                                fontSize = 10.sp,
+                                text = TABLE_A_HEADER,
+                                fontSize = 9.5.sp,
+                                fontWeight = FontWeight.Bold,
                                 fontFamily = FontFamily.Monospace,
-                                color = Color.White,
+                                color = Color(0xFF93C5FD),
                                 softWrap = false,
-                                maxLines = 1,
-                                modifier = Modifier
-                                    .background(
-                                        if (idx % 2 == 1) Color.White.copy(alpha = 0.05f) else Color.Transparent
-                                    )
-                                    .padding(vertical = 3.dp)
+                                maxLines = 1
                             )
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
+                            runner.results.forEachIndexed { idx, row ->
+                                Text(
+                                    text = formatTableARow(row),
+                                    fontSize = 9.5.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = Color.White,
+                                    softWrap = false,
+                                    maxLines = 1,
+                                    modifier = Modifier
+                                        .background(
+                                            if (idx % 2 == 1) Color.White.copy(alpha = 0.05f) else Color.Transparent
+                                        )
+                                        .padding(vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "Table B: Stage Breakdown (avg ms)",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF86EFAC)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Column(modifier = Modifier.horizontalScroll(hScrollB)) {
+                            Text(
+                                text = TABLE_B_HEADER,
+                                fontSize = 9.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace,
+                                color = Color(0xFF86EFAC),
+                                softWrap = false,
+                                maxLines = 1
+                            )
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
+                            runner.results.forEachIndexed { idx, row ->
+                                Text(
+                                    text = formatTableBRow(row),
+                                    fontSize = 9.5.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = Color.White,
+                                    softWrap = false,
+                                    maxLines = 1,
+                                    modifier = Modifier
+                                        .background(
+                                            if (idx % 2 == 1) Color.White.copy(alpha = 0.05f) else Color.Transparent
+                                        )
+                                        .padding(vertical = 2.dp)
+                                )
+                            }
                         }
                     }
                 }

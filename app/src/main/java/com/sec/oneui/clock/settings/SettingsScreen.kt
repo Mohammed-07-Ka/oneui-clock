@@ -1144,7 +1144,7 @@ fun SettingsScreen(
                             color = if (palette.isBlueTheme) Color(0xFF60A5FA) else palette.primaryAccent
                         )
                         Text(
-                            text = "Auto-runs V0–V5 (3 repeats each) and shows FrameMetrics table",
+                            text = "Auto-runs warm-up + X0–X8 glass bisect (3 repeats each)",
                             fontSize = 13.sp,
                             color = subTextColor
                         )

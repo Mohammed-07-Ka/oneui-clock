@@ -609,6 +609,8 @@ fun AlarmEditSheet(
     val backdrop = LocalBackdrop.current
     val containerBackdrop = sheetBackdrop ?: backdrop
     val isContainerGlassActive = LocalLiquidGlassEnabled.current && containerBackdrop != null && !DiagFlags.sheetFlatContainer
+    val containerMask = DiagFlags.sheetContainerMask
+    val innerMask = DiagFlags.sheetInnerMask
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -738,7 +740,8 @@ fun AlarmEditSheet(
                                 shape = sheetShape,
                                 interaction = null,
                                 enableShadow = !DiagFlags.sheetNoEffects,
-                                enableEffects = !DiagFlags.sheetNoEffects
+                                enableEffects = !DiagFlags.sheetNoEffects,
+                                effectMask = containerMask
                             )
                             .clip(sheetShape)
                     } else if (DiagFlags.sheetFlatContainer) {
@@ -813,7 +816,8 @@ fun AlarmEditSheet(
                                     layer = null,
                                     luminance = { 0.4f },
                                     shape = capsuleShape,
-                                    interaction = null
+                                    interaction = null,
+                                    effectMask = innerMask
                                 )
                                 .clip(capsuleShape)
                                 .clickable(
@@ -864,7 +868,8 @@ fun AlarmEditSheet(
                                     layer = null,
                                     luminance = { 0.4f },
                                     shape = capsuleShape,
-                                    interaction = null
+                                    interaction = null,
+                                    effectMask = innerMask
                                 )
                                 .clip(capsuleShape)
                                 .clickable(
@@ -916,7 +921,8 @@ fun AlarmEditSheet(
                                         layer = null,
                                         luminance = { 0.4f },
                                         shape = timePickerShape,
-                                        interaction = null
+                                        interaction = null,
+                                        effectMask = innerMask
                                     )
                                     .clip(timePickerShape)
                             } else {
@@ -981,7 +987,8 @@ fun AlarmEditSheet(
                                         layer = null,
                                         luminance = { 0.4f },
                                         shape = timePickerShape,
-                                        interaction = null
+                                        interaction = null,
+                                        effectMask = innerMask
                                     )
                                     .clip(timePickerShape)
                             } else {
@@ -1120,7 +1127,8 @@ fun AlarmEditSheet(
                                     layer = null,
                                     luminance = { 0.4f },
                                     shape = scheduleShape,
-                                    interaction = null
+                                    interaction = null,
+                                    effectMask = innerMask
                                 )
                                 .clip(scheduleShape)
                         } else {
@@ -1180,7 +1188,8 @@ fun AlarmEditSheet(
                                     layer = null,
                                     luminance = { 0.4f },
                                     shape = ringtoneShape,
-                                    interaction = null
+                                    interaction = null,
+                                    effectMask = innerMask
                                 )
                                 .clip(ringtoneShape)
                         } else {
@@ -1260,7 +1269,8 @@ fun AlarmEditSheet(
                                     layer = null,
                                     luminance = { 0.4f },
                                     shape = volumeShape,
-                                    interaction = null
+                                    interaction = null,
+                                    effectMask = innerMask
                                 )
                                 .clip(volumeShape)
                         } else {
@@ -1486,7 +1496,8 @@ fun AlarmEditSheet(
                             layer = null,
                             luminance = { 0.4f },
                             shape = dialogShape,
-                            interaction = null
+                            interaction = null,
+                            effectMask = innerMask
                         )
                         .clip(dialogShape)
                 } else {
