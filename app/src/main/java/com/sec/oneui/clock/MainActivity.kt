@@ -221,7 +221,7 @@ class MainActivity : ComponentActivity() {
             val animationSpeed by settingsManager.animationSpeed.collectAsState()
             val liquidGlassEnabled by settingsManager.liquidGlassEnabled.collectAsState()
             val hazeState = remember { HazeState() }
-            val isGlassActive = isLiquidGlassSupported && liquidGlassEnabled
+            val isGlassActive = isLiquidGlassSupported && (DiagFlags.liquidGlassOverride ?: liquidGlassEnabled)
             isLiquidGlassEnabled = isGlassActive
             val bgBackdrop = if (isGlassActive) rememberBackdrop(Color.Transparent) else null
             val pagerBackdrop = if (isGlassActive) rememberBackdrop(Color.Transparent) else null
@@ -417,7 +417,8 @@ fun MainClockApp(
             isSheetOpen = { alarmViewModel.editorState.value.isOpen },
             isSheetComposed = { isSheetComposed },
             isSheetProgressRunning = { sheetProgress.isRunning },
-            sheetProgressValue = { sheetProgress.value }
+            sheetProgressValue = { sheetProgress.value },
+            isGlassActive = { isLiquidGlassEnabled }
         )
     }
 

@@ -34,7 +34,8 @@ data class BenchOverride(
     val sheetNoInnerGlass: Boolean = false,
     val sheetNoEffects: Boolean = false,
     val containerGlassMask: GlassEffectMask = GlassEffectMask.None,
-    val innerGlassMask: GlassEffectMask = GlassEffectMask.None
+    val innerGlassMask: GlassEffectMask = GlassEffectMask.None,
+    val liquidGlassOverride: Boolean? = null
 )
 
 object DiagFlags {
@@ -75,6 +76,9 @@ object DiagFlags {
 
     val sheetInnerMask: GlassEffectMask
         get() = benchOverride?.innerGlassMask ?: GlassEffectMask.None
+
+    val liquidGlassOverride: Boolean?
+        get() = benchOverride?.liquidGlassOverride
 
     // Frame timing measurements for D5
     var worstFrameTimeMs by mutableFloatStateOf(0f)
