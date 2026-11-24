@@ -85,6 +85,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -114,6 +115,7 @@ import com.sec.oneui.clock.alarm.ui.AlarmEditSheet
 import com.sec.oneui.clock.alarm.ui.AlarmScreen
 import com.sec.oneui.clock.alarm.ui.AlarmViewModel
 import com.sec.oneui.clock.settings.DiagFlags
+import com.sec.oneui.clock.settings.GpuBenchMarks
 import com.sec.oneui.clock.settings.GpuBenchOverlay
 import com.sec.oneui.clock.settings.GpuBenchRunner
 import com.sec.oneui.clock.settings.SettingsManager
@@ -549,6 +551,11 @@ fun MainClockApp(
                         .statusBarsPadding()
                         .padding(horizontal = 20.dp, vertical = 16.dp)
                 ) {
+                    DisposableEffect(Unit) {
+                        onDispose {
+                            if (GpuBenchMarks.active) GpuBenchMarks.mark("gear_disposed")
+                        }
+                    }
                     if (isGlassActive && overlayBackdrop != null) {
                         Box(
                             modifier = Modifier
@@ -610,6 +617,11 @@ fun MainClockApp(
                         .navigationBarsPadding()
                         .padding(end = 24.dp, bottom = 92.dp)
                 ) {
+                    DisposableEffect(Unit) {
+                        onDispose {
+                            if (GpuBenchMarks.active) GpuBenchMarks.mark("fab_disposed")
+                        }
+                    }
                     if (overlayBackdrop != null) {
                         Box(
                             modifier = Modifier
@@ -665,6 +677,11 @@ fun MainClockApp(
                         .navigationBarsPadding()
                         .padding(horizontal = 20.dp, vertical = 14.dp)
                 ) {
+                    DisposableEffect(Unit) {
+                        onDispose {
+                            if (GpuBenchMarks.active) GpuBenchMarks.mark("tabBar_disposed")
+                        }
+                    }
                     val activeColor = if (palette.isBlueTheme) Color(0xFF38BDF8) else Color(0xFFA855F7)
 
                     if (isGlassActive && overlayBackdrop != null) {
@@ -800,7 +817,10 @@ fun MainClockApp(
                 }
 
                 if (editorState.isOpen) {
-                    isSheetComposed = true
+                    if (!isSheetComposed) {
+                        isSheetComposed = true
+                        if (GpuBenchMarks.active) GpuBenchMarks.mark("isSheetComposed=true")
+                    }
                 }
 
                 LaunchedEffect(editorState.isOpen) {

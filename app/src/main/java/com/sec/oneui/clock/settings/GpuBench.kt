@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.ContextWrapper
 import android.os.Build
+import android.os.Debug
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
@@ -62,20 +63,68 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
+import kotlin.math.abs
 
 private const val BENCH_TAG = "GpuBench"
 private const val WARMUP_CYCLES = 2
-private const val BENCH_ROUNDS = 5
-private const val EARLY_FRAME_COUNT = 12
-private const val TIMELINE_MAX_FRAME = 16
-private const val OPEN_SETTLED_HOLD_MS = 560L
+private const val BENCH_ROUNDS = 4
+private const val POST_SETTLE_CAPTURE_MS = 500L
 private const val WARMUP_SETTLED_HOLD_MS = 400L
 private const val METRICS_FLUSH_MS = 40L
 private const val BETWEEN_REPEATS_MS = 800L
+private const val PRE_SETTLE_WINDOW_MS = 150.0
+private const val POST_SETTLE_WINDOW_MS = 100.0
+private const val LATE_START_MS = 200.0
+private const val MARKER_MATCH_WINDOW_MS = 30.0
 private const val OVER_16_MS_NANOS = 16_700_000L
 private const val OVER_25_MS_NANOS = 25_000_000L
-private const val PACE_OVER_8_4_NANOS = 8_400_000L
-private const val PACE_OVER_16_8_NANOS = 16_800_000L
+
+data class BenchMarkerEvent(
+    val name: String,
+    val nanoTime: Long
+)
+
+object GpuBenchMarks {
+    @Volatile
+    var active: Boolean = false
+        private set
+
+    private val lock = Any()
+    private val events = mutableListOf<BenchMarkerEvent>()
+
+    fun beginSession() {
+        synchronized(lock) {
+            events.clear()
+            active = true
+        }
+    }
+
+    fun endSession(): List<BenchMarkerEvent> {
+        synchronized(lock) {
+            active = false
+            val copy = events.toList()
+            events.clear()
+            return copy
+        }
+    }
+
+    fun stopWithoutDrain() {
+        synchronized(lock) {
+            active = false
+            events.clear()
+        }
+    }
+
+    fun mark(name: String) {
+        if (!active) return
+        val now = System.nanoTime()
+        synchronized(lock) {
+            if (active) {
+                events.add(BenchMarkerEvent(name = name, nanoTime = now))
+            }
+        }
+    }
+}
 
 data class BenchVariantSpec(
     val id: String,
@@ -90,24 +139,9 @@ val GPU_BENCH_VARIANTS = listOf(
         override = BenchOverride()
     ),
     BenchVariantSpec(
-        id = "C",
-        label = "C D6 only",
-        override = BenchOverride(sheetFlatContainer = true)
-    ),
-    BenchVariantSpec(
-        id = "E",
-        label = "E ctr:noLens",
-        override = BenchOverride(containerGlassMask = GlassEffectMask(noLens = true))
-    ),
-    BenchVariantSpec(
-        id = "F",
-        label = "F ctr:noBlur",
-        override = BenchOverride(containerGlassMask = GlassEffectMask(noBlur = true))
-    ),
-    BenchVariantSpec(
-        id = "G",
-        label = "G noLens+Blur",
-        override = BenchOverride(containerGlassMask = GlassEffectMask(noLens = true, noBlur = true))
+        id = "B",
+        label = "B D6+D7",
+        override = BenchOverride(sheetFlatContainer = true, sheetNoInnerGlass = true)
     )
 )
 
@@ -115,69 +149,64 @@ data class BenchFrameSample(
     val round: Int,
     val frameIndex: Int,
     val intendedVsyncNs: Long,
-    val relativeIntendedVsyncMs: Double,
+    val msSinceT0: Double,
     val totalNs: Long,
     val animationNs: Long,
+    val inputNs: Long,
     val layoutMeasureNs: Long,
     val drawNs: Long,
-    val syncNs: Long,
-    val unknownDelayNs: Long,
     val cmdIssueNs: Long,
     val swapNs: Long,
+    val unknownDelayNs: Long,
     val gpuNs: Long?
 )
 
-data class StageBreakdown(
-    val frameCount: Int,
-    val animMs: Double,
-    val layoutMs: Double,
-    val drawMs: Double,
-    val syncMs: Double,
-    val unkDelayMs: Double,
-    val cmdIssueMs: Double,
-    val swapMs: Double,
-    val gpuMs: Double?,
-    val totalMs: Double
+data class OpeningMarkerPoint(
+    val name: String,
+    val msSinceT0: Double
 )
 
-data class RoundDriftCell(
+private data class GcSnapshot(
+    val count: Long?,
+    val timeMs: Long?
+)
+
+data class OpeningCapture(
+    val variantId: String,
+    val variantLabel: String,
     val round: Int,
-    val frameCount: Int,
-    val avgTotalMs: Double,
+    val settleMsSinceT0: Double,
+    val gcCountDiff: Long?,
+    val gcTimeDiffMs: Long?,
+    val markers: List<OpeningMarkerPoint>,
+    val frames: List<BenchFrameSample>
+)
+
+data class WindowStats(
+    val realFrameCount: Int,
+    val avgTotalMs: Double?,
+    val maxTotalMs: Double?,
     val over16Ms: Int
 )
 
-data class FramePacingSummary(
-    val realFrameCount: Int,
-    val gapCount: Int,
-    val avgGapMs: Double,
-    val gapsOver8_4Ms: Int,
-    val gapsOver16_8Ms: Int,
-    val stepAvgGapsMs: List<Double?>
+data class TableXRow(
+    val rowLabel: String,
+    val preSettle: WindowStats,
+    val postSettle: WindowStats,
+    val restLate: WindowStats
 )
 
-data class PooledSummary(
-    val realFrameCount: Int,
-    val earlyAvgTotalMs: Double,
-    val lateAvgTotalMs: Double?,
-    val over16Ms: Int,
-    val over25Ms: Int
-)
-
-data class BenchVariantV3Report(
+data class TableYRow(
     val variantId: String,
-    val variantLabel: String,
-    val perFrameTotalMs: List<Double?>,
-    val earlyStages: StageBreakdown,
-    val lateStages: StageBreakdown,
-    val roundDrift: List<RoundDriftCell>,
-    val framePacing: FramePacingSummary,
-    val pooledSummary: PooledSummary,
-    val samplesByRound: Map<Int, List<BenchFrameSample>>
+    val round: Int,
+    val sample: BenchFrameSample,
+    val nearbyMarkers: String
 )
 
-data class BenchV3Report(
-    val variants: List<BenchVariantV3Report>,
+data class BenchV5Report(
+    val openings: List<OpeningCapture>,
+    val tableXRows: List<TableXRow>,
+    val tableYRows: List<TableYRow>,
     val formattedText: String
 )
 
@@ -203,7 +232,7 @@ class GpuBenchRunner(
         private set
     var totalCycles by mutableIntStateOf(BENCH_ROUNDS * GPU_BENCH_VARIANTS.size)
         private set
-    var report by mutableStateOf<BenchV3Report?>(null)
+    var report by mutableStateOf<BenchV5Report?>(null)
         private set
     var errorMessage by mutableStateOf<String?>(null)
         private set
@@ -233,10 +262,9 @@ class GpuBenchRunner(
             var capturing = false
             var activeCycleToken = 0
             var activeRound = 0
-            var firstIntendedVsyncNs = -1L
             var lastRecordedIntendedVsyncNs = -1L
             val recordedIntendedVsyncs = HashSet<Long>()
-            val currentSamples = mutableListOf<BenchFrameSample>()
+            val rawSamples = mutableListOf<RawFrameMetric>()
 
             fun detachListenerSafe() {
                 synchronized(sampleLock) {
@@ -270,12 +298,13 @@ class GpuBenchRunner(
                         if (totalNs < 0L) return@OnFrameMetricsAvailableListener
                         val intendedVsyncNs = frameMetrics.getMetric(FrameMetrics.INTENDED_VSYNC_TIMESTAMP)
                         val animationNs = frameMetrics.getMetric(FrameMetrics.ANIMATION_DURATION)
+                        val inputNs = frameMetrics.getMetric(FrameMetrics.INPUT_HANDLING_DURATION)
                         val layoutNs = frameMetrics.getMetric(FrameMetrics.LAYOUT_MEASURE_DURATION)
                         val drawNs = frameMetrics.getMetric(FrameMetrics.DRAW_DURATION)
-                        val syncNs = frameMetrics.getMetric(FrameMetrics.SYNC_DURATION)
-                        val unknownDelayNs = frameMetrics.getMetric(FrameMetrics.UNKNOWN_DELAY_DURATION)
                         val cmdIssueNs = frameMetrics.getMetric(FrameMetrics.COMMAND_ISSUE_DURATION)
                         val swapNs = frameMetrics.getMetric(FrameMetrics.SWAP_BUFFERS_DURATION)
+                        val unknownDelayNs = frameMetrics.getMetric(FrameMetrics.UNKNOWN_DELAY_DURATION)
+                        val callbackNs = System.nanoTime()
                         val gpuNs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             val v = frameMetrics.getMetric(FrameMetrics.GPU_DURATION)
                             if (v >= 0L) v else null
@@ -294,28 +323,19 @@ class GpuBenchRunner(
                                 }
                                 lastRecordedIntendedVsyncNs = intendedVsyncNs
                             }
-                            if (firstIntendedVsyncNs < 0L && intendedVsyncNs >= 0L) {
-                                firstIntendedVsyncNs = intendedVsyncNs
-                            }
-                            val relMs = if (firstIntendedVsyncNs >= 0L && intendedVsyncNs >= 0L) {
-                                (intendedVsyncNs - firstIntendedVsyncNs) / 1_000_000.0
-                            } else {
-                                0.0
-                            }
-                            currentSamples.add(
-                                BenchFrameSample(
+                            rawSamples.add(
+                                RawFrameMetric(
                                     round = activeRound,
-                                    frameIndex = currentSamples.size + 1,
                                     intendedVsyncNs = intendedVsyncNs,
-                                    relativeIntendedVsyncMs = relMs,
+                                    fallbackNs = callbackNs,
                                     totalNs = totalNs,
                                     animationNs = animationNs,
+                                    inputNs = inputNs,
                                     layoutMeasureNs = layoutNs,
                                     drawNs = drawNs,
-                                    syncNs = syncNs,
-                                    unknownDelayNs = unknownDelayNs,
                                     cmdIssueNs = cmdIssueNs,
                                     swapNs = swapNs,
+                                    unknownDelayNs = unknownDelayNs,
                                     gpuNs = gpuNs
                                 )
                             )
@@ -323,6 +343,7 @@ class GpuBenchRunner(
                     }
 
                 // 1. Leave Settings, go to Alarm tab, ensure no sheet is open
+                GpuBenchMarks.stopWithoutDrain()
                 DiagFlags.updateBenchOverride(null)
                 leaveSettingsToAlarmTab()
                 delay(450L)
@@ -335,7 +356,7 @@ class GpuBenchRunner(
                     delay(300L)
                 }
 
-                // 2. TWO warm-up cycles (frames discarded)
+                // 2. TWO warm-up openings (discarded)
                 isWarmingUp = true
                 for (w in 1..WARMUP_CYCLES) {
                     warmupCycleIndex = w
@@ -354,13 +375,10 @@ class GpuBenchRunner(
                 }
                 isWarmingUp = false
 
-                // 3. Interleaved rounds: round 1..4 = A, B, C, D
-                val samplesByVariantAndRound = LinkedHashMap<String, MutableMap<Int, List<BenchFrameSample>>>()
-                GPU_BENCH_VARIANTS.forEach { spec ->
-                    samplesByVariantAndRound[spec.id] = LinkedHashMap()
-                }
-
+                // 3. 4 interleaved rounds: A, B, A, B, A, B, A, B (8 measured cycles)
+                val openings = mutableListOf<OpeningCapture>()
                 var cycleCounter = 0
+
                 for (round in 1..BENCH_ROUNDS) {
                     for (spec in GPU_BENCH_VARIANTS) {
                         cycleCounter++
@@ -372,37 +390,123 @@ class GpuBenchRunner(
                         detachListenerSafe()
                         val cycleListener = createCycleListener(cycleCounter)
                         synchronized(sampleLock) {
-                            currentSamples.clear()
+                            rawSamples.clear()
                             recordedIntendedVsyncs.clear()
                             lastRecordedIntendedVsyncNs = -1L
                             activeCycleToken = cycleCounter
                             activeRound = round
-                            firstIntendedVsyncNs = -1L
                             capturing = true
                         }
                         attachedWindow = window
                         attachedListener = cycleListener
                         window.addOnFrameMetricsAvailableListener(cycleListener, bgHandler)
 
+                        GpuBenchMarks.beginSession()
+                        var marked05 = false
+                        var marked09 = false
+                        var marked099 = false
+                        var marked09999 = false
+                        val markerJob = launch {
+                            snapshotFlow { sheetProgressValue() }.collect { p ->
+                                if (!marked05 && p >= 0.5f) {
+                                    marked05 = true
+                                    GpuBenchMarks.mark("sheetProgress>=0.5")
+                                }
+                                if (!marked09 && p >= 0.9f) {
+                                    marked09 = true
+                                    GpuBenchMarks.mark("sheetProgress>=0.9")
+                                }
+                                if (!marked099 && p >= 0.99f) {
+                                    marked099 = true
+                                    GpuBenchMarks.mark("sheetProgress>=0.99")
+                                }
+                                if (!marked09999 && p >= 0.9999f) {
+                                    marked09999 = true
+                                    GpuBenchMarks.mark("sheetProgress>=0.9999")
+                                }
+                            }
+                        }
+
+                        val gcStart = readGcStats()
+                        val t0Ns = System.nanoTime()
                         openSheetLikeFab()
 
-                        snapshotFlow {
-                            isSheetOpen() && isSheetComposed() && !isSheetProgressRunning() && sheetProgressValue() >= 0.9999f
-                        }.first { it }
+                        try {
+                            snapshotFlow {
+                                isSheetOpen() && isSheetComposed() && !isSheetProgressRunning() && sheetProgressValue() >= 0.9999f
+                            }.first { it }
+                        } finally {
+                            markerJob.cancel()
+                        }
+
+                        val settleNs = System.nanoTime()
+                        GpuBenchMarks.mark("settled")
+
+                        // Keep FrameMetrics + markers active until 500 ms AFTER settle
+                        delay(POST_SETTLE_CAPTURE_MS)
+                        val gcEnd = readGcStats()
 
                         withFrameNanos {}
                         delay(METRICS_FLUSH_MS)
 
                         detachListenerSafe()
-                        val roundSamples: List<BenchFrameSample>
+                        val rawMarkers = GpuBenchMarks.endSession()
+                        val rawSnapshot: List<RawFrameMetric>
                         synchronized(sampleLock) {
-                            roundSamples = currentSamples.toList()
-                            currentSamples.clear()
+                            rawSnapshot = rawSamples.toList()
+                            rawSamples.clear()
                             recordedIntendedVsyncs.clear()
                         }
-                        samplesByVariantAndRound[spec.id]?.put(round, roundSamples)
 
-                        delay(OPEN_SETTLED_HOLD_MS)
+                        val samples = rawSnapshot
+                            .mapIndexed { index, r ->
+                                val tsNs = if (r.intendedVsyncNs >= 0L) r.intendedVsyncNs else r.fallbackNs
+                                BenchFrameSample(
+                                    round = r.round,
+                                    frameIndex = index + 1,
+                                    intendedVsyncNs = r.intendedVsyncNs,
+                                    msSinceT0 = (tsNs - t0Ns) / 1_000_000.0,
+                                    totalNs = r.totalNs,
+                                    animationNs = r.animationNs,
+                                    inputNs = r.inputNs,
+                                    layoutMeasureNs = r.layoutMeasureNs,
+                                    drawNs = r.drawNs,
+                                    cmdIssueNs = r.cmdIssueNs,
+                                    swapNs = r.swapNs,
+                                    unknownDelayNs = r.unknownDelayNs,
+                                    gpuNs = r.gpuNs
+                                )
+                            }
+                            .sortedBy { it.msSinceT0 }
+                            .mapIndexed { idx, s -> s.copy(frameIndex = idx + 1) }
+
+                        val markers = rawMarkers
+                            .map { OpeningMarkerPoint(name = it.name, msSinceT0 = (it.nanoTime - t0Ns) / 1_000_000.0) }
+                            .sortedBy { it.msSinceT0 }
+
+                        val gcCountDiff = if (gcStart.count != null && gcEnd.count != null) {
+                            gcEnd.count - gcStart.count
+                        } else {
+                            null
+                        }
+                        val gcTimeDiffMs = if (gcStart.timeMs != null && gcEnd.timeMs != null) {
+                            gcEnd.timeMs - gcStart.timeMs
+                        } else {
+                            null
+                        }
+
+                        openings.add(
+                            OpeningCapture(
+                                variantId = spec.id,
+                                variantLabel = spec.label,
+                                round = round,
+                                settleMsSinceT0 = (settleNs - t0Ns) / 1_000_000.0,
+                                gcCountDiff = gcCountDiff,
+                                gcTimeDiffMs = gcTimeDiffMs,
+                                markers = markers,
+                                frames = samples
+                            )
+                        )
 
                         closeSheetLikeCancel()
                         snapshotFlow {
@@ -413,14 +517,11 @@ class GpuBenchRunner(
                     }
                 }
 
-                val variantReports = GPU_BENCH_VARIANTS.map { spec ->
-                    buildVariantV3Report(spec, samplesByVariantAndRound[spec.id].orEmpty())
-                }
-                val formatted = formatV3ReportText(variantReports)
-                formatted.lineSequence().forEach { line ->
+                val built = buildV5Report(openings)
+                built.formattedText.lineSequence().forEach { line ->
                     Log.i(BENCH_TAG, line)
                 }
-                report = BenchV3Report(variants = variantReports, formattedText = formatted)
+                report = built
                 showResultsOverlay = true
             } catch (e: CancellationException) {
                 throw e
@@ -430,6 +531,7 @@ class GpuBenchRunner(
                 showResultsOverlay = true
             } finally {
                 withContext(NonCancellable) {
+                    GpuBenchMarks.stopWithoutDrain()
                     detachListenerSafe()
                     handlerThread?.quitSafely()
                     handlerThread = null
@@ -447,6 +549,7 @@ class GpuBenchRunner(
     fun cancel() {
         runJob?.cancel()
         runJob = null
+        GpuBenchMarks.stopWithoutDrain()
         DiagFlags.updateBenchOverride(null)
         if (isSheetOpen()) {
             closeSheetLikeCancel()
@@ -461,242 +564,154 @@ class GpuBenchRunner(
     }
 }
 
-private fun avgValidMs(samples: List<BenchFrameSample>, selector: (BenchFrameSample) -> Long): Double {
-    var sum = 0L
-    var count = 0
-    for (s in samples) {
-        val v = selector(s)
-        if (v >= 0L) {
-            sum += v
-            count++
-        }
-    }
-    return if (count > 0) (sum.toDouble() / count.toDouble()) / 1_000_000.0 else 0.0
-}
+private data class RawFrameMetric(
+    val round: Int,
+    val intendedVsyncNs: Long,
+    val fallbackNs: Long,
+    val totalNs: Long,
+    val animationNs: Long,
+    val inputNs: Long,
+    val layoutMeasureNs: Long,
+    val drawNs: Long,
+    val cmdIssueNs: Long,
+    val swapNs: Long,
+    val unknownDelayNs: Long,
+    val gpuNs: Long?
+)
 
-private fun computeStageBreakdown(samples: List<BenchFrameSample>): StageBreakdown {
-    if (samples.isEmpty()) {
-        return StageBreakdown(0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, null, 0.0)
-    }
-    val gpuValues = samples.mapNotNull { it.gpuNs }
-    val avgGpuMs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && gpuValues.isNotEmpty()) {
-        gpuValues.average() / 1_000_000.0
-    } else {
+private fun readGcStats(): GcSnapshot {
+    val count = try {
+        Debug.getRuntimeStat("art.gc.gc-count")?.toLongOrNull()
+    } catch (_: Throwable) {
         null
     }
-    return StageBreakdown(
-        frameCount = samples.size,
-        animMs = avgValidMs(samples) { it.animationNs },
-        layoutMs = avgValidMs(samples) { it.layoutMeasureNs },
-        drawMs = avgValidMs(samples) { it.drawNs },
-        syncMs = avgValidMs(samples) { it.syncNs },
-        unkDelayMs = avgValidMs(samples) { it.unknownDelayNs },
-        cmdIssueMs = avgValidMs(samples) { it.cmdIssueNs },
-        swapMs = avgValidMs(samples) { it.swapNs },
-        gpuMs = avgGpuMs,
-        totalMs = avgValidMs(samples) { it.totalNs }
+    val timeMs = try {
+        Debug.getRuntimeStat("art.gc.gc-time")?.toLongOrNull()
+    } catch (_: Throwable) {
+        null
+    }
+    return GcSnapshot(count = count, timeMs = timeMs)
+}
+
+private fun computeWindowStats(samples: List<BenchFrameSample>): WindowStats {
+    if (samples.isEmpty()) {
+        return WindowStats(realFrameCount = 0, avgTotalMs = null, maxTotalMs = null, over16Ms = 0)
+    }
+    val avgMs = samples.map { it.totalNs }.average() / 1_000_000.0
+    val maxMs = samples.maxOf { it.totalNs } / 1_000_000.0
+    val over16 = samples.count { it.totalNs > OVER_16_MS_NANOS }
+    return WindowStats(
+        realFrameCount = samples.size,
+        avgTotalMs = avgMs,
+        maxTotalMs = maxMs,
+        over16Ms = over16
     )
 }
 
-private fun computeFramePacing(samplesByRound: Map<Int, List<BenchFrameSample>>): FramePacingSummary {
-    var realFrameCount = 0
-    var gapCount = 0
-    var gapsOver8_4 = 0
-    var gapsOver16_8 = 0
-    val roundMeanGapsMs = mutableListOf<Double>()
-    val gapsByStep = Array(TIMELINE_MAX_FRAME - 1) { mutableListOf<Double>() }
+private fun partitionOpeningWindows(opening: OpeningCapture): Triple<List<BenchFrameSample>, List<BenchFrameSample>, List<BenchFrameSample>> {
+    val settleMs = opening.settleMsSinceT0
+    val preStart = settleMs - PRE_SETTLE_WINDOW_MS
+    val postEnd = settleMs + POST_SETTLE_WINDOW_MS
+    val pre = mutableListOf<BenchFrameSample>()
+    val post = mutableListOf<BenchFrameSample>()
+    val restLate = mutableListOf<BenchFrameSample>()
 
-    for (round in 1..BENCH_ROUNDS) {
-        val rs = samplesByRound[round].orEmpty().take(TIMELINE_MAX_FRAME)
-        realFrameCount += rs.size
-        val roundGapsMs = mutableListOf<Double>()
-        for (i in 1 until rs.size) {
-            val prevNs = rs[i - 1].intendedVsyncNs
-            val currNs = rs[i].intendedVsyncNs
-            if (prevNs >= 0L && currNs > prevNs) {
-                val gapNs = currNs - prevNs
-                val gapMs = gapNs / 1_000_000.0
-                roundGapsMs.add(gapMs)
-                gapsByStep[i - 1].add(gapMs)
-                gapCount++
-                if (gapNs > PACE_OVER_8_4_NANOS) gapsOver8_4++
-                if (gapNs > PACE_OVER_16_8_NANOS) gapsOver16_8++
+    for (f in opening.frames) {
+        when {
+            f.msSinceT0 in preStart..settleMs -> pre.add(f)
+            f.msSinceT0 > settleMs && f.msSinceT0 <= postEnd -> post.add(f)
+            f.msSinceT0 > LATE_START_MS -> restLate.add(f)
+        }
+    }
+    return Triple(pre, post, restLate)
+}
+
+private fun buildV5Report(openings: List<OpeningCapture>): BenchV5Report {
+    val tableXRows = mutableListOf<TableXRow>()
+    for (spec in GPU_BENCH_VARIANTS) {
+        val variantOpenings = openings.filter { it.variantId == spec.id }.sortedBy { it.round }
+        val pooledPre = mutableListOf<BenchFrameSample>()
+        val pooledPost = mutableListOf<BenchFrameSample>()
+        val pooledRest = mutableListOf<BenchFrameSample>()
+
+        for (opening in variantOpenings) {
+            val (pre, post, rest) = partitionOpeningWindows(opening)
+            pooledPre.addAll(pre)
+            pooledPost.addAll(post)
+            pooledRest.addAll(rest)
+            tableXRows.add(
+                TableXRow(
+                    rowLabel = "${spec.id} R${opening.round}",
+                    preSettle = computeWindowStats(pre),
+                    postSettle = computeWindowStats(post),
+                    restLate = computeWindowStats(rest)
+                )
+            )
+        }
+        tableXRows.add(
+            TableXRow(
+                rowLabel = "${spec.id} POOLED",
+                preSettle = computeWindowStats(pooledPre),
+                postSettle = computeWindowStats(pooledPost),
+                restLate = computeWindowStats(pooledRest)
+            )
+        )
+    }
+
+    val tableYRows = mutableListOf<TableYRow>()
+    for (opening in openings) {
+        for (frame in opening.frames) {
+            if (frame.msSinceT0 > LATE_START_MS && frame.totalNs > OVER_25_MS_NANOS) {
+                val nearby = opening.markers
+                    .filter { abs(it.msSinceT0 - frame.msSinceT0) <= MARKER_MATCH_WINDOW_MS }
+                    .joinToString(", ") { m ->
+                        val delta = m.msSinceT0 - frame.msSinceT0
+                        String.format(Locale.US, "%s(%+.1fms)", m.name, delta)
+                    }
+                    .ifEmpty { "none" }
+                tableYRows.add(
+                    TableYRow(
+                        variantId = opening.variantId,
+                        round = opening.round,
+                        sample = frame,
+                        nearbyMarkers = nearby
+                    )
+                )
             }
         }
-        if (roundGapsMs.isNotEmpty()) {
-            roundMeanGapsMs.add(roundGapsMs.average())
-        }
     }
 
-    return FramePacingSummary(
-        realFrameCount = realFrameCount,
-        gapCount = gapCount,
-        avgGapMs = if (roundMeanGapsMs.isNotEmpty()) roundMeanGapsMs.average() else 0.0,
-        gapsOver8_4Ms = gapsOver8_4,
-        gapsOver16_8Ms = gapsOver16_8,
-        stepAvgGapsMs = (0 until (TIMELINE_MAX_FRAME - 1)).map { step ->
-            val list = gapsByStep[step]
-            if (list.isEmpty()) null else list.average()
-        }
+    val formatted = formatV5ReportText(openings, tableXRows, tableYRows)
+    return BenchV5Report(
+        openings = openings,
+        tableXRows = tableXRows,
+        tableYRows = tableYRows,
+        formattedText = formatted
     )
 }
 
-private fun buildVariantV3Report(
-    spec: BenchVariantSpec,
-    samplesByRound: Map<Int, List<BenchFrameSample>>
-): BenchVariantV3Report {
-    val allSamples = (1..BENCH_ROUNDS).flatMap { samplesByRound[it].orEmpty() }
-    val earlySamples = allSamples.filter { it.frameIndex <= EARLY_FRAME_COUNT }
-    val lateSamples = allSamples.filter { it.frameIndex > EARLY_FRAME_COUNT }
+private const val TABLE_W_HEADER =
+    "idx | t0 ms   | total   | * | anim   | input  | layout | draw   | cmd-iss | swap   | GPU    | unk-dly"
 
-    val timeline = (1..TIMELINE_MAX_FRAME).map { idx ->
-        val atIdx = allSamples.filter { it.frameIndex == idx }
-        if (atIdx.isEmpty()) null else atIdx.map { it.totalNs }.average() / 1_000_000.0
-    }
+private const val TABLE_X_HEADER =
+    "var/rnd  | [settle-150..settle] n/avg/max/>16.7 | (settle..settle+100] n/avg/max/>16.7 | rest LATE>200 n/avg/max/>16.7"
 
-    val drift = (1..BENCH_ROUNDS).map { round ->
-        val rs = samplesByRound[round].orEmpty()
-        RoundDriftCell(
-            round = round,
-            frameCount = rs.size,
-            avgTotalMs = if (rs.isNotEmpty()) rs.map { it.totalNs }.average() / 1_000_000.0 else 0.0,
-            over16Ms = rs.count { it.totalNs > OVER_16_MS_NANOS }
-        )
-    }
+private const val TABLE_Y_HEADER =
+    "var | R | idx | t0 ms   | total   | anim   | input  | layout | draw   | cmd-iss | swap   | GPU    | unk-dly | markers (+-30ms)"
 
-    val earlyStages = computeStageBreakdown(earlySamples)
-    val lateStages = computeStageBreakdown(lateSamples)
-
-    return BenchVariantV3Report(
-        variantId = spec.id,
-        variantLabel = spec.label,
-        perFrameTotalMs = timeline,
-        earlyStages = earlyStages,
-        lateStages = lateStages,
-        roundDrift = drift,
-        framePacing = computeFramePacing(samplesByRound),
-        pooledSummary = PooledSummary(
-            realFrameCount = allSamples.size,
-            earlyAvgTotalMs = earlyStages.totalMs,
-            lateAvgTotalMs = if (lateSamples.isNotEmpty()) lateStages.totalMs else null,
-            over16Ms = allSamples.count { it.totalNs > OVER_16_MS_NANOS },
-            over25Ms = allSamples.count { it.totalNs > OVER_25_MS_NANOS }
-        ),
-        samplesByRound = samplesByRound
-    )
-}
-
-private val TABLE_P_HEADER: String = buildString {
-    append("variant      ")
-    for (i in 1..TIMELINE_MAX_FRAME) {
-        append(String.format(Locale.US, " | f%-4d", i))
-    }
-}
-
-private const val TABLE_QR_HEADER =
-    "variant       | real frames | anim   | layout | draw   | sync   | unk-dly | cmd-iss | swap   | GPU    | total"
-
-private val TABLE_S_HEADER: String = buildString {
-    append("variant       | real frames")
-    for (round in 1..BENCH_ROUNDS) {
-        append(String.format(Locale.US, " | R%d avg (>16.7) ", round))
-    }
-}
-
-private val TABLE_T_HEADER: String = buildString {
-    append("variant       | real frames | gaps | avg ms | >8.4 | >16.8")
-    for (i in 1 until TIMELINE_MAX_FRAME) {
-        val label = "g$i-${i + 1}"
-        append(" | ").append(String.format(Locale.US, "%-6s", label))
-    }
-}
-
-private const val TABLE_U_HEADER =
-    "variant       | real frames | early ms | late ms | >16.7 | >25ms"
-
-private const val VARIANT_A_DETAIL_HEADER =
-    "idx | vsync ms | total   | anim   | draw   | cmd-iss | swap   | GPU    | unk-dly"
-
-private fun formatTablePRow(v: BenchVariantV3Report): String = buildString {
-    append(String.format(Locale.US, "%-13s", v.variantLabel))
-    v.perFrameTotalMs.forEach { ms ->
-        val cell = ms?.let { String.format(Locale.US, "%5.1f", it) } ?: "  n/a"
-        append(" | ").append(cell)
-    }
-}
-
-private fun formatStageRow(label: String, s: StageBreakdown): String {
-    val gpuStr = s.gpuMs?.let { String.format(Locale.US, "%.2f", it) } ?: "n/a"
-    return String.format(
-        Locale.US,
-        "%-13s | %11d | %6.2f | %6.2f | %6.2f | %6.2f | %7.2f | %7.2f | %6.2f | %6s | %6.2f",
-        label,
-        s.frameCount,
-        s.animMs,
-        s.layoutMs,
-        s.drawMs,
-        s.syncMs,
-        s.unkDelayMs,
-        s.cmdIssueMs,
-        s.swapMs,
-        gpuStr,
-        s.totalMs
-    )
-}
-
-private fun formatTableSRow(v: BenchVariantV3Report): String = buildString {
-    val totalRealFrames = v.roundDrift.sumOf { it.frameCount }
-    append(String.format(Locale.US, "%-13s | %11d", v.variantLabel, totalRealFrames))
-    v.roundDrift.forEach { d ->
-        val cell = String.format(Locale.US, "%5.1f (%2d/%2d)", d.avgTotalMs, d.over16Ms, d.frameCount)
-        append(" | ").append(String.format(Locale.US, "%-15s", cell))
-    }
-}
-
-private fun formatTableTRow(v: BenchVariantV3Report): String = buildString {
-    val p = v.framePacing
-    append(
-        String.format(
-            Locale.US,
-            "%-13s | %11d | %4d | %6.2f | %4d | %5d",
-            v.variantLabel,
-            p.realFrameCount,
-            p.gapCount,
-            p.avgGapMs,
-            p.gapsOver8_4Ms,
-            p.gapsOver16_8Ms
-        )
-    )
-    p.stepAvgGapsMs.forEach { ms ->
-        val cell = ms?.let { String.format(Locale.US, "%6.1f", it) } ?: "   n/a"
-        append(" | ").append(cell)
-    }
-}
-
-private fun formatTableURow(v: BenchVariantV3Report): String {
-    val u = v.pooledSummary
-    val lateStr = u.lateAvgTotalMs?.let { String.format(Locale.US, "%.2f", it) } ?: "n/a"
-    return String.format(
-        Locale.US,
-        "%-13s | %11d | %8.2f | %7s | %5d | %5d",
-        v.variantLabel,
-        u.realFrameCount,
-        u.earlyAvgTotalMs,
-        lateStr,
-        u.over16Ms,
-        u.over25Ms
-    )
-}
-
-private fun formatSampleDetailRow(s: BenchFrameSample): String {
+private fun formatTableWFrameRow(s: BenchFrameSample): String {
+    val flag = if (s.totalNs > OVER_16_MS_NANOS) "*" else " "
     val gpuStr = s.gpuNs?.let { String.format(Locale.US, "%.2f", it / 1_000_000.0) } ?: "n/a"
     return String.format(
         Locale.US,
-        "%3d | %8.2f | %7.2f | %6.2f | %6.2f | %7.2f | %6.2f | %6s | %7.2f",
+        "%3d | %7.2f | %7.2f | %s | %6.2f | %6.2f | %6.2f | %6.2f | %7.2f | %6.2f | %6s | %7.2f",
         s.frameIndex,
-        s.relativeIntendedVsyncMs,
+        s.msSinceT0,
         s.totalNs / 1_000_000.0,
+        flag,
         s.animationNs.coerceAtLeast(0L) / 1_000_000.0,
+        s.inputNs.coerceAtLeast(0L) / 1_000_000.0,
+        s.layoutMeasureNs.coerceAtLeast(0L) / 1_000_000.0,
         s.drawNs.coerceAtLeast(0L) / 1_000_000.0,
         s.cmdIssueNs.coerceAtLeast(0L) / 1_000_000.0,
         s.swapNs.coerceAtLeast(0L) / 1_000_000.0,
@@ -705,50 +720,158 @@ private fun formatSampleDetailRow(s: BenchFrameSample): String {
     )
 }
 
-private fun formatV3ReportText(variants: List<BenchVariantV3Report>): String {
-    val sb = StringBuilder()
-    sb.appendLine("=== Table P: Per-Frame Timeline 1..16 (avg TOTAL ms over $BENCH_ROUNDS rounds, real frames) ===")
-    sb.appendLine(TABLE_P_HEADER)
-    variants.forEach { sb.appendLine(formatTablePRow(it)) }
+private sealed class TimelineLine {
+    data class Frame(val frame: BenchFrameSample) : TimelineLine()
+    data class Marker(val marker: OpeningMarkerPoint) : TimelineLine()
+}
 
-    sb.appendLine()
-    sb.appendLine("=== Table Q: Stage Breakdown EARLY (real frames 1..12, avg ms) ===")
-    sb.appendLine(TABLE_QR_HEADER)
-    variants.forEach { sb.appendLine(formatStageRow(it.variantLabel, it.earlyStages)) }
+private fun buildTableWRoundLines(opening: OpeningCapture): List<Pair<Boolean, String>> {
+    val items = buildList {
+        opening.frames.forEach { add(it.msSinceT0 to TimelineLine.Frame(it)) }
+        opening.markers.forEach { add(it.msSinceT0 to TimelineLine.Marker(it)) }
+    }.sortedWith(
+        compareBy<Pair<Double, TimelineLine>> { it.first }
+            .thenBy { if (it.second is TimelineLine.Marker) 0 else 1 }
+    )
 
-    sb.appendLine()
-    sb.appendLine("=== Table R: Stage Breakdown LATE (real frames > 12, avg ms) ===")
-    sb.appendLine(TABLE_QR_HEADER)
-    variants.forEach { sb.appendLine(formatStageRow(it.variantLabel, it.lateStages)) }
-
-    sb.appendLine()
-    sb.appendLine("=== Table S: Drift by Round (avg TOTAL ms & >16.7 / real frames) ===")
-    sb.appendLine(TABLE_S_HEADER)
-    variants.forEach { sb.appendLine(formatTableSRow(it)) }
-
-    sb.appendLine()
-    sb.appendLine("=== Table T: Frame Pacing 1..16 (INTENDED_VSYNC gaps ms over $BENCH_ROUNDS rounds) ===")
-    sb.appendLine(TABLE_T_HEADER)
-    variants.forEach { sb.appendLine(formatTableTRow(it)) }
-
-    sb.appendLine()
-    sb.appendLine("=== Table U: Pooled Summary ($BENCH_ROUNDS rounds, real frames) ===")
-    sb.appendLine(TABLE_U_HEADER)
-    variants.forEach { sb.appendLine(formatTableURow(it)) }
-
-    val variantA = variants.firstOrNull { it.variantId == "A" }
-    if (variantA != null) {
-        sb.appendLine()
-        sb.appendLine("=== Variant A First 12 Real Frames per Round ===")
-        for (round in 1..BENCH_ROUNDS) {
-            val roundSamples = variantA.samplesByRound[round].orEmpty()
-            sb.appendLine("-- Round $round (${roundSamples.size} real frames) --")
-            sb.appendLine(VARIANT_A_DETAIL_HEADER)
-            roundSamples.take(EARLY_FRAME_COUNT).forEach { sample ->
-                sb.appendLine(formatSampleDetailRow(sample))
-            }
+    return items.map { (_, line) ->
+        when (line) {
+            is TimelineLine.Marker -> true to String.format(
+                Locale.US,
+                "--- marker: %s @ %.2f ms ---",
+                line.marker.name,
+                line.marker.msSinceT0
+            )
+            is TimelineLine.Frame -> false to formatTableWFrameRow(line.frame)
         }
     }
+}
+
+private fun formatWindowStatsCell(w: WindowStats): String {
+    if (w.realFrameCount == 0 || w.avgTotalMs == null || w.maxTotalMs == null) {
+        return " 0f   n/a   n/a  0"
+    }
+    return String.format(
+        Locale.US,
+        "%2df %5.1f %5.1f %2d",
+        w.realFrameCount,
+        w.avgTotalMs,
+        w.maxTotalMs,
+        w.over16Ms
+    )
+}
+
+private fun formatTableXRow(row: TableXRow): String {
+    val c1 = formatWindowStatsCell(row.preSettle)
+    val c2 = formatWindowStatsCell(row.postSettle)
+    val c3 = formatWindowStatsCell(row.restLate)
+    return String.format(
+        Locale.US,
+        "%-8s | %-34s | %-35s | %s",
+        row.rowLabel,
+        c1,
+        c2,
+        c3
+    )
+}
+
+private fun formatTableYRow(row: TableYRow): String {
+    val s = row.sample
+    val gpuStr = s.gpuNs?.let { String.format(Locale.US, "%.2f", it / 1_000_000.0) } ?: "n/a"
+    return String.format(
+        Locale.US,
+        "%-3s | %d | %3d | %7.2f | %7.2f | %6.2f | %6.2f | %6.2f | %6.2f | %7.2f | %6.2f | %6s | %7.2f | %s",
+        row.variantId,
+        row.round,
+        s.frameIndex,
+        s.msSinceT0,
+        s.totalNs / 1_000_000.0,
+        s.animationNs.coerceAtLeast(0L) / 1_000_000.0,
+        s.inputNs.coerceAtLeast(0L) / 1_000_000.0,
+        s.layoutMeasureNs.coerceAtLeast(0L) / 1_000_000.0,
+        s.drawNs.coerceAtLeast(0L) / 1_000_000.0,
+        s.cmdIssueNs.coerceAtLeast(0L) / 1_000_000.0,
+        s.swapNs.coerceAtLeast(0L) / 1_000_000.0,
+        gpuStr,
+        s.unknownDelayNs.coerceAtLeast(0L) / 1_000_000.0,
+        row.nearbyMarkers
+    )
+}
+
+private fun formatOpeningSummaryLines(opening: OpeningCapture): List<String> {
+    val gcStr = if (opening.gcCountDiff != null && opening.gcTimeDiffMs != null) {
+        "count=+${opening.gcCountDiff}, time=+${opening.gcTimeDiffMs}ms"
+    } else {
+        "n/a (Debug.getRuntimeStat unavailable)"
+    }
+    val hasBgScale = opening.markers.any { it.name == "bgScale_final" }
+    val hasBgAlpha = opening.markers.any { it.name == "bgAlpha_final" }
+    val markersJoined = buildString {
+        append(
+            opening.markers.joinToString(", ") { m ->
+                String.format(Locale.US, "%s=%.2fms", m.name, m.msSinceT0)
+            }
+        )
+        if (!hasBgScale) {
+            append(if (isNotEmpty()) ", " else "")
+            append("bgScale_final=n/a (did not reach target within settle+500ms)")
+        }
+        if (!hasBgAlpha) {
+            append(if (isNotEmpty()) ", " else "")
+            append("bgAlpha_final=n/a (did not reach target within settle+500ms)")
+        }
+        append(", wheelPicker_snap=n/a (rememberLazyListState starts at safeInitialIndex with no initial animated snap)")
+    }
+    return listOf(
+        String.format(
+            Locale.US,
+            "%s R%d | real frames=%d | settle=%.2f ms | GC: %s",
+            opening.variantId,
+            opening.round,
+            opening.frames.size,
+            opening.settleMsSinceT0,
+            gcStr
+        ),
+        "  markers: $markersJoined"
+    )
+}
+
+private fun formatV5ReportText(
+    openings: List<OpeningCapture>,
+    tableXRows: List<TableXRow>,
+    tableYRows: List<TableYRow>
+): String {
+    val sb = StringBuilder()
+
+    sb.appendLine("=== Per-Opening Summary (Settle, Markers, GC) ===")
+    openings.forEach { opening ->
+        formatOpeningSummaryLines(opening).forEach { sb.appendLine(it) }
+    }
+
+    sb.appendLine()
+    sb.appendLine("=== Table X: End-of-Animation & Late Windows (real frames / avg / max / >16.7) ===")
+    sb.appendLine(TABLE_X_HEADER)
+    tableXRows.forEach { sb.appendLine(formatTableXRow(it)) }
+
+    sb.appendLine()
+    sb.appendLine("=== Table Y: LATE Frames (>200ms since T0) with TOTAL > 25ms (A & B) ===")
+    sb.appendLine(TABLE_Y_HEADER)
+    if (tableYRows.isEmpty()) {
+        sb.appendLine("(none)")
+    } else {
+        tableYRows.forEach { sb.appendLine(formatTableYRow(it)) }
+    }
+
+    sb.appendLine()
+    sb.appendLine("=== Table W: Variant A Every Real Frame + Event Markers ===")
+    openings.filter { it.variantId == "A" }.sortedBy { it.round }.forEach { opening ->
+        sb.appendLine("-- Variant A Round ${opening.round} (${opening.frames.size} real frames, settle=${String.format(Locale.US, "%.2f", opening.settleMsSinceT0)}ms) --")
+        sb.appendLine(TABLE_W_HEADER)
+        buildTableWRoundLines(opening).forEach { (_, text) ->
+            sb.appendLine(text)
+        }
+    }
+
     return sb.toString().trimEnd()
 }
 
@@ -836,7 +959,7 @@ fun GpuBenchOverlay(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (runner.errorMessage != null) "GPU Benchmark Error" else "GPU Benchmark v4 (Add Alarm)",
+                        text = if (runner.errorMessage != null) "GPU Benchmark Error" else "GPU Benchmark v5 (Add Alarm)",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (runner.errorMessage != null) Color(0xFFF87171) else Color.White
@@ -848,7 +971,7 @@ fun GpuBenchOverlay(
                                 onClick = {
                                     val copyText = runner.errorMessage ?: rep?.formattedText.orEmpty()
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                                    clipboard?.setPrimaryClip(ClipData.newPlainText("GPU Benchmark v4", copyText))
+                                    clipboard?.setPrimaryClip(ClipData.newPlainText("GPU Benchmark v5", copyText))
                                     Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
                                 }
                             ) {
@@ -874,124 +997,113 @@ fun GpuBenchOverlay(
                         modifier = Modifier.verticalScroll(rememberScrollState())
                     )
                 } else {
-                    val variants = runner.report?.variants.orEmpty()
+                    val rep = runner.report
+                    val openings = rep?.openings.orEmpty()
                     val vScroll = rememberScrollState()
-                    val hScrollP = rememberScrollState()
-                    val hScrollQ = rememberScrollState()
-                    val hScrollR = rememberScrollState()
-                    val hScrollS = rememberScrollState()
-                    val hScrollT = rememberScrollState()
-                    val hScrollU = rememberScrollState()
-                    val hScrollA = rememberScrollState()
+                    val hScrollSummary = rememberScrollState()
+                    val hScrollX = rememberScrollState()
+                    val hScrollY = rememberScrollState()
+                    val hScrollW = rememberScrollState()
 
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .verticalScroll(vScroll)
                     ) {
-                        TableSection(
-                            title = "Table P: Timeline 1..16 (avg TOTAL ms, real frames)",
-                            titleColor = Color(0xFF93C5FD),
-                            header = TABLE_P_HEADER,
-                            rows = variants.map { formatTablePRow(it) },
-                            hScroll = hScrollP
+                        Text(
+                            text = "Per-Opening Summary (Settle, Markers, GC)",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF86EFAC)
                         )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-                        TableSection(
-                            title = "Table Q: First 12 Real Frames Stage Breakdown (avg ms)",
-                            titleColor = Color(0xFF86EFAC),
-                            header = TABLE_QR_HEADER,
-                            rows = variants.map { formatStageRow(it.variantLabel, it.earlyStages) },
-                            hScroll = hScrollQ
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-                        TableSection(
-                            title = "Table R: Remaining Real Frames (>12) Stage Breakdown (avg ms)",
-                            titleColor = Color(0xFFFCD34D),
-                            header = TABLE_QR_HEADER,
-                            rows = variants.map { formatStageRow(it.variantLabel, it.lateStages) },
-                            hScroll = hScrollR
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-                        TableSection(
-                            title = "Table S: Round Drift (avg TOTAL ms & >16.7 / real frames)",
-                            titleColor = Color(0xFFC4B5FD),
-                            header = TABLE_S_HEADER,
-                            rows = variants.map { formatTableSRow(it) },
-                            hScroll = hScrollS
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-                        TableSection(
-                            title = "Table T: Frame Pacing 1..16 (INTENDED_VSYNC gaps ms)",
-                            titleColor = Color(0xFF67E8F9),
-                            header = TABLE_T_HEADER,
-                            rows = variants.map { formatTableTRow(it) },
-                            hScroll = hScrollT
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-                        TableSection(
-                            title = "Table U: Pooled Summary ($BENCH_ROUNDS rounds, real frames)",
-                            titleColor = Color(0xFFFDBA74),
-                            header = TABLE_U_HEADER,
-                            rows = variants.map { formatTableURow(it) },
-                            hScroll = hScrollU
-                        )
-
-                        val variantA = variants.firstOrNull { it.variantId == "A" }
-                        if (variantA != null) {
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Text(
-                                text = "Variant A First 12 Real Frames per Round",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFF9A8D4)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Column(modifier = Modifier.horizontalScroll(hScrollA)) {
-                                for (round in 1..BENCH_ROUNDS) {
-                                    val roundSamples = variantA.samplesByRound[round].orEmpty()
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Column(modifier = Modifier.horizontalScroll(hScrollSummary)) {
+                            openings.forEachIndexed { idx, opening ->
+                                formatOpeningSummaryLines(opening).forEach { line ->
                                     Text(
-                                        text = "-- Round $round (${roundSamples.size} real frames) --",
+                                        text = line,
                                         fontSize = 9.5.sp,
-                                        fontWeight = FontWeight.Bold,
                                         fontFamily = FontFamily.Monospace,
-                                        color = Color(0xFFF9A8D4),
+                                        color = if (line.startsWith("  ")) Color(0xFFCBD5E1) else Color.White,
                                         softWrap = false,
-                                        maxLines = 1
+                                        maxLines = 1,
+                                        modifier = Modifier
+                                            .background(if (idx % 2 == 1) Color.White.copy(alpha = 0.04f) else Color.Transparent)
+                                            .padding(vertical = 1.dp)
                                     )
-                                    Text(
-                                        text = VARIANT_A_DETAIL_HEADER,
-                                        fontSize = 9.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = Color(0xFF93C5FD),
-                                        softWrap = false,
-                                        maxLines = 1
-                                    )
-                                    HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
-                                    val earlyRoundSamples = roundSamples.take(EARLY_FRAME_COUNT)
-                                    earlyRoundSamples.forEachIndexed { idx, sample ->
-                                        Text(
-                                            text = formatSampleDetailRow(sample),
-                                            fontSize = 9.5.sp,
-                                            fontFamily = FontFamily.Monospace,
-                                            color = Color.White,
-                                            softWrap = false,
-                                            maxLines = 1,
-                                            modifier = Modifier
-                                                .background(
-                                                    if (idx % 2 == 1) Color.White.copy(alpha = 0.05f) else Color.Transparent
-                                                )
-                                                .padding(vertical = 2.dp)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(6.dp))
                                 }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+                        TableSection(
+                            title = "Table X: End-of-Animation & Late Windows (real frames / avg / max / >16.7)",
+                            titleColor = Color(0xFF93C5FD),
+                            header = TABLE_X_HEADER,
+                            rows = rep?.tableXRows.orEmpty().map { formatTableXRow(it) },
+                            hScroll = hScrollX
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+                        TableSection(
+                            title = "Table Y: LATE Frames (>200ms since T0) with TOTAL > 25ms",
+                            titleColor = Color(0xFFFCD34D),
+                            header = TABLE_Y_HEADER,
+                            rows = rep?.tableYRows.orEmpty().let { rows ->
+                                if (rows.isEmpty()) listOf("(none)") else rows.map { formatTableYRow(it) }
+                            },
+                            hScroll = hScrollY
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "Table W: Variant A Every Real Frame + Event Markers",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFF9A8D4)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Column(modifier = Modifier.horizontalScroll(hScrollW)) {
+                            openings.filter { it.variantId == "A" }.sortedBy { it.round }.forEach { opening ->
+                                Text(
+                                    text = "-- Variant A Round ${opening.round} (${opening.frames.size} real frames, settle=${String.format(Locale.US, "%.2f", opening.settleMsSinceT0)}ms) --",
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = Color(0xFFF9A8D4),
+                                    softWrap = false,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    text = TABLE_W_HEADER,
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = Color(0xFF93C5FD),
+                                    softWrap = false,
+                                    maxLines = 1
+                                )
+                                HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
+                                buildTableWRoundLines(opening).forEachIndexed { idx, (isMarker, line) ->
+                                    Text(
+                                        text = line,
+                                        fontSize = 9.5.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = when {
+                                            isMarker -> Color(0xFF67E8F9)
+                                            line.contains(" | * | ") -> Color(0xFFFCA5A5)
+                                            else -> Color.White
+                                        },
+                                        softWrap = false,
+                                        maxLines = 1,
+                                        modifier = Modifier
+                                            .background(
+                                                if (idx % 2 == 1) Color.White.copy(alpha = 0.04f) else Color.Transparent
+                                            )
+                                            .padding(vertical = 1.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
                             }
                         }
                     }

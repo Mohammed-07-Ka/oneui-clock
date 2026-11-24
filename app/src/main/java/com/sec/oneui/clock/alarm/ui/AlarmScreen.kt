@@ -87,6 +87,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -95,6 +96,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -123,6 +125,7 @@ import com.sec.oneui.clock.alarm.service.AlarmForegroundService
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import com.sec.oneui.clock.settings.DiagFlags
+import com.sec.oneui.clock.settings.GpuBenchMarks
 import com.sec.oneui.clock.settings.SettingsManager
 import com.sec.oneui.clock.settings.ThemeMode
 import com.sec.oneui.clock.theme.ClockMotion
@@ -193,6 +196,24 @@ fun AlarmScreen(
         animationSpec = tween(320, easing = FastOutSlowInEasing),
         label = "alarmBgAlpha"
     )
+    if (GpuBenchMarks.active) {
+        LaunchedEffect(editorState.isOpen) {
+            if (editorState.isOpen) {
+                var markedScale = false
+                var markedAlpha = false
+                snapshotFlow { bgScale to bgAlpha }.collect { (s, a) ->
+                    if (!markedScale && s == targetBgScale) {
+                        markedScale = true
+                        GpuBenchMarks.mark("bgScale_final")
+                    }
+                    if (!markedAlpha && a == targetBgAlpha) {
+                        markedAlpha = true
+                        GpuBenchMarks.mark("bgAlpha_final")
+                    }
+                }
+            }
+        }
+    }
 
     Box(
         modifier = modifier
