@@ -23,6 +23,12 @@ object DiagFlags {
         private set
     var frameTimingOverlay by mutableStateOf(false)
         private set
+    var sheetFlatContainer by mutableStateOf(false)
+        private set
+    var sheetNoInnerGlass by mutableStateOf(false)
+        private set
+    var sheetNoEffects by mutableStateOf(false)
+        private set
 
     // Frame timing measurements for D5
     var worstFrameTimeMs by mutableFloatStateOf(0f)
@@ -64,6 +70,9 @@ object DiagFlags {
         noDimmer = p.getBoolean("d3_no_dimmer", false)
         deferSheetContent = p.getBoolean("d4_defer_sheet_content", false)
         frameTimingOverlay = p.getBoolean("d5_frame_timing_overlay", false)
+        sheetFlatContainer = p.getBoolean("d6_sheet_flat_container", false)
+        sheetNoInnerGlass = p.getBoolean("d7_sheet_no_inner_glass", false)
+        sheetNoEffects = p.getBoolean("d8_sheet_no_effects", false)
     }
 
     fun updateNoPageScaleAlpha(enabled: Boolean) {
@@ -89,6 +98,21 @@ object DiagFlags {
     fun updateFrameTimingOverlay(enabled: Boolean) {
         frameTimingOverlay = enabled
         prefs?.edit()?.putBoolean("d5_frame_timing_overlay", enabled)?.apply()
+    }
+
+    fun updateSheetFlatContainer(enabled: Boolean) {
+        sheetFlatContainer = enabled
+        prefs?.edit()?.putBoolean("d6_sheet_flat_container", enabled)?.apply()
+    }
+
+    fun updateSheetNoInnerGlass(enabled: Boolean) {
+        sheetNoInnerGlass = enabled
+        prefs?.edit()?.putBoolean("d7_sheet_no_inner_glass", enabled)?.apply()
+    }
+
+    fun updateSheetNoEffects(enabled: Boolean) {
+        sheetNoEffects = enabled
+        prefs?.edit()?.putBoolean("d8_sheet_no_effects", enabled)?.apply()
     }
 
     fun startTimingSession() {

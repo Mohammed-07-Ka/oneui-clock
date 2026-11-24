@@ -65,6 +65,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.BackdropEffectScope
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop as nativeBackdrop
@@ -208,6 +209,9 @@ fun rememberGlassInteraction(): GlassInteraction {
     return remember(scope) { GlassInteraction(scope) }
 }
 
+private val DefaultBackdropShadow: () -> Shadow = { Shadow.Default }
+private val EmptyBackdropEffects: BackdropEffectScope.() -> Unit = {}
+
 /**
  * Draws the interactive liquid glass effect matching SimpMusic 1:1.
  * Replicates SimpMusic's LiquidGlassContainer.kt:255-346
@@ -225,38 +229,45 @@ fun Modifier.drawInteractiveGlass(
     minScrim: Float = 0.12f,
     maxScrim: Float = 0.5f,
     scrimColor: Color? = null,
+    enableShadow: Boolean = true,
+    enableEffects: Boolean = true,
 ): Modifier =
     this
         .drawBackdrop(
             backdrop = backdrop,
             shape = { shape },
             highlight = { highlight },
-            effects = {
-                val l = (luminance() * 2f - 1f).let { sign(it) * it * it }
-                val press = interaction?.pressProgress ?: 0f
-                vibrancy()
-                colorControls(
-                    brightness = 0.05f,
-                    contrast = 1f,
-                    saturation = 1.5f,
-                )
-                blur(
-                    (
-                        if (l > 0f) {
-                            lerp(8f.dp.toPx(), 16f.dp.toPx(), l)
-                        } else {
-                            lerp(8f.dp.toPx(), 2f.dp.toPx(), -l)
-                        }
-                    ) * blurScale + 2f.dp.toPx() * press,
-                )
-                if (size.isSpecified && shape is CornerBasedShape) {
-                    lens(
-                        refractionHeight = size.minDimension / 4f + 2f.dp.toPx() * press,
-                        refractionAmount = size.minDimension / 2f,
-                        depthEffect = false,
-                        chromaticAberration = false
+            shadow = if (enableShadow) DefaultBackdropShadow else null,
+            effects = if (enableEffects) {
+                {
+                    val l = (luminance() * 2f - 1f).let { sign(it) * it * it }
+                    val press = interaction?.pressProgress ?: 0f
+                    vibrancy()
+                    colorControls(
+                        brightness = 0.05f,
+                        contrast = 1f,
+                        saturation = 1.5f,
                     )
+                    blur(
+                        (
+                            if (l > 0f) {
+                                lerp(8f.dp.toPx(), 16f.dp.toPx(), l)
+                            } else {
+                                lerp(8f.dp.toPx(), 2f.dp.toPx(), -l)
+                            }
+                        ) * blurScale + 2f.dp.toPx() * press,
+                    )
+                    if (size.isSpecified && shape is CornerBasedShape) {
+                        lens(
+                            refractionHeight = size.minDimension / 4f + 2f.dp.toPx() * press,
+                            refractionAmount = size.minDimension / 2f,
+                            depthEffect = false,
+                            chromaticAberration = false
+                        )
+                    }
                 }
+            } else {
+                EmptyBackdropEffects
             },
             onDrawBackdrop = { drawBackdrop ->
                 drawBackdrop()

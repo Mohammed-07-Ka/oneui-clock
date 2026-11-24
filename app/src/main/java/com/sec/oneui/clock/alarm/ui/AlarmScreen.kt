@@ -605,10 +605,10 @@ fun AlarmEditSheet(
     }
 
     val palette = ClockTheme.palette
-    val isGlassActive = LocalLiquidGlassEnabled.current && LocalBackdrop.current != null
+    val isGlassActive = LocalLiquidGlassEnabled.current && LocalBackdrop.current != null && !DiagFlags.sheetNoInnerGlass
     val backdrop = LocalBackdrop.current
     val containerBackdrop = sheetBackdrop ?: backdrop
-    val isContainerGlassActive = LocalLiquidGlassEnabled.current && containerBackdrop != null
+    val isContainerGlassActive = LocalLiquidGlassEnabled.current && containerBackdrop != null && !DiagFlags.sheetFlatContainer
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -736,9 +736,13 @@ fun AlarmEditSheet(
                                 layer = null,
                                 luminance = { 0.4f },
                                 shape = sheetShape,
-                                interaction = null
+                                interaction = null,
+                                enableShadow = !DiagFlags.sheetNoEffects,
+                                enableEffects = !DiagFlags.sheetNoEffects
                             )
                             .clip(sheetShape)
+                    } else if (DiagFlags.sheetFlatContainer) {
+                        Modifier.clip(sheetShape)
                     } else {
                         Modifier
                     }
@@ -757,7 +761,11 @@ fun AlarmEditSheet(
                     ThemeMode.AURORA_PURPLE -> Color(0xFF0E0B18)
                 }
             },
-            border = androidx.compose.foundation.BorderStroke(1.dp, palette.cardBorderSubtle)
+            border = if (DiagFlags.sheetFlatContainer) {
+                null
+            } else {
+                androidx.compose.foundation.BorderStroke(1.dp, palette.cardBorderSubtle)
+            }
         ) {
             Column(
                 modifier = Modifier

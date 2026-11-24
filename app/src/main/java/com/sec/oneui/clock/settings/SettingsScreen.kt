@@ -1030,6 +1030,96 @@ fun SettingsScreen(
                     )
                 )
             }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
+
+            // D6 "Sheet container: flat"
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Sheet container: flat", fontSize = 16.sp, color = textColor)
+                    Text("Plain opaque themed container with no glass, blur, shadow, or border", fontSize = 13.sp, color = subTextColor)
+                }
+                Switch(
+                    checked = DiagFlags.sheetFlatContainer,
+                    onCheckedChange = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        DiagFlags.updateSheetFlatContainer(it)
+                    },
+                    modifier = Modifier.iosPressEffect(targetScale = 0.96f),
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = palette.toggleActiveThumb,
+                        checkedTrackColor = palette.toggleActiveTrack,
+                        uncheckedThumbColor = subTextColor,
+                        uncheckedTrackColor = palette.cardBackground
+                    )
+                )
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
+
+            // D7 "Sheet inner: no glass"
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Sheet inner: no glass", fontSize = 16.sp, color = textColor)
+                    Text("Inner sheet glass nodes use non-glass fallback while container stays glass", fontSize = 13.sp, color = subTextColor)
+                }
+                Switch(
+                    checked = DiagFlags.sheetNoInnerGlass,
+                    onCheckedChange = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        DiagFlags.updateSheetNoInnerGlass(it)
+                    },
+                    modifier = Modifier.iosPressEffect(targetScale = 0.96f),
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = palette.toggleActiveThumb,
+                        checkedTrackColor = palette.toggleActiveTrack,
+                        uncheckedThumbColor = subTextColor,
+                        uncheckedTrackColor = palette.cardBackground
+                    )
+                )
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 20.dp))
+
+            // D8 "Sheet: no shadow/effects"
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Sheet: no shadow/effects", fontSize = 16.sp, color = textColor)
+                    Text("Remove sheet container Shadow and RenderEffect while keeping glass", fontSize = 13.sp, color = subTextColor)
+                }
+                Switch(
+                    checked = DiagFlags.sheetNoEffects,
+                    onCheckedChange = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        DiagFlags.updateSheetNoEffects(it)
+                    },
+                    modifier = Modifier.iosPressEffect(targetScale = 0.96f),
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = palette.toggleActiveThumb,
+                        checkedTrackColor = palette.toggleActiveTrack,
+                        uncheckedThumbColor = subTextColor,
+                        uncheckedTrackColor = palette.cardBackground
+                    )
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(48.dp))
