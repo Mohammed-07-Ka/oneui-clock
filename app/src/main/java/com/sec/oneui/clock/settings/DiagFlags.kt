@@ -66,27 +66,27 @@ object DiagFlags {
         frameTimingOverlay = p.getBoolean("d5_frame_timing_overlay", false)
     }
 
-    fun setNoPageScaleAlpha(enabled: Boolean) {
+    fun updateNoPageScaleAlpha(enabled: Boolean) {
         noPageScaleAlpha = enabled
         prefs?.edit()?.putBoolean("d1_no_page_scale_alpha", enabled)?.apply()
     }
 
-    fun setSnapTabBarFabGear(enabled: Boolean) {
+    fun updateSnapTabBarFabGear(enabled: Boolean) {
         snapTabBarFabGear = enabled
         prefs?.edit()?.putBoolean("d2_snap_tab_bar_fab_gear", enabled)?.apply()
     }
 
-    fun setNoDimmer(enabled: Boolean) {
+    fun updateNoDimmer(enabled: Boolean) {
         noDimmer = enabled
         prefs?.edit()?.putBoolean("d3_no_dimmer", enabled)?.apply()
     }
 
-    fun setDeferSheetContent(enabled: Boolean) {
+    fun updateDeferSheetContent(enabled: Boolean) {
         deferSheetContent = enabled
         prefs?.edit()?.putBoolean("d4_defer_sheet_content", enabled)?.apply()
     }
 
-    fun setFrameTimingOverlay(enabled: Boolean) {
+    fun updateFrameTimingOverlay(enabled: Boolean) {
         frameTimingOverlay = enabled
         prefs?.edit()?.putBoolean("d5_frame_timing_overlay", enabled)?.apply()
     }

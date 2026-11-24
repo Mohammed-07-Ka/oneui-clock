@@ -899,7 +899,7 @@ fun SettingsScreen(
                     checked = DiagFlags.noPageScaleAlpha,
                     onCheckedChange = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        DiagFlags.setNoPageScaleAlpha(it)
+                        DiagFlags.updateNoPageScaleAlpha(it)
                     },
                     modifier = Modifier.iosPressEffect(targetScale = 0.96f),
                     colors = SwitchDefaults.colors(
@@ -929,7 +929,7 @@ fun SettingsScreen(
                     checked = DiagFlags.snapTabBarFabGear,
                     onCheckedChange = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        DiagFlags.setSnapTabBarFabGear(it)
+                        DiagFlags.updateSnapTabBarFabGear(it)
                     },
                     modifier = Modifier.iosPressEffect(targetScale = 0.96f),
                     colors = SwitchDefaults.colors(
@@ -959,7 +959,7 @@ fun SettingsScreen(
                     checked = DiagFlags.noDimmer,
                     onCheckedChange = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        DiagFlags.setNoDimmer(it)
+                        DiagFlags.updateNoDimmer(it)
                     },
                     modifier = Modifier.iosPressEffect(targetScale = 0.96f),
                     colors = SwitchDefaults.colors(
@@ -989,7 +989,7 @@ fun SettingsScreen(
                     checked = DiagFlags.deferSheetContent,
                     onCheckedChange = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        DiagFlags.setDeferSheetContent(it)
+                        DiagFlags.updateDeferSheetContent(it)
                     },
                     modifier = Modifier.iosPressEffect(targetScale = 0.96f),
                     colors = SwitchDefaults.colors(
@@ -1019,7 +1019,7 @@ fun SettingsScreen(
                     checked = DiagFlags.frameTimingOverlay,
                     onCheckedChange = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        DiagFlags.setFrameTimingOverlay(it)
+                        DiagFlags.updateFrameTimingOverlay(it)
                     },
                     modifier = Modifier.iosPressEffect(targetScale = 0.96f),
                     colors = SwitchDefaults.colors(
