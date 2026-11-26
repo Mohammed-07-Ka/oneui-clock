@@ -96,7 +96,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -124,8 +123,6 @@ import com.sec.oneui.clock.alarm.service.AlarmAudioPreviewer
 import com.sec.oneui.clock.alarm.service.AlarmForegroundService
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
-import com.sec.oneui.clock.settings.DiagFlags
-import com.sec.oneui.clock.settings.GpuBenchMarks
 import com.sec.oneui.clock.settings.SettingsManager
 import com.sec.oneui.clock.settings.ThemeMode
 import com.sec.oneui.clock.theme.ClockMotion
@@ -184,8 +181,8 @@ fun AlarmScreen(
     }
 
     // Authentic iOS Modal Sheet background scale down and dimming
-    val targetBgScale = if (editorState.isOpen && !DiagFlags.noPageScaleAlpha) 0.94f else 1f
-    val targetBgAlpha = if (editorState.isOpen && !DiagFlags.noPageScaleAlpha) 0.7f else 1f
+    val targetBgScale = if (editorState.isOpen) 0.94f else 1f
+    val targetBgAlpha = if (editorState.isOpen) 0.7f else 1f
     val bgScale by animateFloatAsState(
         targetValue = targetBgScale,
         animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f),
@@ -196,24 +193,6 @@ fun AlarmScreen(
         animationSpec = tween(320, easing = FastOutSlowInEasing),
         label = "alarmBgAlpha"
     )
-    if (GpuBenchMarks.active) {
-        LaunchedEffect(editorState.isOpen) {
-            if (editorState.isOpen) {
-                var markedScale = false
-                var markedAlpha = false
-                snapshotFlow { bgScale to bgAlpha }.collect { (s, a) ->
-                    if (!markedScale && s == targetBgScale) {
-                        markedScale = true
-                        GpuBenchMarks.mark("bgScale_final")
-                    }
-                    if (!markedAlpha && a == targetBgAlpha) {
-                        markedAlpha = true
-                        GpuBenchMarks.mark("bgAlpha_final")
-                    }
-                }
-            }
-        }
-    }
 
     Box(
         modifier = modifier
@@ -224,9 +203,9 @@ fun AlarmScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
-                    scaleX = if (DiagFlags.noPageScaleAlpha) 1f else bgScale
-                    scaleY = if (DiagFlags.noPageScaleAlpha) 1f else bgScale
-                    alpha = if (DiagFlags.noPageScaleAlpha) 1f else bgAlpha
+                    scaleX = bgScale
+                    scaleY = bgScale
+                    alpha = bgAlpha
                 }
                 .statusBarsPadding()
                 .padding(horizontal = 20.dp)
@@ -626,12 +605,10 @@ fun AlarmEditSheet(
     }
 
     val palette = ClockTheme.palette
-    val isGlassActive = LocalLiquidGlassEnabled.current && LocalBackdrop.current != null && !DiagFlags.sheetNoInnerGlass
+    val isGlassActive = LocalLiquidGlassEnabled.current && LocalBackdrop.current != null
     val backdrop = LocalBackdrop.current
     val containerBackdrop = sheetBackdrop ?: backdrop
-    val isContainerGlassActive = LocalLiquidGlassEnabled.current && containerBackdrop != null && !DiagFlags.sheetFlatContainer
-    val containerMask = DiagFlags.sheetContainerMask
-    val innerMask = DiagFlags.sheetInnerMask
+    val isContainerGlassActive = LocalLiquidGlassEnabled.current && containerBackdrop != null
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -712,16 +689,12 @@ fun AlarmEditSheet(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .then(
-                if (!DiagFlags.noDimmer) {
-                    Modifier.drawBehind {
-                        drawRect(
-                            color = Color.Black,
-                            alpha = (sheetProgress.value * 0.65f).coerceIn(0f, 0.65f)
-                        )
-                    }
-                } else Modifier
-            )
+            .drawBehind {
+                drawRect(
+                    color = Color.Black,
+                    alpha = (sheetProgress.value * 0.65f).coerceIn(0f, 0.65f)
+                )
+            }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -758,14 +731,9 @@ fun AlarmEditSheet(
                                 layer = null,
                                 luminance = { 0.4f },
                                 shape = sheetShape,
-                                interaction = null,
-                                enableShadow = !DiagFlags.sheetNoEffects,
-                                enableEffects = !DiagFlags.sheetNoEffects,
-                                effectMask = containerMask
+                                interaction = null
                             )
                             .clip(sheetShape)
-                    } else if (DiagFlags.sheetFlatContainer) {
-                        Modifier.clip(sheetShape)
                     } else {
                         Modifier
                     }
@@ -784,11 +752,7 @@ fun AlarmEditSheet(
                     ThemeMode.AURORA_PURPLE -> Color(0xFF0E0B18)
                 }
             },
-            border = if (DiagFlags.sheetFlatContainer) {
-                null
-            } else {
-                androidx.compose.foundation.BorderStroke(1.dp, palette.cardBorderSubtle)
-            }
+            border = androidx.compose.foundation.BorderStroke(1.dp, palette.cardBorderSubtle)
         ) {
             Column(
                 modifier = Modifier
@@ -837,8 +801,7 @@ fun AlarmEditSheet(
                                     layer = null,
                                     luminance = { 0.4f },
                                     shape = capsuleShape,
-                                    interaction = null,
-                                    effectMask = innerMask
+                                    interaction = null
                                 )
                                 .clip(capsuleShape)
                                 .clickable(
@@ -889,8 +852,7 @@ fun AlarmEditSheet(
                                     layer = null,
                                     luminance = { 0.4f },
                                     shape = capsuleShape,
-                                    interaction = null,
-                                    effectMask = innerMask
+                                    interaction = null
                                 )
                                 .clip(capsuleShape)
                                 .clickable(
@@ -942,8 +904,7 @@ fun AlarmEditSheet(
                                         layer = null,
                                         luminance = { 0.4f },
                                         shape = timePickerShape,
-                                        interaction = null,
-                                        effectMask = innerMask
+                                        interaction = null
                                     )
                                     .clip(timePickerShape)
                             } else {
@@ -1008,8 +969,7 @@ fun AlarmEditSheet(
                                         layer = null,
                                         luminance = { 0.4f },
                                         shape = timePickerShape,
-                                        interaction = null,
-                                        effectMask = innerMask
+                                        interaction = null
                                     )
                                     .clip(timePickerShape)
                             } else {
@@ -1083,12 +1043,9 @@ fun AlarmEditSheet(
                 }
             }
 
-            if (DiagFlags.deferSheetContent && sheetProgress.value < 0.999f) {
-                Spacer(modifier = Modifier.height(580.dp))
-            } else {
-                Spacer(modifier = Modifier.height(15.dp))
+            Spacer(modifier = Modifier.height(15.dp))
 
-                // Day of Week selector
+            // Day of Week selector
             Text("Repeat", fontSize = 15.sp, color = palette.textSecondary, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(8.dp))
             Row(
@@ -1148,8 +1105,7 @@ fun AlarmEditSheet(
                                     layer = null,
                                     luminance = { 0.4f },
                                     shape = scheduleShape,
-                                    interaction = null,
-                                    effectMask = innerMask
+                                    interaction = null
                                 )
                                 .clip(scheduleShape)
                         } else {
@@ -1209,8 +1165,7 @@ fun AlarmEditSheet(
                                     layer = null,
                                     luminance = { 0.4f },
                                     shape = ringtoneShape,
-                                    interaction = null,
-                                    effectMask = innerMask
+                                    interaction = null
                                 )
                                 .clip(ringtoneShape)
                         } else {
@@ -1290,8 +1245,7 @@ fun AlarmEditSheet(
                                     layer = null,
                                     luminance = { 0.4f },
                                     shape = volumeShape,
-                                    interaction = null,
-                                    effectMask = innerMask
+                                    interaction = null
                                 )
                                 .clip(volumeShape)
                         } else {
@@ -1446,30 +1400,6 @@ fun AlarmEditSheet(
             Spacer(modifier = Modifier.height(30.dp))
         }
     }
-}
-
-        if (DiagFlags.frameTimingOverlay && (isSheetOpen || sheetProgress.value > 0.001f)) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(top = 8.dp),
-                contentAlignment = Alignment.TopCenter
-            ) {
-                val maxMs = String.format(Locale.US, "%.1f", DiagFlags.worstFrameTimeMs)
-                Text(
-                    text = "max ${maxMs}ms | >16.7ms: ${DiagFlags.framesOver16Ms} | >25ms: ${DiagFlags.framesOver25Ms}",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                    color = Color(0xFF4ADE80),
-                    modifier = Modifier
-                        .background(Color.Black.copy(alpha = 0.85f), RoundedCornerShape(8.dp))
-                        .border(1.dp, Color(0xFF4ADE80).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                )
-            }
-        }
 
     if (!isSheetOpen) {
         Box(
@@ -1517,8 +1447,7 @@ fun AlarmEditSheet(
                             layer = null,
                             luminance = { 0.4f },
                             shape = dialogShape,
-                            interaction = null,
-                            effectMask = innerMask
+                            interaction = null
                         )
                         .clip(dialogShape)
                 } else {

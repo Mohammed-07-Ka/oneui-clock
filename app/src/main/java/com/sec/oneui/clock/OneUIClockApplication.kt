@@ -7,14 +7,11 @@ import android.content.Context
 import android.os.Build
 import com.sec.oneui.clock.alarm.data.AlarmDatabase
 import com.sec.oneui.clock.alarm.service.AlarmForegroundService
-import com.sec.oneui.clock.settings.DiagFlags
 
 class OneUIClockApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // Initialize Diagnostic Flags
-        DiagFlags.init(this)
 
         // Pre-initialize Room Database
         AlarmDatabase.getInstance(this)

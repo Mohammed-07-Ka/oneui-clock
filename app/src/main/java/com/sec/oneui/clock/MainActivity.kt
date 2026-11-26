@@ -27,8 +27,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -85,7 +83,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -114,10 +111,6 @@ import kotlin.math.absoluteValue
 import com.sec.oneui.clock.alarm.ui.AlarmEditSheet
 import com.sec.oneui.clock.alarm.ui.AlarmScreen
 import com.sec.oneui.clock.alarm.ui.AlarmViewModel
-import com.sec.oneui.clock.settings.DiagFlags
-import com.sec.oneui.clock.settings.GpuBenchMarks
-import com.sec.oneui.clock.settings.GpuBenchOverlay
-import com.sec.oneui.clock.settings.GpuBenchRunner
 import com.sec.oneui.clock.settings.SettingsManager
 import com.sec.oneui.clock.settings.SettingsScreen
 import com.sec.oneui.clock.stopwatch.ui.StopwatchScreen
@@ -209,7 +202,6 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         val settingsManager = SettingsManager.getInstance(this)
-        DiagFlags.init(this)
 
         // 3. Permissions
         checkAndRequestNotificationPermission()
@@ -221,7 +213,7 @@ class MainActivity : ComponentActivity() {
             val animationSpeed by settingsManager.animationSpeed.collectAsState()
             val liquidGlassEnabled by settingsManager.liquidGlassEnabled.collectAsState()
             val hazeState = remember { HazeState() }
-            val isGlassActive = isLiquidGlassSupported && (DiagFlags.liquidGlassOverride ?: liquidGlassEnabled)
+            val isGlassActive = isLiquidGlassSupported && liquidGlassEnabled
             isLiquidGlassEnabled = isGlassActive
             val bgBackdrop = if (isGlassActive) rememberBackdrop(Color.Transparent) else null
             val pagerBackdrop = if (isGlassActive) rememberBackdrop(Color.Transparent) else null
@@ -394,33 +386,10 @@ fun MainClockApp(
     val coroutineScope = rememberCoroutineScope()
     val palette = ClockTheme.palette
     val activeHaze = hazeState ?: LocalHazeState.current ?: remember { HazeState() }
-    val context = androidx.compose.ui.platform.LocalContext.current
 
     val sheetProgress = remember { Animatable(0f) }
     var exitVelocity by remember { mutableFloatStateOf(0f) }
     var isSheetComposed by remember { mutableStateOf(false) }
-
-    val gpuBenchRunner = remember(context, coroutineScope) {
-        GpuBenchRunner(
-            context = context,
-            coroutineScope = coroutineScope,
-            leaveSettingsToAlarmTab = {
-                showSettings = false
-                pagerState.scrollToPage(0)
-            },
-            openSheetLikeFab = {
-                alarmViewModel.openEditorForNew(settingsManager.defaultVibrate.value)
-            },
-            closeSheetLikeCancel = {
-                alarmViewModel.cancelDraft()
-            },
-            isSheetOpen = { alarmViewModel.editorState.value.isOpen },
-            isSheetComposed = { isSheetComposed },
-            isSheetProgressRunning = { sheetProgress.isRunning },
-            sheetProgressValue = { sheetProgress.value },
-            isGlassActive = { isLiquidGlassEnabled }
-        )
-    }
 
     // Handle navigation tab changes (e.g. from notification clicks)
     val targetTab by navTabFlow.collectAsState()
@@ -480,8 +449,7 @@ fun MainClockApp(
                     )
                     SettingsScreen(
                         settingsManager = settingsManager,
-                        onBack = { showSettings = false },
-                        onRunGpuBenchmark = { gpuBenchRunner.start() }
+                        onBack = { showSettings = false }
                     )
                 }
             } else {
@@ -545,18 +513,13 @@ fun MainClockApp(
                 // 3. Settings Icon in Top-Right
                 AnimatedVisibility(
                     visible = !editorState.isOpen,
-                    enter = if (DiagFlags.snapTabBarFabGear) EnterTransition.None else fadeIn(tween(200)),
-                    exit = if (DiagFlags.snapTabBarFabGear) ExitTransition.None else fadeOut(tween(200)),
+                    enter = fadeIn(tween(200)),
+                    exit = fadeOut(tween(200)),
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .statusBarsPadding()
                         .padding(horizontal = 20.dp, vertical = 16.dp)
                 ) {
-                    DisposableEffect(Unit) {
-                        onDispose {
-                            if (GpuBenchMarks.active) GpuBenchMarks.mark("gear_disposed")
-                        }
-                    }
                     if (isGlassActive && overlayBackdrop != null) {
                         Box(
                             modifier = Modifier
@@ -611,18 +574,13 @@ fun MainClockApp(
                 val defaultVibrate by settingsManager.defaultVibrate.collectAsState()
                 AnimatedVisibility(
                     visible = isGlassActive && overlayBackdrop != null && pagerState.currentPage == 0 && !editorState.isOpen,
-                    enter = if (DiagFlags.snapTabBarFabGear) EnterTransition.None else (fadeIn() + scaleIn()),
-                    exit = if (DiagFlags.snapTabBarFabGear) ExitTransition.None else (fadeOut() + scaleOut()),
+                    enter = fadeIn() + scaleIn(),
+                    exit = fadeOut() + scaleOut(),
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .navigationBarsPadding()
                         .padding(end = 24.dp, bottom = 92.dp)
                 ) {
-                    DisposableEffect(Unit) {
-                        onDispose {
-                            if (GpuBenchMarks.active) GpuBenchMarks.mark("fab_disposed")
-                        }
-                    }
                     if (overlayBackdrop != null) {
                         Box(
                             modifier = Modifier
@@ -657,32 +615,19 @@ fun MainClockApp(
                 // 5. Floating Liquid Glass Navigation Bar (Overlaid on top of passing content)
                 AnimatedVisibility(
                     visible = !editorState.isOpen,
-                    enter = if (DiagFlags.snapTabBarFabGear) {
-                        EnterTransition.None
-                    } else {
-                        slideInVertically(
-                            initialOffsetY = { it },
-                            animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f)
-                        ) + fadeIn(tween(250))
-                    },
-                    exit = if (DiagFlags.snapTabBarFabGear) {
-                        ExitTransition.None
-                    } else {
-                        slideOutVertically(
-                            targetOffsetY = { it },
-                            animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f)
-                        ) + fadeOut(tween(200))
-                    },
+                    enter = slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f)
+                    ) + fadeIn(tween(250)),
+                    exit = slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f)
+                    ) + fadeOut(tween(200)),
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .navigationBarsPadding()
                         .padding(horizontal = 20.dp, vertical = 14.dp)
                 ) {
-                    DisposableEffect(Unit) {
-                        onDispose {
-                            if (GpuBenchMarks.active) GpuBenchMarks.mark("tabBar_disposed")
-                        }
-                    }
                     val activeColor = if (palette.isBlueTheme) Color(0xFF38BDF8) else Color(0xFFA855F7)
 
                     if (isGlassActive && overlayBackdrop != null) {
@@ -820,15 +765,11 @@ fun MainClockApp(
                 if (editorState.isOpen) {
                     if (!isSheetComposed) {
                         isSheetComposed = true
-                        if (GpuBenchMarks.active) GpuBenchMarks.mark("isSheetComposed=true")
                     }
                 }
 
                 LaunchedEffect(editorState.isOpen) {
                     if (editorState.isOpen) {
-                        if (DiagFlags.frameTimingOverlay) {
-                            DiagFlags.startTimingSession()
-                        }
                         exitVelocity = 0f
                         repeat(3) {
                             withFrameNanos {}
@@ -841,9 +782,6 @@ fun MainClockApp(
                                 visibilityThreshold = 0.0005f
                             )
                         )
-                        if (DiagFlags.frameTimingOverlay) {
-                            DiagFlags.stopTimingSession()
-                        }
                     } else {
                         if (sheetProgress.value > 0.0001f) {
                             val v = exitVelocity
@@ -882,16 +820,5 @@ fun MainClockApp(
             }
         }
         }
-
-        if (gpuBenchRunner.isRunning) {
-            androidx.compose.runtime.key(isSheetComposed) {
-                BackHandler(enabled = true) { gpuBenchRunner.cancel() }
-            }
-        }
-        if (!gpuBenchRunner.isRunning && gpuBenchRunner.showResultsOverlay) {
-            BackHandler(enabled = true) { gpuBenchRunner.dismissResults() }
-        }
-
-        GpuBenchOverlay(runner = gpuBenchRunner)
     }
 }

@@ -77,7 +77,6 @@ import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
-import com.sec.oneui.clock.settings.GlassEffectMask
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
@@ -211,7 +210,6 @@ fun rememberGlassInteraction(): GlassInteraction {
 }
 
 private val DefaultBackdropShadow: () -> Shadow = { Shadow.Default }
-private val EmptyBackdropEffects: BackdropEffectScope.() -> Unit = {}
 
 /**
  * Draws the interactive liquid glass effect matching SimpMusic 1:1.
@@ -230,61 +228,48 @@ fun Modifier.drawInteractiveGlass(
     minScrim: Float = 0.12f,
     maxScrim: Float = 0.5f,
     scrimColor: Color? = null,
-    enableShadow: Boolean = true,
-    enableEffects: Boolean = true,
-    effectMask: GlassEffectMask = GlassEffectMask.None,
 ): Modifier =
     this
         .drawBackdrop(
             backdrop = backdrop,
             shape = { shape },
-            highlight = if (effectMask.noHighlight) null else ({ highlight }),
-            shadow = if (enableShadow) DefaultBackdropShadow else null,
-            effects = if (enableEffects) {
-                {
-                    val l = (luminance() * 2f - 1f).let { sign(it) * it * it }
-                    val press = interaction?.pressProgress ?: 0f
-                    if (!effectMask.noColor) {
-                        vibrancy()
-                        colorControls(
-                            brightness = 0.05f,
-                            contrast = 1f,
-                            saturation = 1.5f,
-                        )
-                    }
-                    if (!effectMask.noBlur) {
-                        blur(
-                            (
-                                if (l > 0f) {
-                                    lerp(8f.dp.toPx(), 16f.dp.toPx(), l)
-                                } else {
-                                    lerp(8f.dp.toPx(), 2f.dp.toPx(), -l)
-                                }
-                            ) * blurScale + 2f.dp.toPx() * press,
-                        )
-                    }
-                    if (!effectMask.noLens && size.isSpecified && shape is CornerBasedShape) {
-                        lens(
-                            refractionHeight = size.minDimension / 4f + 2f.dp.toPx() * press,
-                            refractionAmount = size.minDimension / 2f,
-                            depthEffect = false,
-                            chromaticAberration = false
-                        )
-                    }
+            highlight = { highlight },
+            shadow = DefaultBackdropShadow,
+            effects = {
+                val l = (luminance() * 2f - 1f).let { sign(it) * it * it }
+                val press = interaction?.pressProgress ?: 0f
+                vibrancy()
+                colorControls(
+                    brightness = 0.05f,
+                    contrast = 1f,
+                    saturation = 1.5f,
+                )
+                blur(
+                    (
+                        if (l > 0f) {
+                            lerp(8f.dp.toPx(), 16f.dp.toPx(), l)
+                        } else {
+                            lerp(8f.dp.toPx(), 2f.dp.toPx(), -l)
+                        }
+                    ) * blurScale + 2f.dp.toPx() * press,
+                )
+                if (size.isSpecified && shape is CornerBasedShape) {
+                    lens(
+                        refractionHeight = size.minDimension / 4f + 2f.dp.toPx() * press,
+                        refractionAmount = size.minDimension / 2f,
+                        depthEffect = false,
+                        chromaticAberration = false
+                    )
                 }
-            } else {
-                EmptyBackdropEffects
             },
             onDrawBackdrop = { drawBackdrop ->
                 drawBackdrop()
                 layer?.record { drawBackdrop() }
             },
             onDrawSurface = {
-                if (!effectMask.noScrim) {
-                    val darken = lerp(minScrim, maxScrim, ((luminance() - 0.3f) / 0.5f).coerceIn(0f, 1f))
-                    val baseColor = scrimColor ?: (if (isDark) Color.Black else Color.White)
-                    drawRect(baseColor.copy(alpha = darken))
-                }
+                val darken = lerp(minScrim, maxScrim, ((luminance() - 0.3f) / 0.5f).coerceIn(0f, 1f))
+                val baseColor = scrimColor ?: (if (isDark) Color.Black else Color.White)
+                drawRect(baseColor.copy(alpha = darken))
                 val press = interaction?.pressProgress ?: 0f
                 if (press > 0f) {
                     drawRect(
