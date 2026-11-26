@@ -159,11 +159,9 @@ private const val ALARM_DELETE_SLIDE_MS = 250
 private const val ALARM_DELETE_PLACEMENT_MS = 250
 
 // Top-edge cylinder bend/curl effect for AlarmEditSheet scrolling items.
-// Bend starts once an item's top crosses BEND_START_LINE_DP below the visible
-// viewport top edge and progresses over TOP_CURL_ZONE_DP. Positive rotationX around
-// a bottom-center pivot tilts the top of each item away (-Z). No alpha is used.
-// Distance below the visible top edge of the scroll viewport where the bend starts (tunable).
-private val BEND_START_LINE_DP = 16.dp
+// Zone extends ~96.dp from the viewport top edge; positive rotationX around a
+// bottom-center pivot tilts the top of each item away (-Z) as it reaches/passes
+// the top clip edge. No alpha is used so drawInteractiveGlass stays intact.
 private const val TOP_CURL_ZONE_DP = 96f
 private const val TOP_CURL_CONTENT_TOP_PADDING_DP = 12f
 private const val TOP_CURL_MAX_ROTATION_X = 35f
@@ -188,17 +186,23 @@ private fun Modifier.topEdgeCurl(scrollState: ScrollState): Modifier {
                 translationY = 0f
                 return@graphicsLayer
             }
-            val bendStartLinePx = BEND_START_LINE_DP.toPx()
-            val bendZonePx = TOP_CURL_ZONE_DP * density
-            val itemTopInViewport = topInColumn + TOP_CURL_CONTENT_TOP_PADDING_DP * density - scroll
-            if (itemTopInViewport >= bendStartLinePx) {
+            val zonePx = TOP_CURL_ZONE_DP * density
+            val restTopPx = topInColumn + TOP_CURL_CONTENT_TOP_PADDING_DP * density
+            val currentTopPx = restTopPx - scroll
+            val rawProgress = ((zonePx - currentTopPx) / zonePx).coerceIn(0f, 1f)
+            if (rawProgress <= 0f) {
                 rotationX = 0f
                 scaleX = 1f
                 scaleY = 1f
                 translationY = 0f
                 return@graphicsLayer
             }
-            val p = ((bendStartLinePx - itemTopInViewport) / bendZonePx).coerceIn(0f, 1f)
+            val engage = if (restTopPx >= zonePx) {
+                1f
+            } else {
+                (scroll / restTopPx.coerceAtLeast(1f)).coerceIn(0f, 1f)
+            }
+            val p = (rawProgress * engage).coerceIn(0f, 1f)
             val curved = p * p
             if (curved <= 0f) {
                 rotationX = 0f
