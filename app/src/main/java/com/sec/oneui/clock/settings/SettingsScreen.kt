@@ -33,7 +33,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -775,8 +774,8 @@ fun SettingsScreen(
             if (showCustomUpcomingDialog) {
                 AlertDialog(
                     onDismissRequest = { showCustomUpcomingDialog = false },
-                    containerColor = Color(0xFF1C1B24),
-                    shape = RoundedCornerShape(24.dp),
+                    containerColor = Color(0xFF121218),
+                    shape = RoundedCornerShape(28.dp),
                     title = {
                         Text(
                             "Custom Upcoming Alarm",
@@ -786,37 +785,36 @@ fun SettingsScreen(
                         )
                     },
                     text = {
-                        Surface(
-                            color = Color(0xFF1C1B24),
-                            shape = RoundedCornerShape(24.dp)
-                        ) {
-                            Column {
-                                Text(
-                                    "Enter minutes before alarm for early warning (e.g. 45 for 45 mins, 90 for 1.5h):",
-                                    color = subTextColor,
-                                    fontSize = 14.sp
-                                )
-                                Spacer(modifier = Modifier.height(14.dp))
-                                OutlinedTextField(
-                                    value = customMinutesText,
-                                    onValueChange = { input ->
-                                        val digits = input.filter { it.isDigit() }.take(4)
-                                        customMinutesText = digits
-                                    },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    singleLine = true,
-                                    label = { Text("Minutes (1..1440)", color = subTextColor) },
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = textColor,
-                                        unfocusedTextColor = textColor,
-                                        focusedBorderColor = palette.primaryAccent,
-                                        unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
-                                        focusedContainerColor = Color(0xFF1C1B24),
-                                        unfocusedContainerColor = Color(0xFF1C1B24)
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
+                        Column {
+                            Text(
+                                "Enter minutes before alarm for early warning (e.g. 45 for 45 mins, 90 for 1.5h):",
+                                color = subTextColor,
+                                fontSize = 14.sp
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            OutlinedTextField(
+                                value = customMinutesText,
+                                onValueChange = { input ->
+                                    val digits = input.filter { it.isDigit() }.take(4)
+                                    customMinutesText = digits
+                                },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                shape = RoundedCornerShape(16.dp),
+                                label = { Text("Minutes (1..1440)") },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = textColor,
+                                    unfocusedTextColor = textColor,
+                                    cursorColor = palette.primaryAccent,
+                                    focusedBorderColor = palette.primaryAccent,
+                                    unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
+                                    focusedLabelColor = palette.primaryAccent,
+                                    unfocusedLabelColor = subTextColor,
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     },
                     confirmButton = {
