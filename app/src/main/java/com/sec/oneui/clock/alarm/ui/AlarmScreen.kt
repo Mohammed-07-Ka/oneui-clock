@@ -51,6 +51,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -102,12 +103,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -149,9 +153,73 @@ import dev.chrisbanes.haze.HazeState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
 private const val ALARM_DELETE_SLIDE_MS = 250
 private const val ALARM_DELETE_PLACEMENT_MS = 250
+
+// Top-edge cylinder bend/curl effect for AlarmEditSheet scrolling items.
+// Zone extends ~96.dp from the viewport top edge; positive rotationX around a
+// bottom-center pivot tilts the top of each item away (-Z) as it reaches/passes
+// the top clip edge. No alpha is used so drawInteractiveGlass stays intact.
+private const val TOP_CURL_ZONE_DP = 96f
+private const val TOP_CURL_CONTENT_TOP_PADDING_DP = 12f
+private const val TOP_CURL_MAX_ROTATION_X = 35f
+private const val TOP_CURL_MIN_SCALE = 0.92f
+private const val TOP_CURL_MAX_SINK_DP = 10f
+private const val TOP_CURL_CAMERA_DISTANCE_FACTOR = 12f
+
+@Composable
+private fun Modifier.topEdgeCurl(scrollState: ScrollState): Modifier {
+    val topHolder = remember { IntArray(1) { Int.MAX_VALUE } }
+    return this
+        .onPlaced { coords ->
+            topHolder[0] = coords.positionInParent().y.roundToInt()
+        }
+        .graphicsLayer {
+            val topInColumn = topHolder[0]
+            val scroll = scrollState.value
+            if (scroll <= 0 || topInColumn == Int.MAX_VALUE) {
+                rotationX = 0f
+                scaleX = 1f
+                scaleY = 1f
+                translationY = 0f
+                return@graphicsLayer
+            }
+            val zonePx = TOP_CURL_ZONE_DP * density
+            val restTopPx = topInColumn + TOP_CURL_CONTENT_TOP_PADDING_DP * density
+            val currentTopPx = restTopPx - scroll
+            val rawProgress = ((zonePx - currentTopPx) / zonePx).coerceIn(0f, 1f)
+            if (rawProgress <= 0f) {
+                rotationX = 0f
+                scaleX = 1f
+                scaleY = 1f
+                translationY = 0f
+                return@graphicsLayer
+            }
+            val engage = if (restTopPx >= zonePx) {
+                1f
+            } else {
+                (scroll / restTopPx.coerceAtLeast(1f)).coerceIn(0f, 1f)
+            }
+            val p = (rawProgress * engage).coerceIn(0f, 1f)
+            val curved = p * p
+            if (curved <= 0f) {
+                rotationX = 0f
+                scaleX = 1f
+                scaleY = 1f
+                translationY = 0f
+                return@graphicsLayer
+            }
+            transformOrigin = TransformOrigin(0.5f, 1f)
+            cameraDistance = TOP_CURL_CAMERA_DISTANCE_FACTOR * density
+            rotationX = TOP_CURL_MAX_ROTATION_X * curved
+            val scale = 1f - (1f - TOP_CURL_MIN_SCALE) * curved
+            scaleX = scale
+            scaleY = scale
+            translationY = TOP_CURL_MAX_SINK_DP * density * curved
+        }
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -766,6 +834,7 @@ fun AlarmEditSheet(
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
+                        .topEdgeCurl(scrollState)
                         .fillMaxWidth()
                         .height(24.dp)
                         .then(dragModifier),
@@ -785,6 +854,7 @@ fun AlarmEditSheet(
                 // iOS Sheet Header Bar: Cancel on left, Title in center, Save on right
                 Row(
                     modifier = Modifier
+                        .topEdgeCurl(scrollState)
                         .fillMaxWidth()
                         .then(dragModifier),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -894,6 +964,7 @@ fun AlarmEditSheet(
             if (use24HourFormat) {
                 Row(
                     modifier = Modifier
+                        .topEdgeCurl(scrollState)
                         .fillMaxWidth()
                         .then(
                             if (isGlassActive && backdrop != null) {
@@ -959,6 +1030,7 @@ fun AlarmEditSheet(
 
                 Row(
                     modifier = Modifier
+                        .topEdgeCurl(scrollState)
                         .fillMaxWidth()
                         .then(
                             if (isGlassActive && backdrop != null) {
@@ -1046,10 +1118,18 @@ fun AlarmEditSheet(
             Spacer(modifier = Modifier.height(15.dp))
 
             // Day of Week selector
-            Text("Repeat", fontSize = 15.sp, color = palette.textSecondary, fontWeight = FontWeight.SemiBold)
+            Text(
+                "Repeat",
+                fontSize = 15.sp,
+                color = palette.textSecondary,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.topEdgeCurl(scrollState)
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .topEdgeCurl(scrollState)
+                    .fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 val days = listOf(
@@ -1095,6 +1175,7 @@ fun AlarmEditSheet(
             val scheduleShape = RoundedCornerShape(18.dp)
             Row(
                 modifier = Modifier
+                    .topEdgeCurl(scrollState)
                     .fillMaxWidth()
                     .then(
                         if (isGlassActive && backdrop != null) {
@@ -1155,6 +1236,7 @@ fun AlarmEditSheet(
             val ringtoneShape = RoundedCornerShape(18.dp)
             Row(
                 modifier = Modifier
+                    .topEdgeCurl(scrollState)
                     .fillMaxWidth()
                     .then(
                         if (isGlassActive && backdrop != null) {
@@ -1214,6 +1296,7 @@ fun AlarmEditSheet(
             // Custom audio file picker
             Row(
                 modifier = Modifier
+                    .topEdgeCurl(scrollState)
                     .fillMaxWidth()
                     .padding(start = 36.dp)
                     .clip(RoundedCornerShape(12.dp))
@@ -1235,6 +1318,7 @@ fun AlarmEditSheet(
             val volumeShape = RoundedCornerShape(18.dp)
             Column(
                 modifier = Modifier
+                    .topEdgeCurl(scrollState)
                     .fillMaxWidth()
                     .then(
                         if (isGlassActive && backdrop != null) {
@@ -1341,6 +1425,7 @@ fun AlarmEditSheet(
                 label = { Text("Alarm Name", color = palette.textSecondary) },
                 singleLine = true,
                 modifier = Modifier
+                    .topEdgeCurl(scrollState)
                     .fillMaxWidth()
                     .onFocusChanged { focusState ->
                         if (focusState.isFocused) {
@@ -1361,9 +1446,18 @@ fun AlarmEditSheet(
             Spacer(modifier = Modifier.height(14.dp))
 
             // Snooze Interval Chips
-            Text("Snooze Duration", fontSize = 15.sp, color = palette.textSecondary, fontWeight = FontWeight.SemiBold)
+            Text(
+                "Snooze Duration",
+                fontSize = 15.sp,
+                color = palette.textSecondary,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.topEdgeCurl(scrollState)
+            )
             Spacer(modifier = Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.topEdgeCurl(scrollState),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 listOf(3, 5, 10, 15).forEach { mins ->
                     val isSelected = editorState.snoozeDurationMinutes == mins
                     val backgroundColor by animateColorAsState(
