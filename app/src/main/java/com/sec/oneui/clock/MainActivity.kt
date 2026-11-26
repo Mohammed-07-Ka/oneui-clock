@@ -833,7 +833,14 @@ fun MainClockApp(
                         repeat(3) {
                             withFrameNanos {}
                         }
-                        sheetProgress.animateTo(1f, animationSpec = ClockMotion.Smooth)
+                        sheetProgress.animateTo(
+                            targetValue = 1f,
+                            animationSpec = spring(
+                                dampingRatio = ClockMotion.Smooth.dampingRatio,
+                                stiffness = ClockMotion.Smooth.stiffness,
+                                visibilityThreshold = 0.0005f
+                            )
+                        )
                         if (DiagFlags.frameTimingOverlay) {
                             DiagFlags.stopTimingSession()
                         }
