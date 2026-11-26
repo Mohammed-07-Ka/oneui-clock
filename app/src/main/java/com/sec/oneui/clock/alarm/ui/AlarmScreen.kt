@@ -725,15 +725,15 @@ fun AlarmEditSheet(
                 .then(
                     if (isContainerGlassActive && containerBackdrop != null) {
                         Modifier
+                            .clip(sheetShape)
                             .drawInteractiveGlass(
                                 isDark = true,
                                 backdrop = containerBackdrop,
                                 layer = null,
                                 luminance = { 0.4f },
-                                shape = sheetShape,
+                                shape = RoundedCornerShape(32.dp),
                                 interaction = null
                             )
-                            .clip(sheetShape)
                     } else {
                         Modifier
                     }
